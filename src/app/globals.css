@@ -123,3 +123,13 @@
   }
 }
 
+
+
+.max-screen-wrapper {
+  @apply w-full px-0 lg:px-[30px];
+}
+
+.max-screen-inner {
+  @apply w-full lg:max-w-[1336px] mx-auto;
+}
+
