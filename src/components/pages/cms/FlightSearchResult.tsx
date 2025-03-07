@@ -2,28 +2,27 @@ import React from "react";
 import Button from "@/components/reuseables/Button";
 import ContentWrapper from "@/components/reuseables/ContentWrapper";
 import { AirlineDetails } from "@/components/molecues/cms/AirlineDetails";
-
 type Props = {};
 
-const SingleFlight = (props: Props) => {
+const FlightSearchResult = (props: Props) => {
   return (
     <ContentWrapper>
       <div className="bg-[#fff]">
         <AirlineDetails />
 
-        <div className="flex flex-col-reverse lg:flex-row px-[40px] gap-[24px] py-[20px]">
+        <div className="flex flex-col lg:flex-row px-[40px] gap-[24px] py-[20px]">
           <Button
-            title="Delete details"
-            variant="light-red"
+            title="TRY ANOTHER SEARCH"
+            variant="orange"
             weight="500"
-            icon="/assets/icons/delete.svg"
+            icon="/assets/icons/orange-search.svg"
             iconPosition="left"
           />
           <Button
-            title="UPDATE AGENCY FEE"
-            variant="light-blue"
+            title="CONFIRM SUMMARY"
+            variant="success"
             weight="500"
-            icon="/assets/icons/mode_edit.svg"
+            icon="/assets/icons/success-check.svg"
             iconPosition="left"
           />
         </div>
@@ -32,6 +31,4 @@ const SingleFlight = (props: Props) => {
   );
 };
 
-
-
-export default SingleFlight;
+export default FlightSearchResult;

@@ -5,7 +5,7 @@ type ButtonProps = {
   title: string;
   icon?: string; // Image URL (SVG, PNG, JPG)
   iconPosition?: "left" | "right";
-  variant?: "light-blue" | "blue" | "light-red" | "gray";
+  variant?: "light-blue" | "blue" | "light-red" | "gray" | "orange" | "success";
   onClick?: () => void;
   className?: string;
   weight?: "600" | "500"; // Font weight support
@@ -34,6 +34,8 @@ const Button: React.FC<ButtonProps> = ({
           "bg-[#023e8a] text-[#fff]": variant === "blue",
           "bg-[#ffd2d2] text-[#d72638]": variant === "light-red",
           "bg-[#9B9EA4] text-[#fff]": variant === "gray",
+          "bg-[#D5EBDF] text-[#2D9C5E]": variant === "success",
+          "bg-[#FFE2D2] text-[#FF6F1E]": variant === "orange",
           "w-full": full, // Apply full width if true
         },
         className
