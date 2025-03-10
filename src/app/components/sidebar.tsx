@@ -15,7 +15,7 @@ const Sidebar: React.FC = () => {
     { icon: FileText, label: "CMS", href: "/cms" },
     { icon: HelpCircle, label: "Customer Support", href: "/support" },
     { icon: Settings, label: "Report & Analytics", href: "/reports" },
-    { icon: Settings, label: "Admin Roles", href: "/admin-roles" },
+    { icon: Settings, label: "Admin Roles", href: "/admin" },
   ]
 
   return (
