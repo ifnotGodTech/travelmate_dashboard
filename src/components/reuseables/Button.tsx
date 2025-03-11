@@ -28,7 +28,7 @@ const Button: React.FC<ButtonProps> = ({
     <button
       onClick={onClick}
       className={clsx(
-        "flex items-center justify-center gap-4 px-[40px] py-[20px] rounded-[8px] transition-all duration-200",
+        " cursor-pointer flex items-center justify-center gap-4 px-[40px] py-[20px] rounded-[8px] transition-all duration-200",
         {
           "bg-[#ccd8e8] text-[#023e8a]": variant === "light-blue",
           "bg-[#023e8a] text-[#fff]": variant === "blue",

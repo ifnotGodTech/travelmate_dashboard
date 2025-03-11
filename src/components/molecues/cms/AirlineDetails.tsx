@@ -19,7 +19,7 @@ export const AirlineDetails = () => {
           <img src="/assets/images/flight-logo.svg" alt="" className="" />
         </div>
         <div className="space-y-6">
-          <h3 className="font-inter font-medium text-[20px] leading-[100%] tracking-[0%] ">
+          <h3 className="font-inter font-medium text-[20px] leading-[100%] tracking-[0%]">
             Airline Information
           </h3>
           <div className="space-y-6 w-full">
