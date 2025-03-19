@@ -7,7 +7,7 @@ type LayoutWrapperProps = {
 
 const ContentWrapper = ({ children, className = "" }: LayoutWrapperProps) => {
   return (
-    <div className="h-screen overflow-y-auto max-screen-wrapper">
+    <div className="max-screen-wrapper">
       <div className="max-screen-inner lg:py-[20px]">
         <div className="hidden w-full lg:block">
           <img
