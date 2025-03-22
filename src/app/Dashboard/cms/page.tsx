@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Button from "@/components/reuseables/Button";
+import Link from "next/link";
 
 type Props = {};
 
@@ -26,51 +27,112 @@ interface UserHistory {
   Description: string;
 }
 
-const userHistoryData: UserHistory[] = [
+const serviceData: UserHistory[] = [
   {
     Service: "Flights",
     Fee: "Set by airline",
     Rate: "N200,000",
     Description: "Fee added to airline base fare",
   },
+  {
+    Service: "Hotels",
+    Fee: "Set by hotel",
+    Rate: "N20,000",
+    Description: "Fee added to airline base fare",
+  },
+  {
+    Service: "Cars",
+    Fee: "Set by company",
+    Rate: "N10,000",
+    Description: "Fee added to airline base fare",
+  },
 ];
 
 const CmsContent = () => {
   return (
-    <div className="space-y-6">
-      <div className="">
-        <h1 className="text-[20px] font-[600] text-[#181818]"></h1>
+    <div className="p-4">
+      <div className="space-y-6">
+        <h1 className="text-[20px] font-[600] text-[#181818]">Services</h1>
 
-        <div className="rounded-[20px] gap-[40px] p-6 bg-[#fff]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-left">Service Type</TableHead>
-                <TableHead className="text-left">Base Fee</TableHead>
-
-                <TableHead className="text-left">Agency Rate</TableHead>
-                <TableHead className="text-left hidden lg:table-cell">
+        <div className="rounded-[20px] space-y-[40px] p-0 lg:p-6 bg-[#fff]">
+          <table className="w-full border-collapse table-fixed">
+            <thead>
+              <tr>
+                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                  Service
+                </th>
+                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                  Fee
+                </th>
+                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                  Rate
+                </th>
+                <th className="w-2/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] hidden lg:table-cell">
                   Description
-                </TableHead>
-                <TableHead className="text-left">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="space-y-6">
-              {userHistoryData.map((item, index) => (
-                <TableRow className="my-10">
-                  <TableCell>{item.Service}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {item.Fee}
-                  </TableCell>
-                  <TableCell>{item.Rate}</TableCell>
-                  <TableCell>{item.Description}</TableCell>
-                  <TableCell>
-                    <Button title="Edit" variant="blue" />
-                  </TableCell>
-                </TableRow>
+                </th>
+                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {serviceData.map((item, index) => (
+                <tr key={index}>
+                  <td className="py-[16px]">
+                    <span className="text-[12px] lg:text-[16px] font-[600] text-[#181818] text-left">
+                      {item.Service}
+                    </span>
+                  </td>
+                  <td className="py-[16px]">
+                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
+                      {item.Fee}
+                    </span>
+                  </td>
+                  <td className="py-[16px]">
+                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
+                      {item.Rate}
+                    </span>
+                  </td>
+                  <td className="py-[16px] hidden lg:table-cell">
+                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left truncate max-w-none">
+                      {item.Description}
+                    </span>
+                  </td>
+                  <td className="py-[16px]">
+                    <div className="flex items-center cursor-pointer ">
+                      <Link href="/Dashboard/cms/change-rate">
+                        <img
+                          src="/assets/icons/mode_edit.svg"
+                          alt="Edit"
+                          className="cursor-pointer lg:hidden "
+                        />
+                        <button className="py-2 px-4 rounded-lg bg-[#023E8A] text-white text-sm font-semibold hover:bg-[#0257C1] transition-all hidden lg:block">
+                          Edit
+                        </button>
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
+
+          <div className="w-full h-[1px] bg-[#EBECED] "></div>
+
+          <div className="p-4">
+            <div className="p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
+              <h1 className="text-[16px] font-[500] text-[#023E8A] ">
+                How Agency Rates Work
+              </h1>
+
+              <p className="text-[14px] lg:text-[16px] leading-[25px] font-[500] text-[#181818] ">
+                These fees represent the markup your agency adds to the base
+                fees charged by service providers. For example, if an airline
+                charges N500,000 for a flight and your agency rate is N50,000,
+                the customer will see N550,000 at their own end.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

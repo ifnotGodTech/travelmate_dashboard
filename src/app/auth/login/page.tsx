@@ -2,6 +2,7 @@ import React from "react";
 import AuthWrapper from "../AuthWrapper";
 import { Switch } from "@/components/ui/switch";
 import Button from "@/components/reuseables/Button";
+import Link from "next/link";
 
 type Props = {};
 
@@ -38,13 +39,17 @@ const LoginComponent = () => {
         </div>
       </div>
 
-      <div className="flex justify-end ">
-        <p className="text-[#023E8A] lg:text-[14px] font-[400] lg:font-medium text-[12px]">
-          Forgot password?
-        </p>
+      <div className="">
+        <Link href={"/auth/reset-password"} className="w-full flex justify-end ">
+          <p className="text-[#023E8A] lg:text-[14px] font-[400] lg:font-medium text-[12px]">
+            Forgot password?
+          </p>
+        </Link>
       </div>
 
-      <Button title="SIGN IN" variant="blue" full weight="600" />
+      <Link href={"/Dashboard/support"} className="w-full">
+        <Button title="SIGN IN" variant="blue" full weight="600" />{" "}
+      </Link>
     </div>
   );
 };

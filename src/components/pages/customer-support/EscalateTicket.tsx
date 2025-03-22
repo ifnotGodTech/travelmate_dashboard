@@ -11,13 +11,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 
 type Props = {};
 
 const EscalateTicket = (props: Props) => {
   return (
     <div>
-      <ContentWrapper>
+      <ContentWrapper redirectLink="/Dashboard/support/ticket">
         <div className="bg-[#fff] lg:rounded-[20px] ">
           <EscalateDetails />
         </div>
@@ -267,7 +268,9 @@ const SuccessModal = () => {
             The issue has been escalated and is now under review.
           </DialogDescription>
 
-          <Button title="GO BACK TO DASHBOARD" variant="blue" full />
+          <Link href={"/Dashboard/support"} className="w-full">
+            <Button title="GO BACK TO DASHBOARD" variant="blue" full />
+          </Link>
         </div>
       </DialogContent>
     </Dialog>

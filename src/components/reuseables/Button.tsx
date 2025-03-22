@@ -181,8 +181,7 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({
     >
       <div
         className={clsx("flex items-center justify-center rounded-full", {
-          "px-[40px] py-[20px] border-[2px]": size === "16",
-          "px-[24px] py-[16px] border-[2px]": size === "14",
+          "w-[20px] h-[20px] border-[2px]": size === "16",
           "bg-[#fff] border-[#67696D]": !active,
           "bg-[#fff] border-[#023e8a]": active,
         })}
@@ -190,8 +189,7 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({
         {active && (
           <div
             className={clsx("rounded-full", {
-              "w-3.5 h-3.5 bg-[#023E8A]": size === "16",
-              "w-3 h-3 bg-[#023E8A]": size === "14",
+              "w-[10px] h-[10px] bg-[#023E8A]": size === "16",
             })}
           ></div>
         )}

@@ -3,6 +3,7 @@ import AuthWrapper from "../AuthWrapper";
 import { Switch } from "@/components/ui/switch";
 import Button from "@/components/reuseables/Button";
 import { InputReuseables } from "../login/page";
+import Link from "next/link";
 
 type Props = {};
 
@@ -28,9 +29,21 @@ const ResetComponent = () => {
         </p>
       </div>
       <Inputs />
-
-      <Button title="SEND RECOVERY EMAIL" variant="blue" full weight="600" />
-      <Button title="BACK TO LOG IN" variant="outline" full weight="600" />
+      <div className="">
+        <Link href={"/auth/otp"} className="w-full">
+          <Button
+            title="SEND RECOVERY EMAIL"
+            variant="blue"
+            full
+            weight="600"
+          />{" "}
+        </Link>
+      </div>
+      <div>
+        <Link href={"/auth/login"} className="w-full">
+          <Button title="BACK TO LOG IN" variant="outline" full weight="600" />{" "}
+        </Link>
+      </div>
     </div>
   );
 };

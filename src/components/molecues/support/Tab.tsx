@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import Link from "next/link";
 import {
   Table,
   TableHeader,
@@ -180,7 +181,11 @@ const ChatTabContent: React.FC<ChatTabContentProps> = ({ data, loading }) => {
                 <h2 className="font-[500] lg:font-[600] text-[14px] lg:text-[20px] text-[#181818]">
                   Chats
                 </h2>
-                <img src="/assets/icons/expand.svg" alt="" className="cursor-pointer hidden lg:block " />
+                <img
+                  src="/assets/icons/expand.svg"
+                  alt=""
+                  className="cursor-pointer hidden lg:block "
+                />
               </div>
               <div className="w-full h-[2px] bg-[#EBECED]"></div>
               <ul>
@@ -316,13 +321,14 @@ const TicketTabContent: React.FC<TicketTabContentProps> = ({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="blue"
-                      title="View"
-                      icon="/assets/icons/eye.svg"
-                      size="14"
-                      responsiveHideText={true}
-                    />
+                    <Link href={"/Dashboard/support/ticket"}>
+                      <Button
+                        variant="blue"
+                        title="View"
+                        icon="/assets/icons/eye.svg"
+                        size="14" hi
+                      />
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}
@@ -439,6 +445,7 @@ const FaqTabContent: React.FC<FaqTabContentProps> = ({ data, loading }) => {
     flights: data?.flights || defaultFaqData.flights,
     hotels: data?.hotels || defaultFaqData.hotels,
     carRentals: data?.carRentals || defaultFaqData.carRentals,
+    account: data?.account || defaultFaqData.account,
   };
 
   return (
@@ -454,13 +461,15 @@ const FaqTabContent: React.FC<FaqTabContentProps> = ({ data, loading }) => {
                   FAQs
                 </h1>
               </div>
-              <div className="hidden lg:block">
-                <Button
-                  variant="orange-deep"
-                  title="Add New"
-                  icon="/assets/icons/white-plus.svg"
-                />
-              </div>
+              <Link href={"/Dashboard/support/faq/add-faq"}>
+                <div className="hidden lg:block">
+                  <Button
+                    variant="orange-deep"
+                    title="Add New"
+                    icon="/assets/icons/white-plus.svg"
+                  />
+                </div>
+              </Link>
             </div>
             <Tabs defaultValue="flights" className="w-full ">
               <TabsList className="w-full bg-transparent border-[#CDCED1] border-b-[1px] pb-[6px] rounded-none">
@@ -525,21 +534,38 @@ const FaqTabContent: React.FC<FaqTabContentProps> = ({ data, loading }) => {
                   ))}
                 </Accordion>
               </TabsContent>
+              <TabsContent value="account">
+                <Accordion type="single" collapsible>
+                  {faqData.carRentals.map((faq, index) => (
+                    <AccordionItem
+                      key={index}
+                      value={`carRentals-faq-${index}`}
+                    >
+                      <AccordionTrigger>{faq.question}</AccordionTrigger>
+                      <AccordionContent>{faq.answer}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </TabsContent>
             </Tabs>
           </div>
           <div className="lg:px-10 flex justify-between lg:space-x-6 space-y-6 lg:space-y-0 flex-col lg:flex-row ">
-            <Button
-              variant="orange"
-              title="EDIT FAQ"
-              icon="/assets/icons/orange-pen.svg"
-              full
-            />
-            <Button
-              variant="light-blue"
-              title="ADD NEW FAQ"
-              icon="/assets/icons/blue-plus.svg"
-              full
-            />
+            <Link href={"/Dashboard/support/faq/delete-faq"} className="w-full">
+              <Button
+                variant="light-red"
+                title="DELETE FAQ"
+                icon="/assets/icons/delete.svg"
+                full
+              />
+            </Link>
+            <Link href={"/Dashboard/support/faq/add-faq"} className="w-full">
+              <Button
+                variant="light-blue"
+                title="ADD NEW FAQ"
+                icon="/assets/icons/blue-plus.svg"
+                full
+              />
+            </Link>
           </div>
         </div>
       )}

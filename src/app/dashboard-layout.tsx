@@ -24,10 +24,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    { icon: Users, label: "Users", href: "/users" },
+    { icon: Users, label: "Users", href: "/Dashboard/user" },
     { icon: BookOpen, label: "Bookings", href: "/bookings" },
-    { icon: FileText, label: "CMS", href: "/cms" },
-    { icon: HelpCircle, label: "Customer Support", href: "/customer-support" },
+    { icon: FileText, label: "CMS", href: "/Dashboard/cms" },
+    { icon: HelpCircle, label: "Customer Support", href: "/Dashboard/support" },
     { icon: Settings, label: "Report & Analytics", href: "/reports" },
     { icon: Settings, label: "Admin Roles", href: "/admin" },
   ];

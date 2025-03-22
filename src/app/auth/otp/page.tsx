@@ -7,6 +7,7 @@ import {
   InputOTPSlot,
   InputOTP,
 } from "@/components/ui/input-otp";
+import Link from "next/link";
 
 type Props = {};
 
@@ -40,8 +41,11 @@ const OtpComponent = () => {
           <span className="underline text-[#023E8A] ">Resend</span>{" "}
         </p>
       </div>
-
-      <Button title="VERIFY" variant="blue" full weight="600" />
+      <div>
+        <Link href={"/auth/login"} className="w-full">
+          <Button title="VERIFY" variant="blue" full weight="600" />{" "}
+        </Link>{" "}
+      </div>
       <Button title="BACK TO LOG IN" variant="outline" full weight="600" />
     </div>
   );
@@ -57,12 +61,24 @@ const Otpinput = () => {
       </div>
 
       <div className=" flex justify-center ">
-        <InputOTP maxLength={4}  >
-          <InputOTPGroup className="space-x-4" >
-            <InputOTPSlot index={0} className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] " />
-            <InputOTPSlot index={1} className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] " />
-            <InputOTPSlot index={2} className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] " />
-            <InputOTPSlot index={3} className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] " />
+        <InputOTP maxLength={4}>
+          <InputOTPGroup className="space-x-4">
+            <InputOTPSlot
+              index={0}
+              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
+            />
+            <InputOTPSlot
+              index={1}
+              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
+            />
+            <InputOTPSlot
+              index={2}
+              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
+            />
+            <InputOTPSlot
+              index={3}
+              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
+            />
           </InputOTPGroup>
         </InputOTP>
       </div>

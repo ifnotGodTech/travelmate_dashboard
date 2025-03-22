@@ -123,15 +123,6 @@ interface UserHistory {
   img: string;
 }
 
-interface UserHistory {
-  Name: string;
-  Joined: string;
-  Bookings: string;
-  Points: string;
-  Email: string;
-  img: string;
-}
-
 const userHistoryData: UserHistory[] = [
   {
     Name: "Kemi Adeoti",

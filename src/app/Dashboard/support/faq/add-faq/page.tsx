@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 
 type Props = {};
 
@@ -146,7 +147,9 @@ const SuccessModal = () => {
             You have successfully added a new FAQ for customers
           </DialogDescription>
 
-          <Button title="GO BACK TO DASHBOARD" variant="blue" full />
+          <Link href={"/Dashboard/support"} className="w-full">
+            <Button title="GO BACK TO DASHBOARD" variant="blue" full />
+          </Link>
         </div>
       </DialogContent>
     </Dialog>

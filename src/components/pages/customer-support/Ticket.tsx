@@ -1,12 +1,13 @@
 import ContentWrapper from "@/components/reuseables/ContentWrapper";
 import React from "react";
 import Button from "@/components/reuseables/Button";
+import Link from "next/link";
 
 type Props = {};
 
 const Ticket = (props: Props) => {
   return (
-    <ContentWrapper>
+    <ContentWrapper redirectLink="/Dashboard/support">
       <div className="bg-[#fff] lg:rounded-[20px] ">
         <div className="p-[40px] space-y-[24px]">
           <div className="">
@@ -53,22 +54,29 @@ const Ticket = (props: Props) => {
           <CustomerInfo />
 
           <div className="flex flex-col lg:flex-row justify-center gap-[24px] py-[20px]">
-            <Button
-              title="SEND RESPONSE"
-              variant="light-blue"
-              weight="500"
-              icon="/assets/icons/blue-send.svg"
-              iconPosition="left"
-              full
-            />
-            <Button
-              title="ESCALATE REQUEST"
-              variant="orange"
-              weight="500"
-              icon="/assets/icons/caution.svg"
-              iconPosition="left"
-              full
-            />
+            <Link href={"/Dashboard/support/respond"} className="w-full">
+              <Button
+                title="SEND RESPONSE"
+                variant="light-blue"
+                weight="500"
+                icon="/assets/icons/blue-send.svg"
+                iconPosition="left"
+                full
+              />
+            </Link>
+            <Link
+              href={"/Dashboard/support/escalate-ticket"}
+              className="w-full"
+            >
+              <Button
+                title="ESCALATE REQUEST"
+                variant="orange"
+                weight="500"
+                icon="/assets/icons/caution.svg"
+                iconPosition="left"
+                full
+              />
+            </Link>
           </div>
         </div>
       </div>

@@ -16,12 +16,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 
 type Props = {};
 
 const Addrate = (props: Props) => {
   return (
-    <ContentWrapper>
+    <ContentWrapper redirectLink="/Dashboard/cms">
       <div className="bg-[#fff] p-[40px] rounded-[20px]">
         <AddrateComponent />
       </div>
@@ -45,26 +46,10 @@ const AddrateComponent = () => {
 
       <div className="space-y-10">
         <div className="space-y-6">
-          <h1 className="text-[16px] font-[500] text-[#181818]">Route</h1>
-          <Dropdown
-            options={["Lagos - Abuja", "New York - London", "Dubai - Paris"]}
-            placeholder="Select Route"
-            onSelect={(value) => console.log("Selected:", value)}
-          />
-        </div>
-        <div className="space-y-6">
-          <h1 className="text-[16px] font-[500] text-[#181818]">Status</h1>
-          <Dropdown
-            options={["Lagos - Abuja", "New York - London", "Dubai - Paris"]}
-            placeholder="Select Route"
-            onSelect={(value) => console.log("Selected:", value)}
-          />
-        </div>
-        <div className="space-y-6">
           <h1 className="text-[16px] font-[500] text-[#181818]">Currency</h1>
           <Dropdown
-            options={["Lagos - Abuja", "New York - London", "Dubai - Paris"]}
-            placeholder="Select Route"
+            options={["Naira", "Dollar", "Pound"]}
+            placeholder="Select currency"
             onSelect={(value) => console.log("Selected:", value)}
           />
         </div>
@@ -156,7 +141,9 @@ const SuccessModal = () => {
             added
           </DialogDescription>
 
-          <Button title="VIEW UPDATE" variant="blue" full />
+          <Link href="/Dashboard/cms" className="w-full">
+            <Button title="VIEW UPDATE" variant="blue" full />
+          </Link>
         </div>
       </DialogContent>
     </Dialog>
