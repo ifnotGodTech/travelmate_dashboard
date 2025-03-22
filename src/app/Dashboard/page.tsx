@@ -1,9 +1,8 @@
 import React from 'react'
-import DashboardLayout from '../dashboard-layout'
 
-type Props = {}
 
-const page = (props: Props) => {
+
+const page = () => {
   return (
     <div>page</div>
   )

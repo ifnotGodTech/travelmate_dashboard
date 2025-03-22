@@ -9,9 +9,8 @@ import {
 } from "@/components/ui/table";
 import React from "react";
 
-type Props = {};
 
-const page = (props: Props) => {
+const page = () => {
   return (
     <div>
       <UserManagemntComponents />

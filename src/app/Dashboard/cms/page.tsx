@@ -1,18 +1,9 @@
 import React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import Button from "@/components/reuseables/Button";
 import Link from "next/link";
 
-type Props = {};
 
-const page = (props: Props) => {
+const page = () => {
   return (
     <div>
       <CmsContent />
