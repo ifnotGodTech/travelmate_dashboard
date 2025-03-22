@@ -16,7 +16,7 @@ const LoginComponent = () => {
     <div className="bg-[#fff] p-[40px] space-y-10 rounded-[20px]">
       <div className="flex flex-col items-center gap-4">
         <img
-          src="/assets/images/logo.svg"
+          src="/assets/images/company-logo.svg"
           alt=""
           className="lg:w-28 w-[53px] "
         />

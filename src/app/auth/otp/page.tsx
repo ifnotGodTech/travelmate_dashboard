@@ -21,7 +21,7 @@ const OtpComponent = () => {
     <div className="bg-[#fff] p-[40px] space-y-[36px] rounded-[20px]">
       <div className="flex flex-col items-center gap-4">
         <img
-          src="/assets/images/blue-check.svg"
+          src="/assets/images/company-logo.svg"
           alt=""
           className="lg:w-28 w-[53px] "
         />
