@@ -1,13 +1,10 @@
 import React from "react";
 import AuthWrapper from "../AuthWrapper";
-import { Switch } from "@/components/ui/switch";
 import Button from "@/components/reuseables/Button";
 
-type Props = {};
-
-const page = (props: Props) => {
+const page = () => {
   return (
-    <AuthWrapper page="login">
+    <AuthWrapper>
       <EmailComponent />
     </AuthWrapper>
   );

@@ -3,11 +3,10 @@ import Link from "next/link";
 
 type LayoutWrapperProps = {
   children: React.ReactNode;
-  className?: string;
   redirectLink: string
 };
 
-const ContentWrapper = ({ children, className = "", redirectLink }: LayoutWrapperProps) => {
+const ContentWrapper = ({ children, redirectLink }: LayoutWrapperProps) => {
   return (
     <div className="max-screen-wrapper">
       <div className="max-screen-inner lg:py-[20px]">
