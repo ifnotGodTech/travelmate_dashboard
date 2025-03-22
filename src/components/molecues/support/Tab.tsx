@@ -326,7 +326,7 @@ const TicketTabContent: React.FC<TicketTabContentProps> = ({
                         variant="blue"
                         title="View"
                         icon="/assets/icons/eye.svg"
-                        size="14" hi
+                        size="14"
                       />
                     </Link>
                   </TableCell>
