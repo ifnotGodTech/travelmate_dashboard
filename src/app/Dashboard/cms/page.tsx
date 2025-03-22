@@ -1,8 +1,5 @@
 import React from "react";
-import Button from "@/components/reuseables/Button";
 import Link from "next/link";
-
-
 const page = () => {
   return (
     <div>
