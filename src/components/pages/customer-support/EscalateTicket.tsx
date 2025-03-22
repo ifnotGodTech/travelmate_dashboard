@@ -13,9 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 
-type Props = {};
-
-const EscalateTicket = (props: Props) => {
+const EscalateTicket = () => {
   return (
     <div>
       <ContentWrapper redirectLink="/Dashboard/support/ticket">

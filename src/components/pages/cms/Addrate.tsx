@@ -18,9 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 
-type Props = {};
-
-const Addrate = (props: Props) => {
+const Addrate = () => {
   return (
     <ContentWrapper redirectLink="/Dashboard/cms">
       <div className="bg-[#fff] p-[40px] rounded-[20px]">

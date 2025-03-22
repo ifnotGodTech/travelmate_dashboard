@@ -1,9 +1,7 @@
 import Button from "@/components/reuseables/Button";
 import React from "react";
 
-type Props = {};
-
-const page = (props: Props) => {
+const page = () => {
   return (
     <div>
       <ProfileComponent />
