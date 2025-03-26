@@ -303,8 +303,8 @@ const UserActivityTable: React.FC = () => {
                     </span>
 
                     {/* Actions */}
-                    <div className="flex  lg:flex-1 items-center space-x-[12px]">
-                      <div className="flex items-center space-x-2 text-[#023E8A] cursor-pointer">
+                    <div className="flex  lg:flex-1 items-center space-x-[8px]">
+                      <div className="flex items-center space-x-[4px] text-[#023E8A] cursor-pointer">
                         <p className="hidden lg:block text-[12px] lg:text-[14px]">
                           Download Receipt
                         </p>

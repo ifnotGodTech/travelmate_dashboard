@@ -88,7 +88,7 @@ const Button: React.FC<ButtonProps> = ({
           "text-[14px]": size === "14",
           "font-medium": weight === "500",
           "font-semibold": weight === "600",
-          "hidden sm:inline": responsiveHideText, // Text hidden on small screens, visible on larger screens
+          "hidden lg:inline": responsiveHideText, // Text hidden on small screens, visible on larger screens
         })}
       >
         {title}

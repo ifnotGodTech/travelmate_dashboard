@@ -94,7 +94,7 @@ const CmsContent = () => {
                           alt="Edit"
                           className="cursor-pointer lg:hidden "
                         />
-                        <button className="py-2 px-4 rounded-lg bg-[#023E8A] text-white text-sm font-semibold hover:bg-[#0257C1] transition-all hidden lg:block">
+                        <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
                           Edit
                         </button>
                       </Link>

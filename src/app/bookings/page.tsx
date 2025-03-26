@@ -338,7 +338,7 @@ export default function BookingsPage() {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Bookings</h1>
 
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+        {/* <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="relative w-full md:w-2/3">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -370,7 +370,7 @@ export default function BookingsPage() {
           <BookingFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />
         </div>
 
-        <BookingCalendar bookings={filteredBookings} onBookingClick={handleBookingClick} />
+        <BookingCalendar bookings={filteredBookings} onBookingClick={handleBookingClick} /> */}
       </div>
     </DashboardLayout>
   )
