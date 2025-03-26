@@ -3,9 +3,7 @@ import React from "react";
 import Button from "@/components/reuseables/Button";
 import Link from "next/link";
 
-type Props = {};
-
-const Ticket = (props: Props) => {
+const Ticket = () => {
   return (
     <ContentWrapper redirectLink="/Dashboard/support">
       <div className="bg-[#fff] lg:rounded-[20px] ">

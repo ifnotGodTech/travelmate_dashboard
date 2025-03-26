@@ -12,9 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 
-type Props = {};
-
-const Response = (props: Props) => {
+const Response = () => {
   return (
     <ContentWrapper redirectLink="/Dashboard/support/ticket">
       <div className="bg-[#fff] lg:rounded-[20px]">

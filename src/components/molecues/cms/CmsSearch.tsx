@@ -1,8 +1,6 @@
 import React from 'react'
 
-type Props = {}
-
-const CmsSearch = (props: Props) => {
+const CmsSearch = () => {
   return (
     <div>CmsSearch</div>
   )

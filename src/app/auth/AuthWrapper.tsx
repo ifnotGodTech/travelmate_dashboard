@@ -3,10 +3,8 @@ import React from "react";
 
 const AuthWrapper = ({
   children,
-  page,
 }: {
   children: React.ReactNode;
-  page: string;
 }) => {
   return (
     <div className="lg:bg-[#f5f5f5] min-h-screen py-[40px] flex justify-center items-center">

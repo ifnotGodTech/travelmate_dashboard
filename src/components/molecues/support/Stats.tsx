@@ -1,8 +1,6 @@
 import React from "react";
 
-type Props = {};
-
-const Stats = (props: Props) => {
+const Stats = () => {
   return (
     <div className="space-y-6 mt-[10] ">
       <div className="hidden lg:block">

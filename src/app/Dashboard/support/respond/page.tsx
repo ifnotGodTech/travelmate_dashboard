@@ -1,10 +1,7 @@
 "use client";
 import Response from "@/components/pages/customer-support/Response";
 import React from "react";
-
-type Props = {};
-
-const page = (props: Props) => {
+const page = () => {
   return (
     <div>
       <Response />

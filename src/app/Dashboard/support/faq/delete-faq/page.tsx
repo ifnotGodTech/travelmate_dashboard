@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -17,9 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import Button from "@/components/reuseables/Button";
 
-type Props = {};
-
-const Page = (props: Props) => {
+const Page = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -124,11 +121,6 @@ const Page = (props: Props) => {
       )}
     </div>
   );
-};
-
-type FaqTabContentProps = {
-  data?: Record<string, { question: string; answer: string }[]>;
-  loading: boolean;
 };
 
 const FaqTabContent: React.FC = () => {

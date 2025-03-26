@@ -1,6 +1,5 @@
 import React from "react";
 import AuthWrapper from "../AuthWrapper";
-import { Switch } from "@/components/ui/switch";
 import Button from "@/components/reuseables/Button";
 import {
   InputOTPGroup,
@@ -9,11 +8,9 @@ import {
 } from "@/components/ui/input-otp";
 import Link from "next/link";
 
-type Props = {};
-
-const page = (props: Props) => {
+const page = () => {
   return (
-    <AuthWrapper page="login">
+    <AuthWrapper >
       <OtpComponent />
     </AuthWrapper>
   );
@@ -24,7 +21,7 @@ const OtpComponent = () => {
     <div className="bg-[#fff] p-[40px] space-y-[36px] rounded-[20px]">
       <div className="flex flex-col items-center gap-4">
         <img
-          src="/assets/images/blue-check.svg"
+          src="/assets/images/company-logo.svg"
           alt=""
           className="lg:w-28 w-[53px] "
         />

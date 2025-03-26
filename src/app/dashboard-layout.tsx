@@ -4,16 +4,7 @@ import type React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  FileText,
-  HelpCircle,
-  Settings,
-  LogOut,
-  ChevronDown,
-} from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -23,19 +14,56 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    { icon: Users, label: "Users", href: "/Dashboard/user" },
-    { icon: BookOpen, label: "Bookings", href: "/bookings" },
-    { icon: FileText, label: "CMS", href: "/Dashboard/cms" },
-    { icon: HelpCircle, label: "Customer Support", href: "/Dashboard/support" },
-    { icon: Settings, label: "Report & Analytics", href: "/reports" },
-    { icon: Settings, label: "Admin Roles", href: "/admin" },
+    {
+      icon: "/assets/icons/side-dashboard.svg",
+      label: "Dashboard",
+      href: "/Dashboard",
+      iconActive: "/assets/icons/a-sidebar-dashboard.svg",
+    },
+    {
+      icon: "/assets/icons/side-user.svg",
+      label: "Users",
+      href: "/Dashboard/user",
+      iconActive: "/assets/icons/a-sidebar-user.svg",
+    },
+    {
+      icon: "/assets/icons/side-booking.svg",
+      label: "Bookings",
+      href: "/bookings",
+      iconActive: "/assets/icons/a-sidebar-booking.svg",
+    },
+    {
+      icon: "/assets/icons/side-cms.svg",
+      label: "CMS",
+      href: "/Dashboard/cms",
+      iconActive: "/assets/icons/a-sidebar-cms.svg",
+    },
+    {
+      icon: "/assets/icons/side-support.svg",
+      label: "Customer Support",
+      href: "/Dashboard/support",
+      iconActive: "/assets/icons/a-sidebar-support.svg",
+    },
+    {
+      icon: "/assets/icons/side-report.svg",
+      label: "Report & Analytics",
+      href: "/reports",
+      iconActive: "/assets/icons/a-sidebar-report.svg",
+    },
+    {
+      icon: "/assets/icons/side-roles.svg",
+      label: "Admin Roles",
+      href: "/admin",
+      iconActive: "/assets/icons/a-sidebar-role.svg",
+    },
   ];
 
+  const currentNavItem = navItems.find((item) => item.href === pathname);
+
   return (
-    <div className="flex h-screen lg:bg-gray-100 bg-[#fff]  ">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col h-screen">
+      <div className="w-64 bg-[#EBECED] border-r border-gray-200 hidden md:flex flex-col h-screen">
         <div className="p-6">
           <Link href="/" className="text-blue-700 text-xl font-semibold">
             TravelMate
@@ -43,25 +71,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+            const isActive = pathname === item.href; // Strict equality check
             return (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
-                className={`flex items-center px-4 py-3 rounded-lg text-sm ${
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-100"
+                className={`flex items-center p-[12px] space-x-[12px] rounded-[18px] ${
+                  isActive ? "bg-[#CCD8E8]" : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <item.icon
-                  className={`h-5 w-5 mr-3 ${
-                    isActive ? "text-blue-700" : "text-gray-500"
-                  }`}
-                />
-                {item.label}
+                <div
+                  className={`${
+                    isActive ? "bg-[#023E8A]" : "bg-[#DEDFE1]"
+                  } w-8 h-8 rounded-full flex items-center justify-center`}
+                >
+                  <img src={isActive ? item.iconActive : item.icon} alt="" />
+                </div>
+                <div
+                  className={`${
+                    isActive ? "text-[#023E8A]" : "text-[#181818]"
+                  } font-[400] text-[16px]`}
+                >
+                  {item.label}
+                </div>
               </Link>
             );
           })}
@@ -75,30 +107,54 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-end p-4 md:p-6 bg-white border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <button className="flex items-center gap-2 rounded-full">
-                <div className="relative h-10 w-10 rounded-full overflow-hidden">
-                  <Image
-                    src="/placeholder-user.jpg"
-                    alt="User avatar"
-                    width={40}
-                    height={40}
-                    className="object-cover rounded-full"
-                  />
-                </div>
-                <span className="font-medium">Admin</span>
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              </button>
-            </div>
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto lg:p-[40px] px-0  md:p-6">
-          {children}
-        </main>
+      <div className="flex-1 flex flex-col overflow-y-auto lg:bg-[#f5f5f5] ">
+        <Navbar pageName={currentNavItem?.label || "Unknown Page"} />
+        <main className="flex-1 lg:px-[40px] px-6">{children}</main>
       </div>
     </div>
   );
 }
+
+const Navbar = ({ pageName }: { pageName: string }) => {
+  return (
+    <div className="p-4 md:p-6">
+      <header className="flex items-center justify-between p-4 md:p-6">
+        <div className="hidden lg:block">
+          <h1 className="text-[28px] font-[600] text-[#181818] ">
+            {pageName == "CMS" ? "Content Management System" : pageName}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px] ">
+          <div className="relative cursor-pointer ">
+            <button className="flex items-center gap-2 rounded-full">
+              <div className="">
+                <Image
+                  src="/assets/images/nav-user.svg"
+                  alt="User avatar"
+                  width={40}
+                  height={40}
+                  className="object-cover rounded-full"
+                />
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="font-medium text-[16px] text-[#181818] leading-[100%]">
+                  Admin
+                </span>
+                <ChevronDown className="h-4 w-4 text-[#181818]" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex space-x-3 items-center lg:hidden">
+          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center  cursor-pointer ">
+            <img src="/assets/icons/Bell.svg" alt="" className="" />
+          </div>
+          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center  cursor-pointer ">
+            <img src="/assets/icons/Menu.svg" alt="" />
+          </div>
+        </div>
+      </header>
+    </div>
+  );
+};

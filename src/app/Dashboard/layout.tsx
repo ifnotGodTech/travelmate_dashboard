@@ -1,6 +1,4 @@
 "use client";
-
-import { useRouter } from "next/navigation";
 import DashboardLayout from "../dashboard-layout";
 
 export default function RootLayout({
@@ -8,7 +6,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const router = useRouter();
 
   return (
     <DashboardLayout>

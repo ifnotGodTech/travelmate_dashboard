@@ -17,9 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 
-type Props = {};
-
-const page = (props: Props) => {
+const page = () => {
   return (
     <div className=" lg:bg-transparent">
       <AddComponent />
