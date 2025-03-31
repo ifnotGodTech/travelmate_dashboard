@@ -18,51 +18,69 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 
-const Addrate = () => {
+type Props = {};
+
+const page = (props: Props) => {
   return (
-    <ContentWrapper>
-      <div className="bg-[#fff] p-[40px] rounded-[20px]">
-        <AddrateComponent />
-      </div>
-    </ContentWrapper>
+    <div>
+      <AddrateComponent />
+    </div>
   );
 };
 
 const AddrateComponent = () => {
   return (
-    <div className="space-y-[24px]">
-      <div className="space-y-4">
-        <h1 className="text-[20px] font-[500] text-[#181818]">
-          Add Agency Rate
-        </h1>
+    <ContentWrapper>
+      <div className="bg-[#fff] p-[40px] rounded-[20px]">
+        <div className="space-y-[24px]">
+          <div className="space-y-4">
+            <h1 className="text-[20px] font-[500] text-[#181818]">
+              Add Agency Rate
+            </h1>
 
-        <p className="text-[16px] font-[400] text-[#67696d]">
-          This is the fee received by your company on every booking made with
-          Flamingo Airline through your platform.
-        </p>
-      </div>
+            <p className="text-[16px] font-[400] text-[#67696d]">
+              This is the fee received by your company on every booking made
+              with Flamingo Airline through your platform.
+            </p>
+          </div>
 
-      <div className="space-y-10">
-        <div className="space-y-6">
-          <h1 className="text-[16px] font-[500] text-[#181818]">Currency</h1>
-          <Dropdown
-            options={["Naira", "Dollar", "Pound"]}
-            placeholder="Select currency"
-            onSelect={(value) => console.log("Selected:", value)}
-          />
+          <div className="space-y-10">
+            <div className="space-y-6">
+              <h1 className="text-[16px] font-[500] text-[#181818]">
+                Currency
+              </h1>
+              <Dropdown
+                options={["Naira", "Dollar", "Pound"]}
+                placeholder="Select currency"
+                onSelect={(value) => console.log("Selected:", value)}
+              />
+            </div>
+            <div className="space-y-6">
+              <h1 className="text-[16px] font-[500] text-[#181818]">
+                Set Minimum Rate
+              </h1>
+              <input
+                type="text"
+                placeholder="Enter preferred rate"
+                className="w-full p-4 rounded-full flex justify-between bg-[#f5f5f5] outine-none placeholder:text-[#9b9ea4] text-[16px] font-[400]  "
+              />
+            </div>
+            <div className="space-y-6">
+              <h1 className="text-[16px] font-[500] text-[#181818]">
+                Set Maximum Rate
+              </h1>
+              <input
+                type="text"
+                placeholder="Enter preferred rate"
+                className="w-full p-4 rounded-full flex justify-between bg-[#f5f5f5] outine-none placeholder:text-[#9b9ea4] text-[16px] font-[400]  "
+              />
+            </div>
+          </div>
+
+          <SuccessModal />
         </div>
-        <div className="space-y-6">
-          <h1 className="text-[16px] font-[500] text-[#181818]">Set rate</h1>
-          <input
-            type="text"
-            placeholder="Enter preferred rate"
-            className="w-full p-4 rounded-full flex justify-between bg-[#f5f5f5] outine-none placeholder:text-[#9b9ea4] text-[16px] font-[400]  "
-          />
-        </div>
       </div>
-
-      <SuccessModal />
-    </div>
+    </ContentWrapper>
   );
 };
 
@@ -148,4 +166,4 @@ const SuccessModal = () => {
   );
 };
 
-export default Addrate;
+export default page;
