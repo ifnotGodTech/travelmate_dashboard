@@ -1,10 +1,11 @@
 "use client";
 
-import type React from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LogOut, ChevronDown } from "lucide-react";
+import { navItems } from "@/components/data";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -13,52 +14,12 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
 
-  const navItems = [
-    {
-      icon: "/assets/icons/side-dashboard.svg",
-      label: "Dashboard",
-      href: "/Dashboard",
-      iconActive: "/assets/icons/a-sidebar-dashboard.svg",
-    },
-    {
-      icon: "/assets/icons/side-user.svg",
-      label: "Users",
-      href: "/Dashboard/user",
-      iconActive: "/assets/icons/a-sidebar-user.svg",
-    },
-    {
-      icon: "/assets/icons/side-booking.svg",
-      label: "Bookings",
-      href: "/bookings",
-      iconActive: "/assets/icons/a-sidebar-booking.svg",
-    },
-    {
-      icon: "/assets/icons/side-cms.svg",
-      label: "CMS",
-      href: "/Dashboard/cms",
-      iconActive: "/assets/icons/a-sidebar-cms.svg",
-    },
-    {
-      icon: "/assets/icons/side-support.svg",
-      label: "Customer Support",
-      href: "/Dashboard/support",
-      iconActive: "/assets/icons/a-sidebar-support.svg",
-    },
-    {
-      icon: "/assets/icons/side-report.svg",
-      label: "Report & Analytics",
-      href: "/reports",
-      iconActive: "/assets/icons/a-sidebar-report.svg",
-    },
-    {
-      icon: "/assets/icons/side-roles.svg",
-      label: "Admin Roles",
-      href: "/admin",
-      iconActive: "/assets/icons/a-sidebar-role.svg",
-    },
-  ];
-
-  const currentNavItem = navItems.find((item) => item.href === pathname);
+  // Find the current active navigation item
+  const currentNavItem = navItems.find(
+    (item) =>
+      pathname === item.href ||
+      (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard")
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -71,7 +32,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href; // Strict equality check
+            const isActive =
+              pathname === item.href ||
+              (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard");
             return (
               <Link
                 key={item.label}
@@ -107,9 +70,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto lg:bg-[#f5f5f5] ">
+      <div className="flex-1 flex flex-col overflow-y-auto lg:bg-[#f5f5f5]">
         <Navbar pageName={currentNavItem?.label || "Unknown Page"} />
-        <main className="flex-1 lg:px-[40px] px-6">{children}</main>
+        <main className="flex-1 lg:px-[40px] px-6 pb-6 ">{children}</main>
       </div>
     </div>
   );
@@ -120,14 +83,14 @@ const Navbar = ({ pageName }: { pageName: string }) => {
     <div className="p-4 md:p-6">
       <header className="flex items-center justify-between p-4 md:p-6">
         <div className="hidden lg:block">
-          <h1 className="text-[28px] font-[600] text-[#181818] ">
-            {pageName == "CMS" ? "Content Management System" : pageName}
+          <h1 className="text-[28px] font-[600] text-[#181818]">
+            {pageName === "CMS" ? "Content Management System" : pageName}
           </h1>
         </div>
-        <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px] ">
-          <div className="relative cursor-pointer ">
+        <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px]">
+          <div className="relative cursor-pointer">
             <button className="flex items-center gap-2 rounded-full">
-              <div className="">
+              <div>
                 <Image
                   src="/assets/images/nav-user.svg"
                   alt="User avatar"
@@ -147,10 +110,10 @@ const Navbar = ({ pageName }: { pageName: string }) => {
         </div>
 
         <div className="flex space-x-3 items-center lg:hidden">
-          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center  cursor-pointer ">
-            <img src="/assets/icons/Bell.svg" alt="" className="" />
+          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
+            <img src="/assets/icons/Bell.svg" alt="" />
           </div>
-          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center  cursor-pointer ">
+          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
             <img src="/assets/icons/Menu.svg" alt="" />
           </div>
         </div>

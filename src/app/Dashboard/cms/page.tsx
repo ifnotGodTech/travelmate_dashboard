@@ -1,5 +1,6 @@
+"use client";
 import React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 const page = () => {
   return (
     <div>
@@ -37,6 +38,7 @@ const serviceData: UserHistory[] = [
 ];
 
 const CmsContent = () => {
+  const router = useRouter();
   return (
     <div className="p-4">
       <div className="space-y-6">
@@ -87,17 +89,24 @@ const CmsContent = () => {
                     </span>
                   </td>
                   <td className="py-[16px]">
-                    <div className="flex items-center cursor-pointer ">
-                      <Link href="/Dashboard/cms/change-rate">
-                        <img
-                          src="/assets/icons/mode_edit.svg"
-                          alt="Edit"
-                          className="cursor-pointer lg:hidden "
-                        />
-                        <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
-                          Edit
-                        </button>
-                      </Link>
+                    <div
+                      className="flex items-center cursor-pointer"
+                      onClick={() => {
+                        if (item.Service === "Cars") {
+                          router.push("/Dashboard/cms/change-rate/cars")
+                        } else {
+                          router.push("/Dashboard/cms/change-rate")
+                        }
+                      }}
+                    >
+                      <img
+                        src="/assets/icons/mode_edit.svg"
+                        alt="Edit"
+                        className="cursor-pointer lg:hidden "
+                      />
+                      <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
+                        Edit
+                      </button>
                     </div>
                   </td>
                 </tr>

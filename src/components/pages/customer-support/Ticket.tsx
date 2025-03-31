@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const Ticket = () => {
   return (
-    <ContentWrapper redirectLink="/Dashboard/support">
+    <ContentWrapper>
       <div className="bg-[#fff] lg:rounded-[20px] ">
         <div className="p-[40px] space-y-[24px]">
           <div className="">
