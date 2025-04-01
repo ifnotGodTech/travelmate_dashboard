@@ -14,8 +14,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
 
-  // Find the current active navigation item
-  const currentNavItem = navItems.find(
+  const currentNavItem = navItems.find( 
     (item) =>
       pathname === item.href ||
       (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard")
