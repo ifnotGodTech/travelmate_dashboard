@@ -1,18 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
 
-type Props = {};
+type Props = {
+  isEditing: boolean;
+  content: string;
+  onContentChange: (content: string) => void;
+};
 
-const About = (props: Props) => {
+const About = ({ isEditing, content, onContentChange }: Props) => {
+ 
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onContentChange(e.target.value);
+  };
+
   return (
     <div>
-      <p className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] ">
-        At TravelMate, we make travel seamless and stress-free. Whether you're
-        booking flights, finding the perfect stay, or renting a car, we provide
-        a one-stop solution for all your travel needs. With an easy-to-use
-        platform and a commitment to customer satisfaction, TravelMate ensures
-        that every journey is smooth, affordable, and memorable. Wherever you're
-        headed, let TravelMate be your trusted travel companion.
-      </p>
+      {isEditing ? (
+        <textarea
+          value={content}
+          onChange={handleChange}
+          className="w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md"
+          rows={8}
+        />
+      ) : (
+        <p className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px]">
+          {content}
+        </p>
+      )}
     </div>
   );
 };
