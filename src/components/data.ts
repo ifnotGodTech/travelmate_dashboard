@@ -337,46 +337,56 @@ export const SingleMockBookings: Record<string, BookingItem> = {
 };
 
 export const navItems = [
-    {
-      icon: "/assets/icons/side-dashboard.svg",
-      label: "Dashboard",
-      href: "/Dashboard",
-      iconActive: "/assets/icons/a-sidebar-dashboard.svg",
-    },
-    {
-      icon: "/assets/icons/side-user.svg",
-      label: "Users",
-      href: "/Dashboard/user",
-      iconActive: "/assets/icons/a-sidebar-user.svg",
-    },
-    {
-      icon: "/assets/icons/side-booking.svg",
-      label: "Bookings",
-      href: "/Dashboard/bookings",
-      iconActive: "/assets/icons/a-sidebar-booking.svg",
-    },
-    {
-      icon: "/assets/icons/side-cms.svg",
-      label: "CMS",
-      href: "/Dashboard/cms",
-      iconActive: "/assets/icons/a-sidebar-cms.svg",
-    },
-    {
-      icon: "/assets/icons/side-support.svg",
-      label: "Customer Support",
-      href: "/Dashboard/support",
-      iconActive: "/assets/icons/a-sidebar-support.svg",
-    },
-    {
-      icon: "/assets/icons/side-report.svg",
-      label: "Report & Analytics",
-      href: "/reports",
-      iconActive: "/assets/icons/a-sidebar-report.svg",
-    },
-    {
-      icon: "/assets/icons/side-roles.svg",
-      label: "Admin Roles",
-      href: "/admin",
-      iconActive: "/assets/icons/a-sidebar-role.svg",
-    },
-  ];
+  {
+    icon: "/assets/icons/side-dashboard.svg",
+    label: "Dashboard",
+    href: "/Dashboard",
+    iconActive: "/assets/icons/a-sidebar-dashboard.svg",
+  },
+  {
+    icon: "/assets/icons/side-user.svg",
+    label: "Users",
+    href: "/Dashboard/user",
+    iconActive: "/assets/icons/a-sidebar-user.svg",
+  },
+  {
+    icon: "/assets/icons/side-booking.svg",
+    label: "Bookings",
+    href: "/Dashboard/bookings",
+    iconActive: "/assets/icons/a-sidebar-booking.svg",
+  },
+  {
+    icon: "/assets/icons/side-cms.svg",
+    label: "CMS",
+    href: "/Dashboard/cms",
+    iconActive: "/assets/icons/a-sidebar-cms.svg",
+  },
+  {
+    icon: "/assets/icons/side-support.svg",
+    label: "Customer Support",
+    href: "/Dashboard/support",
+    iconActive: "/assets/icons/a-sidebar-support.svg",
+  },
+  {
+    icon: "/assets/icons/side-report.svg",
+    label: "Report & Analytics",
+    href: "/reports",
+    iconActive: "/assets/icons/a-sidebar-report.svg",
+  },
+  {
+    icon: "/assets/icons/side-roles.svg",
+    label: "Admin Roles",
+    href: "/admin",
+    iconActive: "/assets/icons/a-sidebar-role.svg",
+  },
+];
+
+export const ChartData = [
+  { name: "Mon", Flight: 1, Hotel: 1, Car: 1 },
+  { name: "Tue", Flight: 3.2, Hotel: 1, Car: 2.2 },
+  { name: "Wed", Flight: 2.4, Hotel: 1.1, Car: 2.1 },
+  { name: "Thu", Flight: 4.5, Hotel: 3.4, Car: 2.8 },
+  { name: "Fri", Flight: 4.5, Hotel: 3.3, Car: 2.9 },
+  { name: "Sat", Flight: 5, Hotel: 4.3, Car: 3.2 },
+  { name: "Sun", Flight: 5.3, Hotel: 4, Car: 3.4 },
+];

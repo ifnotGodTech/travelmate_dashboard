@@ -39,7 +39,7 @@ export default function HomePage() {
         </div>
         <div className="">
           <Link href={"/auth/login"} className="w-full">
-            <Button variant="blue" title="ADMIN ACCESS" full />{" "}
+            <Button variant="blue" title="ADMIN ACCESS" full />
           </Link>
         </div>
 

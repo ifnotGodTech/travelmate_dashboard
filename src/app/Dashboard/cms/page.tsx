@@ -60,7 +60,7 @@ const CmsContent = () => {
                 <th className="w-2/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] hidden lg:table-cell">
                   Description
                 </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                <th className="w-1/5 text-l text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] text-e ">
                   Actions
                 </th>
               </tr>
@@ -117,7 +117,7 @@ const CmsContent = () => {
           <div className="w-full h-[1px] bg-[#EBECED] "></div>
 
           <div className="p-4">
-            <div className="p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
+            <div className="p-2 lg-p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
               <h1 className="text-[16px] font-[500] text-[#023E8A] ">
                 How Agency Rates Work
               </h1>
