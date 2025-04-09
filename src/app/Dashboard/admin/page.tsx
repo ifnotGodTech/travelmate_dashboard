@@ -4,6 +4,7 @@ import { useState } from "react"
 import {
   Search,
   Plus,
+
   ChevronDown,
   LayoutDashboard,
   Users,
@@ -55,95 +56,39 @@ export default function AdminRolesPage() {
   const [activeTab, setActiveTab] = useState("role-management")
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-card px-4 py-6">
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-primary">TravelMate</h2>
-        </div>
-
-        <nav className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Users className="mr-2 h-4 w-4" />
-            Users
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <BookOpen className="mr-2 h-4 w-4" />
-            Bookings
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Database className="mr-2 h-4 w-4" />
-            CMS
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <HeadphonesIcon className="mr-2 h-4 w-4" />
-            Customer Support
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <PieChart className="mr-2 h-4 w-4" />
-            Report & Analytics
-          </Button>
-          <Button variant="ghost" className="w-full justify-start bg-accent">
-            <Settings className="mr-2 h-4 w-4" />
-            Admin Roles
-          </Button>
-        </nav>
-
-        <div className="mt-auto pt-4">
-          <Button variant="ghost" className="w-full justify-start text-destructive">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log Out
-          </Button>
-        </div>
-      </aside>
-
+    <div className="flex min-h-screen bg-background ">
+      {/* <h1 className="md:text-2xl text-medium font-bold absolute -mt-2 z-[9999]">Admin Roles and Permissions</h1> */}
       {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-semibold">Admin Roles and Permissions</h1>
-
-          <div className="flex items-center gap-2">
-            <Avatar>
-              <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
-            <span className="font-medium">Admin</span>
-            <ChevronDown className="h-4 w-4" />
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
+      <main className="flex-1 p-3">
+      
+        <div className="rounded-lg bg-card p-3">
           <h2 className="text-lg font-medium mb-6">Manage access control for your travel agency dashboard</h2>
 
           <Tabs defaultValue="role-management" className="space-y-6" onValueChange={setActiveTab}>
             <TabsList className="w-full border-b rounded-none bg-transparent p-0 h-auto">
               <TabsTrigger
                 value="role-management"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
               >
                 Role Management
               </TabsTrigger>
               <TabsTrigger
                 value="role-assignments"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
               >
                 Role Assignments
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="role-management" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="relative w-[300px]">
+              <div className="flex justify-between items-center md:gap-32 gap-6">
+                <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search roles..." className="pl-9" />
+                  <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
                 </div>
-                <Button className="bg-blue-700 hover:bg-blue-800" onClick={() => setIsCreateRoleOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Role
+                <Button className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer" onClick={() => setIsCreateRoleOpen(true)}>
+                  <Plus className="md:mr-2 mr-0 h-4 w-4" />
+                  <span className="hidden md:block">Create New Role</span>
                 </Button>
               </div>
 
@@ -151,27 +96,27 @@ export default function AdminRolesPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted">
-                      <th className="text-left p-3 font-medium">Role Name</th>
-                      <th className="text-left p-3 font-medium">Description</th>
-                      <th className="text-left p-3 font-medium">Assigned Users</th>
-                      <th className="text-left p-3 font-medium">Actions</th>
+                      <th className="text-left p-3 font-medium md:text-base text-xs">Role Name</th>
+                      <th className="text-left p-3 font-medium md:text-base text-xs">Description</th>
+                      <th className="text-left p-3 font-medium md:text-base text-xs">Assigned Users</th>
+                      <th className="text-left p-3 font-medium md:text-base text-xs">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {roles.map((role) => (
                       <tr key={role.name} className="border-t">
-                        <td className="p-3">{role.name}</td>
-                        <td className="p-3 text-muted-foreground">{role.description}</td>
-                        <td className="p-3">
+                        <td className="p-3 md:text-base text-sm">{role.name}</td>
+                        <td className="p-3 text-muted-foreground md:text-base text-sm">{role.description}</td>
+                        <td className="p-3 md:text-base text-sm">
                           {role.assignedUsers} User{role.assignedUsers !== 1 && "s"}
                         </td>
-                        <td className="p-3">
-                          <Button variant="link" className="text-blue-600 hover:text-blue-800 p-0 mr-4">
+                        <td className="p-3 flex md:flex-row md:gap-2 gap-0 flex-col justify-normal items-start">
+                          <Button variant="link" className="text-[#023E8A] cursor-pointer hover:text-blue-800 p-0 md:mr-4">
                             Edit
                           </Button>
                           <Button
                             variant="link"
-                            className="text-green-600 hover:text-green-800 p-0"
+                            className="text-green-600 hover:text-green-800 p-0 cursor-pointer"
                             onClick={() => setIsManageUsersOpen(true)}
                           >
                             Manage User
@@ -185,11 +130,21 @@ export default function AdminRolesPage() {
             </TabsContent>
 
             <TabsContent value="role-assignments" className="space-y-8">
+            <div className="flex justify-between items-center md:gap-32 gap-6">
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
+                </div>
+                <Button className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer" onClick={() => setIsCreateRoleOpen(true)}>
+                  <Plus className="md:mr-2 mr-0 h-4 w-4" />
+                  <span className="hidden md:block">Add New Role</span>
+                </Button>
+              </div>
               {roles.map((role) => (
                 <div key={role.name} className="space-y-4">
                   <div>
                     <h3 className="text-lg font-medium">{role.name}</h3>
-                    <p className="text-muted-foreground">{role.description}</p>
+                    <p className="text-muted-foreground text-sm pt-2">{role.description}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -206,7 +161,7 @@ export default function AdminRolesPage() {
                       ))}
                   </div>
 
-                  <Button className="w-full bg-muted hover:bg-muted/80" onClick={() => setIsManageUsersOpen(true)}>
+                  <Button className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer" onClick={() => setIsManageUsersOpen(true)}>
                     Manage Users
                   </Button>
                 </div>
@@ -217,7 +172,7 @@ export default function AdminRolesPage() {
 
         {/* Create Role Dialog */}
         <Dialog open={isCreateRoleOpen} onOpenChange={setIsCreateRoleOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>Create New Role</DialogTitle>
             </DialogHeader>
@@ -348,7 +303,7 @@ export default function AdminRolesPage() {
 
         {/* Manage Users Dialog */}
         <Dialog open={isManageUsersOpen} onOpenChange={setIsManageUsersOpen}>
-          <DialogContent>
+          <DialogContent className="fixed top-[10vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[85vh]">
             <DialogHeader>
               <DialogTitle>Manage User</DialogTitle>
             </DialogHeader>
