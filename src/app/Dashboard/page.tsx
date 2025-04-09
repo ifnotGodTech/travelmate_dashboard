@@ -142,14 +142,14 @@ const DataGrid = () => {
 const QuickActions = () => (
   <div className="space-y-2">
     <h1 className="text-xl font-semibold">Quick Action</h1>
-    <div className="flex flex-wrap gap-4">
+    <div className="flex gap-4 overflow-x-auto flex-nowrap scrollbar-hidden">
       {[
         { name: "Daily Update", icon: "/assets/icons/quick-add.svg" },
         { name: "Manage Listings", icon: "/assets/icons/quick-manage.svg" },
         { name: "Share points", icon: "/assets/icons/quick-share.svg" },
       ].map((text) => (
         <div
-          className="flex items-center space-x-3 bg-[#CCD8E8] rounded-xl p-4 cursor-pointer "
+          className="flex items-center space-x-3 bg-[#CCD8E8] rounded-xl p-4 cursor-pointer shrink-0"
           key={text.name}
         >
           <img src={text.icon} alt="" className="w-5" />
@@ -162,29 +162,39 @@ const QuickActions = () => (
   </div>
 );
 
+
+
+const Legend = () => {
+  return (
+    <div className="flex space-x-6 items-center">
+      <div className="flex space-x-1 items-center cursor-pointer ">
+        <img src="/assets/icons/ana-airplane.svg" alt="" className="" />
+        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
+          Flight
+        </span>
+      </div>
+      <div className="flex space-x-1 items-center cursor-pointer ">
+        <img src="/assets/icons/ana-bed.svg" alt="" className="" />
+        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
+          Hotel
+        </span>
+      </div>
+      <div className="flex space-x-1 items-center cursor-pointer ">
+        <img src="/assets/icons/ana-car.svg" alt="" className="" />
+        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
+          Car
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const Chart = () => (
-  <div className="bg-white px-4 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
+  <div className="bg-white lg:px-4 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
     <div className="flex justify-between items-center mb-4">
       <h2 className="text-xl font-semibold">Booking Trends</h2>
-      <div className="flex space-x-6 items-center">
-        <div className="flex space-x-1 items-center cursor-pointer ">
-          <img src="/assets/icons/ana-airplane.svg" alt="" className="" />
-          <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-            Flight
-          </span>
-        </div>
-        <div className="flex space-x-1 items-center cursor-pointer ">
-          <img src="/assets/icons/ana-bed.svg" alt="" className="" />
-          <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-            Hotel
-          </span>
-        </div>
-        <div className="flex space-x-1 items-center cursor-pointer ">
-          <img src="/assets/icons/ana-car.svg" alt="" className="" />
-          <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-            Car
-          </span>
-        </div>
+      <div className="hidden lg:block">
+        <Legend />
       </div>
       <a href="#" className="text-sm text-blue-600">
         View full report
@@ -194,7 +204,7 @@ const Chart = () => (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={ChartData}
-          margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
@@ -224,6 +234,10 @@ const Chart = () => (
         </LineChart>
       </ResponsiveContainer>
     </div>
+
+    <div className="lg:hidden flex justify-center mt-1 ">
+      <Legend />
+    </div>
   </div>
 );
 
@@ -236,7 +250,7 @@ const Chat = () => {
   return (
     <div className="bg-[#fff] h-full px-[10px] py-[30px] rounded-[16px] overflow-y-auto">
       <div className="space-y-6">
-        <div className="flex justify-between items-center px-[20px] ">
+        <div className="flex justify-between items-center lg:px-[20px] ">
           <h3 className="font-[500] text-[18px] text-[#181818] leading-[100%]">
             Messages
           </h3>
@@ -255,7 +269,7 @@ const Chat = () => {
         <div className="">
           {message.map((msg, i) => (
             <div
-              className={`py-3 px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
+              className={`py-3 lg:px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
                 i === message.length - 1
                   ? ""
                   : "border-b-[2px] border-[#F5F5F5]"
@@ -290,7 +304,7 @@ const Activity = () => {
     title: "Flight Booking",
   });
   return (
-    <div className="bg-white h-full p-6 rounded-2xl overflow-y-auto">
+    <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-medium text-[#181818]">
@@ -305,7 +319,7 @@ const Activity = () => {
           {activity.map((act, i) => (
             <div
               key={i}
-              className="flex justify-between items-center hover:bg-[#f1f1f1] rounded-xl py-2 px-3"
+              className="flex justify-between items-center hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
             >
               <div className="flex items-center space-x-3">
                 <img
