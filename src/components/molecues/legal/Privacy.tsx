@@ -1,8 +1,27 @@
 import React from "react";
+type Props = {
+  isEditing: boolean;
+  content: string;
+  onContentChange: (content: string) => void;
+};
 
-const Privacy = () => {
+const Privacy = ({ isEditing, content, onContentChange }: Props) => {
+   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onContentChange(e.target.value);
+    };
+
+    
   return (
-    <p className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] ">
+    <div>
+      {isEditing  ? 
+       <textarea
+       value={content}
+       onChange={handleChange}
+       className="w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md"
+       rows={8}
+     />
+      : 
+      <p className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] ">
       Last Updated: March 19, 2025
       <br /> <br />
       1. Introduction Welcome to TravelMate. We respect your privacy and are
@@ -92,7 +111,9 @@ const Privacy = () => {
       privacy practices, please contact us at: Email: privacy@travelmate.com
       Phone: 1-800-TRAVEL-MATE Address: 123 Booking Street, Suite 456, Travel
       City, TC 12345
-    </p>
+    </p>}
+    </div>
+    
   );
 };
 
