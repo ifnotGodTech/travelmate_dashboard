@@ -13,7 +13,7 @@ import { ChartData } from "@/components/data";
 
 const page = () => {
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 py-4 lg:py-0">
       <Statistics />
       <DataGrid />
     </div>
@@ -22,7 +22,7 @@ const page = () => {
 
 const Statistics = () => {
   return (
-    <div className="flex justify-between items-start">
+    <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 ">
       <div className="space-y-6">
         <div className="flex items-center space-x-2">
           <p className="text-sm lg:text-base font-semibold text-[#181818]">
@@ -34,24 +34,27 @@ const Statistics = () => {
             className="w-5 rotate-90"
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Users"
             value="2,481"
             color="#50AC79"
             icon="/assets/icons/ana-users.svg"
+            smColor="#D5EBDF"
           />
           <StatCard
             title="Bookings"
             value="4,892"
             color="#023E8A"
             icon="/assets/icons/ana-bookings.svg"
+            smColor="#CCD8E8"
           />
           <StatCard
             title="Revenue"
             value="N4.2m"
             color="#FF6F1E"
             icon="/assets/icons/ana-revenue.svg"
+            smColor="#FFCFB4"
           />
         </div>
       </div>
@@ -70,32 +73,53 @@ const StatCard = ({
   value,
   color,
   icon,
+  smColor,
 }: {
   title: string;
   value: string;
   color: string;
   icon: string;
+  smColor: string;
 }) => (
-  <div
-    className="p-[20px] rounded-[20px] space-y-[12px] w-[168px] cursor-pointer"
-    style={{ backgroundColor: color }}
-  >
+  <>
     <div
-      className={
-        "w-10 h-10 rounded-[8px] flex justify-center items-center bg-[#fff] "
-      }
+      className="lg:p-[20px] hidden lg:block lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] cursor-pointer bg-transparent lg:bg-none"
+      style={{ backgroundColor: color }}
     >
-      <img src={icon} alt="" className="" />{" "}
+      <div
+        className={
+          "w-10 h-10 rounded-[8px] flex justify-center items-center bg-[#fff] "
+        }
+      >
+        <img src={icon} alt="" className="" />{" "}
+      </div>
+      <div className="space-y-2">
+        <h1 className="font-[600] text-[28px] leading-[100%] text-[#fff]">
+          {value}
+        </h1>
+        <p className="font-[500] text-[16px] leading-[100%] text-[#fff]">
+          {title}
+        </p>
+      </div>
     </div>
-    <div className="space-y-2">
-      <h1 className="font-[600] text-[28px] leading-[100%] text-[#fff]">
-        {value}
-      </h1>
-      <p className="font-[500] text-[16px] leading-[100%] text-[#fff]">
-        {title}
-      </p>
+
+    <div className=" space-x-2 lg:hidden flex items-center ">
+      <div
+        className="w-10 h-10 rounded-full flex justify-center items-center"
+        style={{ backgroundColor: smColor }}
+      >
+        <img src={icon} alt="" className="" />{" "}
+      </div>
+      <div className="space-y-2">
+        <h1 className="font-[600] text-[14px] lg:text-[28px]  leading-[100%] text-[#181818]">
+          {value}
+        </h1>
+        <p className="font-[500] text-[12px] b:text-[16px]  leading-[100%] text-[#555]">
+          {title}
+        </p>
+      </div>
     </div>
-  </div>
+  </>
 );
 
 const DataGrid = () => {
@@ -232,7 +256,9 @@ const Chat = () => {
           {message.map((msg, i) => (
             <div
               className={`py-3 px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
-                i === message.length - 1 ? "" : "border-b-[2px] border-[#F5F5F5]"
+                i === message.length - 1
+                  ? ""
+                  : "border-b-[2px] border-[#F5F5F5]"
               }`}
             >
               <img
@@ -255,7 +281,6 @@ const Chat = () => {
     </div>
   );
 };
-
 
 const Activity = () => {
   const activity = Array(3).fill({

@@ -120,6 +120,10 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
     try {
       console.log(payload);
       const response = await Service.newPassword({ payload });
+      showSuccessToast({
+        message: response.data.message || "🚀 Password Reset successful!",
+        description: response.data.description || "",
+      });
       successCallback?.(response.data.message);
     } catch (error: any) {
       errorCallback?.({
