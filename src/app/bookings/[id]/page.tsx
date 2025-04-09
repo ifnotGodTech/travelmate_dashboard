@@ -201,7 +201,7 @@ export default function BookingDetailsPage({ params }: { params: { id: string } 
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <button
               className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-md"
-              onClick={() => router.push(`/Dashboard/booking/${booking.id}/edit`)}
+              onClick={() => router.push(`/users/${booking.id}/edit`)}
             >
               <Pencil className="h-4 w-4" />
               UPDATE TRAVEL INFORMATION
