@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,19 +11,20 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-
+import { useLogout } from "@/hooks/api/auth";
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const { onLogout } = useLogout();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const currentNavItem = navItems.find(
     (item) =>
       pathname === item.href ||
-      (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard")
+      (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard") 
   );
 
   const handleLinkClick = () => {
@@ -73,7 +73,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           })}
         </nav>
         <div className="p-4 border-t border-gray-200">
-          <button className="flex items-center px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg w-full">
+          <button
+            className="flex items-center px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg w-full"
+            onClick={onLogout}
+          >
             <LogOut className="h-5 w-5 mr-3" />
             Log Out
           </button>
@@ -88,7 +91,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          
+
           {/* Sidebar container */}
           <div className="fixed inset-y-0 right-0 w-3/4 max-w-sm bg-[#EBECED] shadow-lg flex flex-col">
             {/* Close button at the top right */}
@@ -100,19 +103,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <X className="h-6 w-6 text-gray-700" />
               </button>
             </div>
-            
+
             {/* Sidebar content */}
             <div className="flex-1 overflow-y-auto px-4">
               <div className="mb-6 px-2">
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className="text-blue-700 text-xl font-semibold"
                   onClick={handleLinkClick}
                 >
                   TravelMate
                 </Link>
               </div>
-              
+
               <nav className="space-y-2">
                 {navItems.map((item) => {
                   const isActive =
@@ -125,7 +128,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       href={item.href}
                       onClick={handleLinkClick}
                       className={`flex items-center p-3 space-x-3 rounded-xl ${
-                        isActive ? "bg-[#CCD8E8]" : "text-gray-700 hover:bg-gray-100"
+                        isActive
+                          ? "bg-[#CCD8E8]"
+                          : "text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       <div
@@ -133,7 +138,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                           isActive ? "bg-[#023E8A]" : "bg-[#DEDFE1]"
                         } w-8 h-8 rounded-full flex items-center justify-center`}
                       >
-                        <img src={isActive ? item.iconActive : item.icon} alt="" />
+                        <img
+                          src={isActive ? item.iconActive : item.icon}
+                          alt=""
+                        />
                       </div>
                       <div
                         className={`${
@@ -147,9 +155,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 })}
               </nav>
             </div>
-            
+
             <div className="p-4 border-t border-gray-200">
-              <button className="flex items-center justify-center w-full px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg">
+              <button className="flex items-center w-full px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg  " onClick={onLogout} >
                 <LogOut className="h-5 w-5 mr-3" />
                 Log Out
               </button>
@@ -160,9 +168,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-y-auto lg:bg-[#f5f5f5]">
-        <Navbar 
-          pageName={currentNavItem?.label || "Unknown Page"} 
-          onMenuClick={() => setMobileSidebarOpen(true)} 
+        <Navbar
+          pageName={currentNavItem?.label || "Unknown Page"}
+          onMenuClick={() => setMobileSidebarOpen(true)}
         />
         <main className="flex-1 lg:px-[40px] px-6 pb-6">{children}</main>
       </div>
@@ -225,7 +233,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
             <img src="/assets/icons/Bell.svg" alt="" />
           </div>
-          <div 
+          <div
             className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer"
             onClick={onMenuClick}
           >
