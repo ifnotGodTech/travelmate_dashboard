@@ -376,7 +376,7 @@ export const navItems = [
   {
     icon: "/assets/icons/side-roles.svg",
     label: "Admin Roles",
-    href: "/admin",
+    href: "/Dashboard/admin",
     iconActive: "/assets/icons/a-sidebar-role.svg",
   },
 ];
