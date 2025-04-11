@@ -1,59 +1,59 @@
-import React from "react";
-import AuthWrapper from "../AuthWrapper";
-import Button from "@/components/reuseables/Button";
-import { InputReuseables } from "../login/page";
-import Link from "next/link";
+"use client";
+import React, { useState } from "react";
+import { ResetEmailForm } from "./pages/reset-password-form";
+import { VerifyOtp } from "./pages/verify-otp";
+import NewPassword from "./pages/password-form";
+import ResetSuccess from "./pages/reset-success";
 
-const page = () => {
-  return (
-    <AuthWrapper>
-      <ResetComponent />
-    </AuthWrapper>
+function ResetPasswordPage() {
+  const [page, setPage] = useState<"reset" | "otp" | "newPassword" | "success">(
+    "reset"
   );
-};
 
-const ResetComponent = () => {
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    otp: "",
+  });
+
+  const handleSuccess = ({
+    targetPage,
+    message,
+  }: {
+    targetPage: "reset" | "otp" | "newPassword" | "success";
+    message?: string;
+  }) => {
+    console.log(message);
+    setPage(targetPage);
+  };
+
   return (
-    <div className="bg-[#fff] p-[40px] space-y-10 rounded-[20px]">
-      <div className="flex flex-col items-center gap-4">
-        <img
-          src="/assets/images/company-logo.svg"
-          alt=""
-          className="lg:w-28 w-[53px] "
+    <>
+      {page === "reset" && (
+        <ResetEmailForm
+          handleSuccess={handleSuccess}
+          form={form}
+          setForm={setForm}
         />
-        <p className="text-[#181818] lg:text-2xl lg:font-semibold font-[500] text-[18px] ">
-          Reset Password
-        </p>
-      </div>
-      <Inputs />
-      <div className="">
-        <Link href={"/auth/otp"} className="w-full">
-          <Button
-            title="SEND RECOVERY EMAIL"
-            variant="blue"
-            full
-            weight="600"
-          />{" "}
-        </Link>
-      </div>
-      <div>
-        <Link href={"/auth/login"} className="w-full">
-          <Button title="BACK TO LOG IN" variant="outline" full weight="600" />{" "}
-        </Link>
-      </div>
-    </div>
+      )}
+      {page === "otp" && (
+        <VerifyOtp
+          handleSuccess={handleSuccess}
+          form={form}
+          setForm={setForm}
+        />
+      )}
+      {page === "newPassword" && (
+        <NewPassword
+          handleSuccess={handleSuccess}
+          form={form}
+          setForm={setForm}
+        />
+      )}
+      {page === "success" && <ResetSuccess />}
+    </>
   );
-};
+}
 
-const Inputs = () => {
-  return (
-    <div className="space-y-10">
-      <InputReuseables
-        label="Email Address"
-        placeholder="admin@travelmate.com"
-      />
-    </div>
-  );
-};
-
-export default page;
+export default ResetPasswordPage;

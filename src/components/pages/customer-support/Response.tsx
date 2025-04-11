@@ -14,7 +14,7 @@ import Link from "next/link";
 
 const Response = () => {
   return (
-    <ContentWrapper redirectLink="/Dashboard/support/ticket">
+    <ContentWrapper>
       <div className="bg-[#fff] lg:rounded-[20px]">
         <div className="space-y-6 p-10">
           <div className="">

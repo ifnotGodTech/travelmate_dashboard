@@ -1,23 +1,26 @@
+"use client";
 import React from "react";
-import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type LayoutWrapperProps = {
   children: React.ReactNode;
-  redirectLink: string
 };
 
-const ContentWrapper = ({ children, redirectLink }: LayoutWrapperProps) => {
+const ContentWrapper = ({ children }: LayoutWrapperProps) => {
+  const router = useRouter();
   return (
     <div className="max-screen-wrapper">
-      <div className="max-screen-inner lg:py-[20px]">
+      <div className="max-screen-inner lg:py-[10px]">
         <div className="hidden w-full lg:block">
-          <Link href={redirectLink} >
-          <img
-            src="/assets/icons/arrow-back.svg"
-            alt=""
-            className="w-10 h-10 cursor-pointer"
-          />
-          </Link>
+          <div className="mb-6 flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-1 rounded-full hover:bg-gray-200"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+          </div>
         </div>
         <div className="lg:w-full lg:max-w-[754px] w-full lg:rounded-[20px] lg:mx-auto">
           {children}

@@ -20,7 +20,7 @@ import Link from "next/link";
 
 const Addrate = () => {
   return (
-    <ContentWrapper redirectLink="/Dashboard/cms">
+    <ContentWrapper>
       <div className="bg-[#fff] p-[40px] rounded-[20px]">
         <AddrateComponent />
       </div>

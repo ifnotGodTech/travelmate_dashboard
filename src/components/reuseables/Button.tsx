@@ -7,6 +7,8 @@ type ButtonProps = {
   title: string;
   icon?: string;
   iconPosition?: "left" | "right";
+  type?: "button" | "submit";
+  id?: string;
   variant?:
     | "light-blue"
     | "blue"
@@ -27,7 +29,9 @@ type ButtonProps = {
   border?: boolean;
   special?: boolean;
   size?: "16" | "14";
-  responsiveHideText?: boolean; // New prop for responsive text visibility
+  responsiveHideText?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -42,12 +46,19 @@ const Button: React.FC<ButtonProps> = ({
   full = false,
   border = false,
   special = false,
+  type = "submit",
   size = "16",
-  responsiveHideText = false, // Default to showing text
+  id = "",
+  responsiveHideText = false,
+  disabled = false,
+  loading = false,
 }) => {
   return (
     <button
       onClick={onClick}
+      type={type}
+      id={id}
+      disabled={disabled || loading}
       className={clsx(
         "cursor-pointer flex items-center justify-center gap-2 rounded-[8px] transition-all duration-200",
         {
@@ -68,11 +79,34 @@ const Button: React.FC<ButtonProps> = ({
           "bg-[#D72638] text-[#fff]": variant === "red",
           "w-full": full,
           "border-[1px] border-[#cdced1]": border,
+          "opacity-70 cursor-not-allowed": disabled || loading,
         },
         className
       )}
     >
-      {icon && iconPosition === "left" && (
+      {loading && (
+        <svg
+          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      )}
+      {icon && iconPosition === "left" && !loading && (
         <img
           src={icon}
           alt={iconAlt}
@@ -88,13 +122,13 @@ const Button: React.FC<ButtonProps> = ({
           "text-[14px]": size === "14",
           "font-medium": weight === "500",
           "font-semibold": weight === "600",
-          "hidden sm:inline": responsiveHideText, // Text hidden on small screens, visible on larger screens
+          "hidden lg:inline": responsiveHideText,
         })}
       >
         {title}
       </span>
 
-      {icon && iconPosition === "right" && (
+      {icon && iconPosition === "right" && !loading && (
         <img
           src={icon}
           alt={iconAlt}

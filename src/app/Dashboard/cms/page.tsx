@@ -1,5 +1,6 @@
+"use client";
 import React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 const page = () => {
   return (
     <div>
@@ -37,6 +38,7 @@ const serviceData: UserHistory[] = [
 ];
 
 const CmsContent = () => {
+  const router = useRouter();
   return (
     <div className="p-4">
       <div className="space-y-6">
@@ -58,7 +60,7 @@ const CmsContent = () => {
                 <th className="w-2/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] hidden lg:table-cell">
                   Description
                 </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+                <th className="w-1/5 text-l text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] text-e ">
                   Actions
                 </th>
               </tr>
@@ -87,17 +89,24 @@ const CmsContent = () => {
                     </span>
                   </td>
                   <td className="py-[16px]">
-                    <div className="flex items-center cursor-pointer ">
-                      <Link href="/Dashboard/cms/change-rate">
-                        <img
-                          src="/assets/icons/mode_edit.svg"
-                          alt="Edit"
-                          className="cursor-pointer lg:hidden "
-                        />
-                        <button className="py-2 px-4 rounded-lg bg-[#023E8A] text-white text-sm font-semibold hover:bg-[#0257C1] transition-all hidden lg:block">
-                          Edit
-                        </button>
-                      </Link>
+                    <div
+                      className="flex items-center cursor-pointer"
+                      onClick={() => {
+                        if (item.Service === "Cars") {
+                          router.push("/Dashboard/cms/change-rate/cars")
+                        } else {
+                          router.push("/Dashboard/cms/change-rate")
+                        }
+                      }}
+                    >
+                      <img
+                        src="/assets/icons/mode_edit.svg"
+                        alt="Edit"
+                        className="cursor-pointer lg:hidden "
+                      />
+                      <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
+                        Edit
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -108,7 +117,7 @@ const CmsContent = () => {
           <div className="w-full h-[1px] bg-[#EBECED] "></div>
 
           <div className="p-4">
-            <div className="p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
+            <div className="p-2 lg-p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
               <h1 className="text-[16px] font-[500] text-[#023E8A] ">
                 How Agency Rates Work
               </h1>

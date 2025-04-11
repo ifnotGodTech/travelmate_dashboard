@@ -16,7 +16,7 @@ import Link from "next/link";
 const EscalateTicket = () => {
   return (
     <div>
-      <ContentWrapper redirectLink="/Dashboard/support/ticket">
+      <ContentWrapper>
         <div className="bg-[#fff] lg:rounded-[20px] ">
           <EscalateDetails />
         </div>

@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import DashboardLayout from "./dashboard-layout";
+import NextTopLoader from "nextjs-toploader";
+import { AuthContextWrapper } from "@/context/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="">{children}</div>
+        <NextTopLoader color="#151357" height={5} />
+        <AuthContextWrapper>
+          <div className="">{children}</div>
+        </AuthContextWrapper>
+        <Toaster richColors />
       </body>
     </html>
   );
