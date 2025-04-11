@@ -291,11 +291,11 @@ export default function AdminRolesPage() {
                 <Button
                   variant="outline"
                   onClick={() => setIsCreateRoleOpen(false)}
-                  className="bg-red-50 border-red-100 hover:bg-red-100 text-red-600"
+                  className="bg-red-50 border-red-100 hover:bg-red-100 text-red-600 cursor-pointer"
                 >
                   CANCEL
                 </Button>
-                <Button className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600">SAVE ROLE</Button>
+                <Button className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer">SAVE ROLE</Button>
               </div>
             </div>
           </DialogContent>
