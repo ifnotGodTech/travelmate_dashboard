@@ -79,7 +79,7 @@ const Button: React.FC<ButtonProps> = ({
           "bg-[#D72638] text-[#fff]": variant === "red",
           "w-full": full,
           "border-[1px] border-[#cdced1]": border,
-          "opacity-70 cursor-not-allowed": disabled || loading,
+          "bg-[#9B9EA4] text-[#fff] cursor-not-allowed": disabled || loading,
         },
         className
       )}

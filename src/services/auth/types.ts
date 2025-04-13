@@ -12,6 +12,12 @@ export type TResetPassword = {
     email?: string;
   };
 };
+export type TVerifyOTP = {
+  payload: {
+    email?: string;
+    token?: string;
+  };
+};
 export type TNewPassword = {
   payload?: {
     email?: string;
@@ -27,4 +33,5 @@ export interface AuthInterface {
     payload,
   }: TResetPassword) => Promise<AxiosResponse<any, any>>;
   newPassword: ({ payload }: TNewPassword) => Promise<AxiosResponse<any, any>>;
+  verifyToken: ({ payload }: TVerifyOTP) => Promise<AxiosResponse<any, any>>;
 }

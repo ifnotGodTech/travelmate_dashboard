@@ -99,6 +99,38 @@ export function useLogout() {
   return { onLogout };
 }
 
+export function useVerifyOtp({ Service }: { Service: AuthInterface }) {
+  const [loading, setLoading] = useState(false);
+
+  const onVerifyToken = async ({
+    payload,
+    successCallback,
+    errorCallback,
+  }: {
+    payload: { email: string; token: string };
+    successCallback?: (message: string) => void;
+    errorCallback?: (props: { message?: string; description?: string }) => void;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await Service.verifyToken({ payload });
+      showSuccessToast({
+        message: res?.data?.message || "Token verified Successfully",
+        description: res.data.description || "",
+      });
+      successCallback?.(res?.data?.message || "Token verified successfully");
+    } catch (error: any) {
+      errorCallback?.({
+        message: error?.response?.data?.message || "An error occurred!",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loading, onVerifyToken };
+}
+
 export function useNewPassword({ Service }: { Service: AuthInterface }) {
   const [loading, setLoading] = useState(false);
 

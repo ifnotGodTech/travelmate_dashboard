@@ -7,6 +7,7 @@ import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { useForgotPassword } from "@/hooks/api/auth";
 import AuthService from "@/services/auth";
+import { showErrorToast } from "@/utils/toasters";
 
 const resetPasswordSchema = Yup.object().shape({
   email: Yup.string()
@@ -22,7 +23,7 @@ interface ResetPasswordFormProps {
     targetPage,
   }: {
     message?: string;
-    targetPage: "reset" | "otp" | "newPassword" | "success";
+    targetPage: "reset" | "otp" | "otp-sent" | "newPassword" | "success";
   }) => void;
 }
 
@@ -41,10 +42,10 @@ export const ResetEmailForm: React.FC<ResetPasswordFormProps> = ({
     onForgotPassword({
       payload: { email: values.email },
       successCallback: (message) => {
-        handleSuccess({ message, targetPage: "otp" });
+        handleSuccess({ message, targetPage: "otp-sent" });
       },
       errorCallback: ({ message }) => {
-        alert(message || "An error occurred!");
+        showErrorToast({ message: "An error occured" });
       },
     });
   };
@@ -77,7 +78,7 @@ export const ResetEmailForm: React.FC<ResetPasswordFormProps> = ({
               />
               <Button
                 title="SEND RECOVERY EMAIL"
-                variant={isValid ? "blue" : "gray"}
+                variant="blue"
                 full
                 weight="600"
                 type="submit"
