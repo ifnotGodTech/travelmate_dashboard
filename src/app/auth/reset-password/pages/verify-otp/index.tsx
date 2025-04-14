@@ -70,7 +70,7 @@ const OtpComponent = ({
         handleSuccess({ message, targetPage: "newPassword" });
       },
       errorCallback: ({ message }: { message: string }) => {
-        showErrorToast({ message: "An error occured" });
+        router.push("/auth/reset-password");
       },
     });
   };

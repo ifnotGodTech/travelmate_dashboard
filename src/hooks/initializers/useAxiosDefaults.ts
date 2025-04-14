@@ -5,11 +5,7 @@ import env from "@/config/env";
 import { useUpdateAuthContext } from "@/context/AuthContext";
 
 function isUnAuthorizedError(error: Error | AxiosError | any) {
-  return (
-    error?.config &&
-    error?.response &&
-    error?.response?.status === 403
-  );
+  return error?.config && error?.response && error?.response?.status === 403;
 }
 
 let tokenRefreshRetries = 0;
@@ -49,12 +45,12 @@ function useAxiosDefaults({
 
           try {
             const response = await axios.post(
-              `${env.api.auth}/refresh`,
+              `${env.api.auth}/jwt/token/refresh/`,
               { refreshToken },
               { headers: { Authorization: "" } }
             );
 
-            const newAccessToken = response?.data?.data?.accessToken;
+            const newAccessToken = response?.data?.access;
 
             // Update context state
             updateAppState({
@@ -63,17 +59,23 @@ function useAxiosDefaults({
 
             // Update global header and original request
             axios.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            originalRequest.headers[
+              "Authorization"
+            ] = `Bearer ${newAccessToken}`;
 
-            return axios(originalRequest); // Retry request
+            return axios(originalRequest);
           } catch (refreshError) {
             console.error("Token refresh failed:", refreshError);
-            window.location.href = `/auth/sign-in?redirectTo=${encodeURIComponent(location.pathname)}`;
+            window.location.href = `/auth/sign-in?redirectTo=${encodeURIComponent(
+              location.pathname
+            )}`;
             return Promise.reject(refreshError);
           }
         } else {
           // Exceeded max retries or no refresh token
-          window.location.href = `/auth/sign-in?redirectTo=${encodeURIComponent(location.pathname)}`;
+          window.location.href = `/auth/login?redirectTo=${encodeURIComponent(
+            location.pathname
+          )}`;
         }
       }
 

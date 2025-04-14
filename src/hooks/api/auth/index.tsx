@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import { useUpdateAuthContext } from "@/context/AuthContext";
-
 import env from "@/config/env";
 import { AxiosError } from "axios";
 import { AuthInterface } from "@/services/auth/types";
@@ -87,8 +86,6 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
   return { loading, onForgotPassword };
 }
 
-// export const useRendOTP =
-
 export function useLogout() {
   const updateAppState = useUpdateAuthContext();
 
@@ -120,8 +117,18 @@ export function useVerifyOtp({ Service }: { Service: AuthInterface }) {
       });
       successCallback?.(res?.data?.message || "Token verified successfully");
     } catch (error: any) {
+      const errorMessage = error?.response?.data?.token || "An error occurred!";
+      const errorDescription = error?.response?.data?.description;
+      
+      // Show error toast
+      showErrorToast({
+        message: errorMessage,
+        description: errorDescription,
+      });
+      
       errorCallback?.({
-        message: error?.response?.data?.message || "An error occurred!",
+        message: errorMessage,
+        description: errorDescription,
       });
     } finally {
       setLoading(false);
@@ -159,7 +166,7 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
       successCallback?.(response.data.message);
     } catch (error: any) {
       errorCallback?.({
-        message: error?.response?.data?.message || "An error occurred!",
+        message: error?.response?.data?.email || "An error occurred!",
         description: error?.response?.data?.description || "",
       });
     } finally {
