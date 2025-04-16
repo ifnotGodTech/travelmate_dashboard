@@ -344,7 +344,7 @@ export const navItems = [
     iconActive: "/assets/icons/a-sidebar-dashboard.svg",
   },
   {
-    icon: "/assets/icons/side-user.svg",
+    icon: "/assets/icons/Side-user.svg",
     label: "Users",
     href: "/Dashboard/user",
     iconActive: "/assets/icons/a-sidebar-user.svg",
