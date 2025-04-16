@@ -7,6 +7,12 @@ export type TLoginService = {
   };
 };
 
+export type TResendResetToken = {
+  payload: {
+    email?: string;
+  };
+};
+
 export type TResetPassword = {
   payload: {
     email?: string;
@@ -34,4 +40,7 @@ export interface AuthInterface {
   }: TResetPassword) => Promise<AxiosResponse<any, any>>;
   newPassword: ({ payload }: TNewPassword) => Promise<AxiosResponse<any, any>>;
   verifyToken: ({ payload }: TVerifyOTP) => Promise<AxiosResponse<any, any>>;
+  resendResetToken: ({
+    payload,
+  }: TResendResetToken) => Promise<AxiosResponse<any, any>>;
 }

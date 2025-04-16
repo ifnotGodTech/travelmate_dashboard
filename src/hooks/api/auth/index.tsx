@@ -25,7 +25,6 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
       updateAppState({
         accessToken: res.data.access,
         refreshToken: res.data.refresh,
-        user: { id: res.data.setup_info.email },
       });
       showSuccessToast({
         message: res.data.message || "🚀 Login success!",
@@ -37,12 +36,12 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
     } catch (error: Error | AxiosError | any) {
       if (error.response?.status === 400) {
         showErrorToast({
-          message: error.response?.data?.detail || "Invalid credentials!",
+          message: error.response?.data?.Message || "Invalid credentials!",
         });
       } else {
         console.error("Login Error:", error);
         showErrorToast({
-          message: error?.response?.data?.message || "An error occurred!",
+          message: error?.response?.data?.Message || "An error occurred!",
           description: error?.response?.data?.description || "",
         });
       }
@@ -75,8 +74,9 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
       });
       successCallback?.(res?.data?.message || "Email sent successfully.");
     } catch (error: any) {
-      errorCallback?.({
-        message: error?.response?.data?.message || "An error occurred!",
+      showErrorToast({
+        message:
+          error.response?.data?.email?.[0]?.Message || "Invalid credentials!",
       });
     } finally {
       setLoading(false);
@@ -117,18 +117,8 @@ export function useVerifyOtp({ Service }: { Service: AuthInterface }) {
       });
       successCallback?.(res?.data?.message || "Token verified successfully");
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.token || "An error occurred!";
-      const errorDescription = error?.response?.data?.description;
-      
-      // Show error toast
       showErrorToast({
-        message: errorMessage,
-        description: errorDescription,
-      });
-      
-      errorCallback?.({
-        message: errorMessage,
-        description: errorDescription,
+        message: error.response?.data?.token?.[0] || "Invalid credentials!",
       });
     } finally {
       setLoading(false);
@@ -175,4 +165,47 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
   };
 
   return { loading, onNewPassword };
+}
+
+export function useResendOTP({ Service }: { Service: AuthInterface }) {
+  const [loadingReset, setLoading] = useState(false);
+
+  const onResendPassword = async ({
+    payload,
+    successCallback,
+    errorCallback,
+  }: {
+    payload: { email: string };
+    successCallback?: (message: string) => void;
+    errorCallback?: (props: { message?: string; description?: string }) => void;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await Service.resendResetToken({ payload });
+      showSuccessToast({
+        message:
+          res?.data?.message ||
+          "Password reset token has been sent to your email",
+      });
+      successCallback?.(res?.data?.message || "Token verified successfully");
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.token || "An error occurred!";
+      const errorDescription = error?.response?.data?.description;
+
+      // Show error toast
+      showErrorToast({
+        message: errorMessage,
+        description: errorDescription,
+      });
+
+      errorCallback?.({
+        message: errorMessage,
+        description: errorDescription,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loadingReset, onResendPassword };
 }

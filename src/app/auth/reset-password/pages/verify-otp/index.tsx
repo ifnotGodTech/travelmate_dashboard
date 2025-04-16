@@ -8,7 +8,7 @@ import {
   InputOTPSlot,
   InputOTP,
 } from "@/components/ui/input-otp";
-import { useVerifyOtp } from "@/hooks/api/auth";
+import { useVerifyOtp, useResendOTP } from "@/hooks/api/auth";
 import AuthService from "@/services/auth";
 import { showErrorToast } from "@/utils/toasters";
 import { useRouter } from "next/navigation";
@@ -59,10 +59,13 @@ const OtpComponent = ({
   loading: boolean;
 }) => {
   const router = useRouter();
+  const { loadingReset, onResendPassword } = useResendOTP({
+    Service: AuthService,
+  });
   const submit = (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    const { email, otp } = form; // Extract email and OTP from form
+    const { email, otp } = form;
 
     onVerifyToken({
       payload: { email, token: otp },
@@ -72,6 +75,15 @@ const OtpComponent = ({
       errorCallback: ({ message }: { message: string }) => {
         router.push("/auth/reset-password");
       },
+    });
+  };
+
+  const resendOTP = () => {
+    const { email } = form;
+
+    onResendPassword({
+      payload: { email },
+      successCallback: () => {},
     });
   };
 
@@ -94,8 +106,11 @@ const OtpComponent = ({
         <div>
           <p className="text-gray-700 lg:text-[20px] text-[14px] font-medium text-center">
             Didn't receive a code?{" "}
-            <span className="underline text-[#023E8A] cursor-pointer">
-              Resend
+            <span
+              className="underline text-[#023E8A] cursor-pointer"
+              onClick={resendOTP}
+            >
+              {loadingReset ? "Sending reset password..." : "Resend"}
             </span>
           </p>
         </div>
