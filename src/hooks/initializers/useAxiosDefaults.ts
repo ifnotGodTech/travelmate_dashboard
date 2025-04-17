@@ -65,7 +65,6 @@ function useAxiosDefaults({
 
             return axios(originalRequest);
           } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
             window.location.href = `/auth/sign-in?redirectTo=${encodeURIComponent(
               location.pathname
             )}`;

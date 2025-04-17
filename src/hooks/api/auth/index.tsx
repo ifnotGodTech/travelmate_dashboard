@@ -39,7 +39,6 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
           message: error.response?.data?.Message || "Invalid credentials!",
         });
       } else {
-        console.error("Login Error:", error);
         showErrorToast({
           message: error?.response?.data?.Message || "An error occurred!",
           description: error?.response?.data?.description || "",
@@ -76,7 +75,7 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
     } catch (error: any) {
       showErrorToast({
         message:
-          error.response?.data?.email?.[0]?.Message || "Invalid credentials!",
+          error.response?.data?.email?.[0]?.Message || "An error occured",
       });
     } finally {
       setLoading(false);
@@ -147,7 +146,6 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
   }) => {
     setLoading(true);
     try {
-      console.log(payload);
       const response = await Service.newPassword({ payload });
       showSuccessToast({
         message: response.data.message || "🚀 Password Reset successful!",

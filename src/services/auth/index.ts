@@ -20,7 +20,7 @@ class Service implements AuthInterface {
     return axios.post(env.api.user + "/validate_reset_token/", payload);
   }
   resendResetToken({ payload }: TResendResetToken) {
-    return axios.post(env.api.user + "/", payload);
+    return axios.post(env.api.user + "/resend_reset_token/", payload);
   }
   newPassword({ payload }: TNewPassword) {
     return axios.post(env.api.user + "/set_new_password/", payload);

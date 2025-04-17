@@ -350,7 +350,7 @@ export const navItems = [
     iconActive: "/assets/icons/a-sidebar-user.svg",
   },
   {
-    icon: "/assets/icons/side-booking.svg",
+    icon: "/assets/icons/side-booking.svg",   
     label: "Bookings",
     href: "/Dashboard/bookings",
     iconActive: "/assets/icons/a-sidebar-booking.svg",

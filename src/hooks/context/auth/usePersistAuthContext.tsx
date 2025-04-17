@@ -24,7 +24,6 @@ const usePersistAppContext = ({
         key: PERSIST_AUTH_KEY,
         value: appState,
       });
-      console.log("Saved to local storage:", appState);
     }
   }, [appState]);
 

@@ -25,7 +25,6 @@ function ResetPasswordPage() {
     targetPage: "reset" | "otp" | "otp-sent" | "newPassword" | "success";
     message?: string;
   }) => {
-    console.log(message);
     setPage(targetPage);
   };
 
