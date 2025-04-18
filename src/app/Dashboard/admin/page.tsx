@@ -90,7 +90,7 @@ export default function AdminRolesPage() {
                   onClick={() => setIsCreateRoleOpen(true)}
                 >
                   <Plus className="md:mr-2 mr-0 h-4 w-4" />
-                  <span className="hidden md:block">Create New Role</span>{" "}
+                  <span className="hidden md:block">Create New Role</span>
                 </Button>
               </div>
               <div className="border rounded-lg">
@@ -130,7 +130,7 @@ export default function AdminRolesPage() {
                             variant="link"
                             className="text-[#023E8A] cursor-pointer hover:text-blue-800 p-0 md:mr-4 text-xs md:text-base"
                           >
-                            {" "}
+                             
                             Edit
                           </Button>
                           <Button
@@ -213,7 +213,7 @@ export default function AdminRolesPage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Role Name</label>{" "}
+                  <label className="text-sm font-medium">Role Name</label> 
                   <Input />
                 </div>
                 <div>
