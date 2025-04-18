@@ -4,9 +4,9 @@ const api = () => {
   return {
     auth: BASE_URL_LINK + "/api/auth/",
     user: BASE_URL_LINK + "/api/users",
+    bookings: BASE_URL_LINK + "/api/admin/bookings",
+    faq: BASE_URL_LINK + "/api/admin/faqs",
   };
 };
 
 export default api;
-
-// 

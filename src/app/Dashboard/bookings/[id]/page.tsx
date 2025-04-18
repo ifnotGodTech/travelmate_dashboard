@@ -302,7 +302,7 @@ export default function BookingDetailsPage({
                 title="UPDATE TRAVEL INFORMATION"
                 size="14"
                 icon="/assets/icons/mode_edit.svg"
-                onClick={() => router.push(`/users/${booking.id}/edit`)}
+                onClick={() => router.push(`/Dashboard/bookings/${booking.id}/edit`)}
               />
               <Button
                 variant="orange"

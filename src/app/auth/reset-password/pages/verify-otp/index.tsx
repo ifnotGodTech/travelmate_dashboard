@@ -107,10 +107,10 @@ const OtpComponent = ({
           <p className="text-gray-700 lg:text-[20px] text-[14px] font-medium text-center">
             Didn't receive a code?{" "}
             <span
-              className="underline text-[#023E8A] cursor-pointer"
+              className="text-[#023E8A] cursor-pointer"
               onClick={resendOTP}
             >
-              {loadingReset ? "Sending reset password..." : "Resend"}
+              {loadingReset ? "Sending..." : "Resend"}
             </span>
           </p>
         </div>
