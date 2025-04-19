@@ -1,20 +1,26 @@
 import axios from "axios";
 import env from "@/config/env";
 
+type TAddFaq = {
+  payload: {
+    category: number;
+    question: string;
+    answer: string;
+    is_active: boolean;
+  };
+};
+
 class Service {
-  getAllFaq({ bookingId }: { bookingId?: string }) {
+  getAllFaq() {
     return axios.get(env.api.faq + "/categories/");
   }
 
-  cancelBooking({ bookingId }: { bookingId?: string }) {
-    return axios.post(env.api.bookings + "/" + bookingId + "/cancel_booking/");
+  addFaq({ payload }: TAddFaq) {
+    return axios.post(env.api.faq + "/", payload);
   }
 
-  updateBooking({ bookingId, payload }: { bookingId?: string; payload?: any }) {
-    return axios.post(
-      env.api.bookings + "/" + bookingId + "/update_booking/",
-      payload
-    );
+  deleteFaq({ id }: { id: number }) {
+    return axios.delete(env.api.faq + "/" + id);
   }
 }
 const FaqService = new Service();

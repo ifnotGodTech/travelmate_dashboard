@@ -16,7 +16,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import Button from "@/components/reuseables/Button";
-import { FaqTabContent } from "./Faq";
+import { FaqSection } from "./Faq";
 
 type Chat = {
   name: string;
@@ -40,7 +40,6 @@ type ChatTabContentProps = {
 };
 
 type TicketTabContentProps = { data: string[]; loading: boolean };
-
 
 const TicketTable: React.FC = () => {
   const [tabData, setTabData] = useState<TabData>({
@@ -149,7 +148,7 @@ const TicketTable: React.FC = () => {
           </TabsContent>{" "}
           <TabsContent value="faq">
             {" "}
-            <FaqTabContent data={tabData.faq} loading={loading} />{" "}
+            <FaqSection />
           </TabsContent>{" "}
         </div>{" "}
       </Tabs>{" "}

@@ -32,6 +32,7 @@ type ButtonProps = {
   responsiveHideText?: boolean;
   disabled?: boolean;
   loading?: boolean;
+  isloading?: boolean;
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -52,6 +53,7 @@ const Button: React.FC<ButtonProps> = ({
   responsiveHideText = false,
   disabled = false,
   loading = false,
+  isloading = false,
 }) => {
   return (
     <button
@@ -84,7 +86,7 @@ const Button: React.FC<ButtonProps> = ({
         className
       )}
     >
-      {loading && (
+      {(loading || isloading) && (
         <svg
           className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
           xmlns="http://www.w3.org/2000/svg"
@@ -106,6 +108,7 @@ const Button: React.FC<ButtonProps> = ({
           ></path>
         </svg>
       )}
+
       {icon && iconPosition === "left" && !loading && (
         <img
           src={icon}
