@@ -1,5 +1,6 @@
 "use client";
-import React from "react";
+
+import React, { useState } from "react";
 import AuthWrapper from "@/app/auth/AuthWrapper";
 import Button from "@/components/reuseables/Button";
 import {
@@ -7,8 +8,12 @@ import {
   InputOTPSlot,
   InputOTP,
 } from "@/components/ui/input-otp";
-import Link from "next/link";
+import { useVerifyOtp, useResendOTP } from "@/hooks/api/auth";
+import AuthService from "@/services/auth";
+import { showErrorToast } from "@/utils/toasters";
+import { useRouter } from "next/navigation";
 
+// Props interface
 interface ResetPasswordFormProps {
   form: any;
   setForm: React.Dispatch<React.SetStateAction<any>>;
@@ -21,102 +26,140 @@ interface ResetPasswordFormProps {
   }) => void;
 }
 
+// Main VerifyOtp component
 export const VerifyOtp = ({
   handleSuccess,
   form,
   setForm,
 }: ResetPasswordFormProps) => {
+  const { loading, onVerifyToken } = useVerifyOtp({ Service: AuthService });
+
   return (
     <AuthWrapper>
       <OtpComponent
         handleSuccess={handleSuccess}
         setForm={setForm}
         form={form}
+        onVerifyToken={onVerifyToken}
+        loading={loading}
       />
     </AuthWrapper>
   );
 };
 
+// OTP Component for handling form submission and input
 const OtpComponent = ({
   handleSuccess,
   form,
   setForm,
-}: ResetPasswordFormProps) => {
-  const submit = (e?: any) => {
+  onVerifyToken,
+  loading,
+}: ResetPasswordFormProps & {
+  onVerifyToken: any;
+  loading: boolean;
+}) => {
+  const router = useRouter();
+  const { loadingReset, onResendPassword } = useResendOTP({
+    Service: AuthService,
+  });
+  const submit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    console.log(form)
-    handleSuccess?.({ targetPage: "newPassword" });
+
+    const { email, otp } = form;
+
+    onVerifyToken({
+      payload: { email, token: otp },
+      successCallback: (message: string) => {
+        handleSuccess({ message, targetPage: "newPassword" });
+      },
+      errorCallback: ({ message }: { message: string }) => {
+        router.push("/auth/reset-password");
+      },
+    });
   };
+
+  const resendOTP = () => {
+    const { email } = form;
+
+    onResendPassword({
+      payload: { email },
+      successCallback: () => {},
+    });
+  };
+
   return (
     <form onSubmit={submit}>
       <div className="bg-[#fff] p-[40px] space-y-[36px] rounded-[20px]">
         <div className="flex flex-col items-center gap-4">
           <img
             src="/assets/images/company-logo.svg"
-            alt=""
-            className="lg:w-28 w-[53px] "
+            alt="Company Logo"
+            className="lg:w-28 w-[53px]"
           />
-          <p className="text-[#181818] lg:text-2xl lg:font-semibold font-[500]   text-[18px] ">
+          <p className="text-[#181818] lg:text-2xl lg:font-semibold font-[500] text-[18px]">
             Verification Required
           </p>
         </div>
 
-        <Otpinput setForm={setForm} />
+        <OtpInput setForm={setForm} />
 
-        <div className="">
+        <div>
           <p className="text-gray-700 lg:text-[20px] text-[14px] font-medium text-center">
             Didn't receive a code?{" "}
-            <span className="underline text-[#023E8A] ">Resend</span>{" "}
+            <span
+              className="text-[#023E8A] cursor-pointer"
+              onClick={resendOTP}
+            >
+              {loadingReset ? "Sending..." : "Resend"}
+            </span>
           </p>
         </div>
         <div>
           <Button
-            title="VERIFY"
+            title={loading ? "VERIFYING..." : "VERIFY"}
             variant="blue"
             full
             weight="600"
-            disabled={`${form?.otp}`?.length === 4 ? false : true}
+            disabled={form?.otp?.length !== 4 || loading}
           />
         </div>
-        <Button title="BACK TO LOG IN" variant="outline" full weight="600" />
+        <Button
+          title="BACK TO LOG IN"
+          variant="outline"
+          full
+          weight="600"
+          onClick={() => router.push("/auth/login")}
+        />
       </div>
     </form>
   );
 };
 
-const Otpinput = ({ setForm }: any) => {
+// OTP Input Component for entering OTP
+const OtpInput = ({ setForm }: { setForm: any }) => {
   return (
     <div className="space-y-4">
-      <div className="">
-        <p className="text-[#181818]font-[600] text-[16px] text-center ">
+      <div>
+        <p className="text-[#181818] font-[600] text-[16px] text-center">
           A verification code has been sent to your email
         </p>
       </div>
 
-      <div className=" flex justify-center ">
+      <div className="flex justify-center">
         <InputOTP
           maxLength={4}
           onChange={(value) =>
-            setForm((x?: any) => ({ ...(x || {}), otp: value }))
+            setForm((prev: any) => ({ ...(prev || {}), otp: value }))
           }
         >
           <InputOTPGroup className="space-x-4">
-            <InputOTPSlot
-              index={0}
-              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
-            />
-            <InputOTPSlot
-              index={1}
-              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
-            />
-            <InputOTPSlot
-              index={2}
-              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
-            />
-            <InputOTPSlot
-              index={3}
-              className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5] "
-            />
+            {[0, 1, 2, 3].map((index) => (
+              <InputOTPSlot
+                key={index}
+                index={index}
+                className="h-[50px] w-[50px] rounded-[8px] border-[1px] border-[#9B9EA4] bg-[#f5f5f5]"
+              />
+            ))}
           </InputOTPGroup>
         </InputOTP>
       </div>

@@ -34,7 +34,7 @@ export default function BookingsPage() {
   });
 
   const handleBookingClick = (booking: BookingItem) => {
-    router.push(`/bookings/${booking.id}`);
+    router.push(`/Dashboard/bookings/1`);
   };
 
   return (

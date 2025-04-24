@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import { useUpdateAuthContext } from "@/context/AuthContext";
-
 import env from "@/config/env";
 import { AxiosError } from "axios";
 import { AuthInterface } from "@/services/auth/types";
@@ -26,7 +25,6 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
       updateAppState({
         accessToken: res.data.access,
         refreshToken: res.data.refresh,
-        user: { id: res.data.setup_info.email },
       });
       showSuccessToast({
         message: res.data.message || "🚀 Login success!",
@@ -38,12 +36,11 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
     } catch (error: Error | AxiosError | any) {
       if (error.response?.status === 400) {
         showErrorToast({
-          message: error.response?.data?.detail || "Invalid credentials!",
+          message: error.response?.data?.Message || "Invalid credentials!",
         });
       } else {
-        console.error("Login Error:", error);
         showErrorToast({
-          message: error?.response?.data?.message || "An error occurred!",
+          message: error?.response?.data?.Message || "An error occurred!",
           description: error?.response?.data?.description || "",
         });
       }
@@ -76,8 +73,9 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
       });
       successCallback?.(res?.data?.message || "Email sent successfully.");
     } catch (error: any) {
-      errorCallback?.({
-        message: error?.response?.data?.message || "An error occurred!",
+      showErrorToast({
+        message:
+          error.response?.data?.email?.[0]?.Message || "An error occured",
       });
     } finally {
       setLoading(false);
@@ -87,8 +85,6 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
   return { loading, onForgotPassword };
 }
 
-// export const useRendOTP =
-
 export function useLogout() {
   const updateAppState = useUpdateAuthContext();
 
@@ -97,6 +93,38 @@ export function useLogout() {
   };
 
   return { onLogout };
+}
+
+export function useVerifyOtp({ Service }: { Service: AuthInterface }) {
+  const [loading, setLoading] = useState(false);
+
+  const onVerifyToken = async ({
+    payload,
+    successCallback,
+    errorCallback,
+  }: {
+    payload: { email: string; token: string };
+    successCallback?: (message: string) => void;
+    errorCallback?: (props: { message?: string; description?: string }) => void;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await Service.verifyToken({ payload });
+      showSuccessToast({
+        message: res?.data?.message || "Token verified Successfully",
+        description: res.data.description || "",
+      });
+      successCallback?.(res?.data?.message || "Token verified successfully");
+    } catch (error: any) {
+      showErrorToast({
+        message: error.response?.data?.token?.[0] || "Invalid credentials!",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loading, onVerifyToken };
 }
 
 export function useNewPassword({ Service }: { Service: AuthInterface }) {
@@ -118,7 +146,6 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
   }) => {
     setLoading(true);
     try {
-      console.log(payload);
       const response = await Service.newPassword({ payload });
       showSuccessToast({
         message: response.data.message || "🚀 Password Reset successful!",
@@ -127,7 +154,7 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
       successCallback?.(response.data.message);
     } catch (error: any) {
       errorCallback?.({
-        message: error?.response?.data?.message || "An error occurred!",
+        message: error?.response?.data?.email || "An error occurred!",
         description: error?.response?.data?.description || "",
       });
     } finally {
@@ -136,4 +163,47 @@ export function useNewPassword({ Service }: { Service: AuthInterface }) {
   };
 
   return { loading, onNewPassword };
+}
+
+export function useResendOTP({ Service }: { Service: AuthInterface }) {
+  const [loadingReset, setLoading] = useState(false);
+
+  const onResendPassword = async ({
+    payload,
+    successCallback,
+    errorCallback,
+  }: {
+    payload: { email: string };
+    successCallback?: (message: string) => void;
+    errorCallback?: (props: { message?: string; description?: string }) => void;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await Service.resendResetToken({ payload });
+      showSuccessToast({
+        message:
+          res?.data?.message ||
+          "Password reset token has been sent to your email",
+      });
+      successCallback?.(res?.data?.message || "Token verified successfully");
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.token || "An error occurred!";
+      const errorDescription = error?.response?.data?.description;
+
+      // Show error toast
+      showErrorToast({
+        message: errorMessage,
+        description: errorDescription,
+      });
+
+      errorCallback?.({
+        message: errorMessage,
+        description: errorDescription,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loadingReset, onResendPassword };
 }

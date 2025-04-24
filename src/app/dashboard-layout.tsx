@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           pageName={currentNavItem?.label || "Unknown Page"}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 lg:px-[40px] px-6 pb-6">{children}</main>
+        <main className="flex-1 lg:px-[40px] px-4 pb-6">{children}</main>
       </div>
     </div>
   );

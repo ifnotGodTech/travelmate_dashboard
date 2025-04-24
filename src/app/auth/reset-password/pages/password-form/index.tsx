@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useField } from "formik";
 import { FieldMetaProps } from "formik/dist/types";
 import { Formik, Form } from "formik";
-import { useRouter } from "next/navigation";  
+import { useRouter } from "next/navigation";
 import * as Yup from "yup";
 import { useForgotPassword, useNewPassword } from "@/hooks/api/auth";
 import AuthService from "@/services/auth";
@@ -66,8 +66,6 @@ export const ResetComponent = ({
       setErrorMsg("Passwords do not match");
       return;
     }
-
-    // console.log({ email, otp, password, confirmPassword });
 
     const payload = {
       email,

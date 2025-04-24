@@ -31,7 +31,6 @@ const LoginComponent = () => {
   });
 
   const handleSubmit = async (values: { email: string; password: string }) => {
-    console.log("Submitting form with:", values);
     await onLogin({
       payload: values,
       successCallback: () => {

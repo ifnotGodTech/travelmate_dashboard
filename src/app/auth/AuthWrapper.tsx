@@ -16,7 +16,7 @@ const AuthWrapper = ({
             </p>
           </div>
           <p className=" text-[20px] lg:text-[28px] font lg:font-[600] font-[500]  leading-[100%] text-[#023E8A]">
-            Log in process
+            Login process
           </p>
         </div>
         <div className="space-x-[32px]">

@@ -344,13 +344,13 @@ export const navItems = [
     iconActive: "/assets/icons/a-sidebar-dashboard.svg",
   },
   {
-    icon: "/assets/icons/side-user.svg",
+    icon: "/assets/icons/Side-user.svg",
     label: "Users",
     href: "/Dashboard/user",
     iconActive: "/assets/icons/a-sidebar-user.svg",
   },
   {
-    icon: "/assets/icons/side-booking.svg",
+    icon: "/assets/icons/side-booking.svg",   
     label: "Bookings",
     href: "/Dashboard/bookings",
     iconActive: "/assets/icons/a-sidebar-booking.svg",

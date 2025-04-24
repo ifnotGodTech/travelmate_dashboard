@@ -248,8 +248,6 @@ const ContentTab = () => {
 
   const handleConfirmChanges = (): void => {
     setIsEditing(false);
-    console.log("Changes confirmed for", activeTab);
-    console.log("the content", contents)
     setShowSuccessModal(true);
   };
 

@@ -10,7 +10,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ChartData } from "@/components/data";
-
+import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
 const page = () => {
   return (
     <div className="space-y-10 py-4 lg:py-0">
@@ -24,16 +31,7 @@ const Statistics = () => {
   return (
     <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 ">
       <div className="space-y-6">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm lg:text-base font-semibold text-[#181818]">
-            This week
-          </p>
-          <img
-            src="/assets/icons/chevron-down.svg"
-            alt=""
-            className="w-5 rotate-90"
-          />
-        </div>
+        <TimeFilterDropdown />
         <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Users"
@@ -162,8 +160,6 @@ const QuickActions = () => (
   </div>
 );
 
-
-
 const Legend = () => {
   return (
     <div className="flex space-x-6 items-center">
@@ -189,57 +185,63 @@ const Legend = () => {
   );
 };
 
-const Chart = () => (
-  <div className="bg-white lg:px-4 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-xl font-semibold">Booking Trends</h2>
-      <div className="hidden lg:block">
+const Chart = () => {
+  const router = useRouter();
+
+  return (
+    <div className="bg-white lg:px-4 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Booking Trends</h2>
+        <div className="hidden lg:block">
+          <Legend />
+        </div>
+        <div
+          className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 "
+          onClick={() => router.push("/reports")}
+        >
+          View full report
+        </div>
+      </div>
+      <div className="flex-grow">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={ChartData}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="Flight"
+              stroke="#FF6D00"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Hotel"
+              stroke="#00C853"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Car"
+              stroke="#2962FF"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="lg:hidden flex justify-center mt-1">
         <Legend />
       </div>
-      <a href="#" className="text-sm text-blue-600">
-        View full report
-      </a>
     </div>
-    <div className="flex-grow">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={ChartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey="Flight"
-            stroke="#FF6D00"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="Hotel"
-            stroke="#00C853"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="Car"
-            stroke="#2962FF"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-
-    <div className="lg:hidden flex justify-center mt-1 ">
-      <Legend />
-    </div>
-  </div>
-);
+  );
+};
 
 const Chat = () => {
   const message = Array(10).fill({
@@ -268,7 +270,7 @@ const Chat = () => {
         <div className="w-full h-[3px] bg-[#EBECED]"></div>
         <div className="">
           {message.map((msg, i) => (
-            <div
+            <div key ={i}
               className={`py-3 lg:px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
                 i === message.length - 1
                   ? ""
@@ -282,7 +284,9 @@ const Chat = () => {
               />
               <div className="flex-1 justify-between flex items-center">
                 <p className="font-[400] text-[16px] text-[#181818] leading-[100%]">
-                  {msg.message}
+                  {msg.message.length > 15
+                    ? `${msg.message.slice(0, 20)}...`
+                    : msg.message}
                 </p>
                 <span className="font-[400] text-[12px] text-[#9B9EA4] leading-[100%]">
                   {msg.time}
@@ -303,6 +307,7 @@ const Activity = () => {
     amount: "N248,000",
     title: "Flight Booking",
   });
+  const router = useRouter();
   return (
     <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto">
       <div className="space-y-6">
@@ -319,7 +324,8 @@ const Activity = () => {
           {activity.map((act, i) => (
             <div
               key={i}
-              className="flex justify-between items-center hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
+              className="flex justify-between items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
+              onClick={() => router.push("/Dashboard/user/profile")}
             >
               <div className="flex items-center space-x-3">
                 <img
@@ -347,6 +353,49 @@ const Activity = () => {
           ))}
         </div>
       </div>
+    </div>
+  );
+};
+
+export const TimeFilterDropdown = () => {
+  const [selectedOption, setSelectedOption] = useState("This week");
+
+  const options = ["This week", "This month", "This year"];
+
+  return (
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="flex items-center space-x-2 cursor-pointer px-3 py-2">
+            <p className="text-sm lg:text-base font-semibold text-[#181818]">
+              {selectedOption}
+            </p>
+            <img
+              src="/assets/icons/chevron-down.svg"
+              alt="Dropdown Icon"
+              className="w-5 rotate-90"
+            />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="w-full mt-2 border border-gray-300 rounded-lg bg-white shadow-lg space-y-2 "
+          align="start"
+        >
+          {options.map((option) => (
+            <DropdownMenuItem
+              key={option}
+              onClick={() => setSelectedOption(option)}
+              className={`px-3 py-2 space-y-2 ${
+                selectedOption === option
+                  ? "font-bold text-[#181818] bg-gray-100"
+                  : "text-gray-700"
+              }`}
+            >
+              {option}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };
