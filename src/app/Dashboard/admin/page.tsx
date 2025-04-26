@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Search,
-  Plus,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,27 +11,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// Sample data for roles
-const roles = [
-  {
-    name: "Super Admin",
-    description: "Full access to all system features and data",
-    assignedUsers: 1,
-  },
-  {
-    name: "Support Agent",
-    description: "Customer support and booking management",
-    assignedUsers: 2,
-  },
-  {
-    name: "Content Manager",
-    description: "Manages website content and packages",
-    assignedUsers: 2,
-  },
-];
+import RoleManagement from "../../../components/molecues/admin/RoleManagement";
+import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
+import { permission } from "process";
 
 // Sample users
 const users = Array(6)
@@ -43,12 +25,125 @@ const users = Array(6)
     name: "Jane Smith",
     email: "jane.smith@example.com",
   }));
-
-export default function AdminRolesPage() {
+interface Role {
+  id: string;
+  name: string;
+  description: string;
+  assignedUsers: number;
+  permissions: string[];
+}
+const availablePermissions = {
+  "Booking Management": [
+    "view-bookings",
+    "create-bookings",
+    "edit-bookings",
+    "support-agent",
+  ],
+  "Customer Data": [
+    "view-customer-data",
+    "create-customers",
+    "edit-customer-data",
+    "delete-customers",
+    "export-customer-data",
+  ],
+  "Payment Information": [
+    "view-payment-data",
+    "process-payments",
+    "issue-refunds",
+    "export-payment-reports",
+  ],
+  "Content Management": [
+    "view-content",
+    "create-content",
+    "edit-content",
+    "delete-content",
+    "publish-content",
+  ],
+};
+const AdminRolesPage: React.FC = () => {
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isManageUsersOpen, setIsManageUsersOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeTab, setActiveTab] = useState("role-management");
+  const [roles, setRoles] = useState<Role[]>([]);
 
+  const [roleDetails, setRoleDetails] = useState<{
+    name: string;
+    description: string;
+    permissions: string[];
+  }>({
+    name: "",
+    description: "",
+    permissions: [],
+  });
+  const [newMember, setNewMember] = useState<{
+    name: string;
+    email: string;
+    role: string;
+  }>({
+    name: "",
+    email: "",
+    role: "",
+  });
+
+  // Handle role details input changes
+  const handleChangeRoleDetails = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setRoleDetails((prev) => ({ ...prev, [name]: value }));
+  };
+  // Handle permission checkbox changes
+  const handlePermissionChange = (permission: string, checked: boolean) => {
+    setRoleDetails((prev) => ({
+      ...prev,
+      permissions: checked
+        ? [...prev.permissions, permission]
+        : prev.permissions.filter((p) => p !== permission),
+    }));
+  };
+  useEffect(() => {
+    if (showSuccessModal) {
+      const timeout = setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  });
+  // Save new role
+  const saveRole = () => {
+    if (!roleDetails.name) {
+      alert("Role name is required");
+      return;
+    }
+    const newRole: Role = {
+      id: crypto.randomUUID(),
+      name: roleDetails.name,
+      description: roleDetails.description,
+      assignedUsers: 1,
+      permissions: roleDetails.permissions,
+    };
+    setRoles((prev) => [...prev, newRole]);
+    setRoleDetails({ name: "", description: "", permissions: [] }); // Reset form
+    setIsCreateRoleOpen(false);
+  };
+  // Add new member
+  const addMember = () => {
+    if (!newMember.name || !newMember.email || !newMember.role) {
+      alert("All fields are required");
+      return;
+    }
+    // Find the role and increment assignedUsers
+    setRoles((prev) =>
+      prev.map((role) =>
+        role.name === newMember.role
+          ? { ...role, assignedUsers: role.assignedUsers + 1 }
+          : role
+      )
+    );
+    setNewMember({ name: "", email: "", role: "" }); // Reset form
+    setIsAddMemberOpen(false);
+    setShowSuccessModal(true);
+  };
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
@@ -69,6 +164,7 @@ export default function AdminRolesPage() {
               >
                 Role Management
               </TabsTrigger>
+
               <TabsTrigger
                 value="role-assignments"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
@@ -76,131 +172,22 @@ export default function AdminRolesPage() {
                 Role Assignments
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="role-management" className="space-y-4">
-              <div className="flex justify-between items-center md:gap-32 gap-6">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search roles..."
-                    className="pl-9 rounded-4xl"
-                  />
-                </div>
-                <Button
-                  className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
-                  onClick={() => setIsCreateRoleOpen(true)}
-                >
-                  <Plus className="md:mr-2 mr-0 h-4 w-4" />
-                  <span className="hidden md:block">Create New Role</span>
-                </Button>
-              </div>
-              <div className="border rounded-lg">
-                <table className="md:w-full  md:overflow-hidden">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="text-left p-3 font-medium md:text-base text-xs">
-                        Role Name
-                      </th>
-                      <th className="text-left p-3 font-medium md:text-base text-xs">
-                        Description
-                      </th>
-                      <th className="text-left p-3 font-medium md:text-base text-xs">
-                        Assigned Users
-                      </th>
-                      <th className="text-left p-3 font-medium md:text-base text-xs">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs md:text-base">
-                    {roles.map((role) => (
-                      <tr key={role.name} className="border-t">
-                        <td className="p-2 md:text-base text-xs">
-                          {role.name}
-                        </td>
-                        <td className="p-2 text-muted-foreground md:text-base text-xs">
-                          {role.description}
-                        </td>
-                        <td className="p-2 md:text-base text-xs">
-                          {role.assignedUsers} User
-                          {role.assignedUsers !== 1 && "s"}
-                        </td>
 
-                        <td className="p-2 flex md:flex-row md:gap-2 gap-0 flex-col md:justify-normal justify-items-start items-start md:items-center">
-                          <Button
-                            variant="link"
-                            className="text-[#023E8A] cursor-pointer hover:text-blue-800 p-0 md:mr-4 text-xs md:text-base"
-                          >
-                             
-                            Edit
-                          </Button>
-                          <Button
-                            variant="link"
-                            className="text-green-600 hover:text-green-800 p-0 cursor-pointer text-xs md:text-base"
-                            onClick={() => setIsManageUsersOpen(true)}
-                          >
-                            Manage User
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <TabsContent value="role-management" className="space-y-4">
+              <RoleManagement
+                onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
+                roles={roles}
+                onAddMemberOpen={() => setIsAddMemberOpen(true)}
+                onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
+              />
             </TabsContent>
+
             <TabsContent value="role-assignments" className="space-y-8">
-              <div className="flex justify-between items-center md:gap-32 gap-6">
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search roles..."
-                    className="pl-9 rounded-4xl"
-                  />
-                </div>
-                <Button
-                  className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
-                  onClick={() => setIsCreateRoleOpen(true)}
-                >
-                  <Plus className="md:mr-2 mr-0 h-4 w-4" />
-                  <span className="hidden md:block">Add New Role</span>
-                </Button>
-              </div>
-              {roles.map((role) => (
-                <div key={role.name} className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium">{role.name}</h3>
-                    <p className="text-muted-foreground text-sm pt-2">
-                      {role.description}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="font-medium">
-                      Assigned Users ({role.assignedUsers})
-                    </p>
-                    {Array(role.assignedUsers)
-                      .fill(null)
-                      .map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex justify-between items-center py-2 border-b"
-                        >
-                          <span>Jane Smith</span>
-                          <Button
-                            variant="link"
-                            className="text-red-600 hover:text-red-800 p-0"
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                  </div>
-                  <Button
-                    className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
-                    onClick={() => setIsManageUsersOpen(true)}
-                  >
-                    Manage Users
-                  </Button>
-                </div>
-              ))}
+              <RoleAssignment
+                onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
+                roles={roles}
+                onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -213,141 +200,51 @@ export default function AdminRolesPage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Role Name</label> 
-                  <Input />
+                  <label className="text-sm font-medium">Role Name</label>
+                  <Input
+                    name="name"
+                    value={roleDetails.name}
+                    onChange={handleChangeRoleDetails}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Description</label>
-                  <Input />
+                  <Input
+                    name="description"
+                    value={roleDetails.description}
+                    onChange={handleChangeRoleDetails}
+                  />
                 </div>
               </div>
               <div className="space-y-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Booking Management</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="view-bookings" />
-                      <label htmlFor="view-bookings">View Bookings</label>
+                {Object.entries(availablePermissions).map(
+                  ([category, perms]) => (
+                    <div key={category} className="space-y-4">
+                      <h4 className="font-medium">{category}</h4>
+                      <div className="space-y-2">
+                        {perms.map((permission) => (
+                          <div
+                            key={permission}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={permission}
+                              checked={roleDetails.permissions.includes(
+                                permission
+                              )}
+                              onCheckedChange={(checked: boolean) =>
+                                handlePermissionChange(permission, checked)
+                              }
+                            />
+                            <label htmlFor={permission} className="capitalize">
+                              {permission.replace(/-/g, " ")}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="create-bookings" />
-                      <label htmlFor="create-bookings">Create Bookings</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="edit-bookings" />
-                      <label htmlFor="edit-bookings">Edit Bookings</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="support-agent" />
-                      <label htmlFor="support-agent">Support Agent</label>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="font-medium">Customer Data</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="view-customer-data" />
-                      <label htmlFor="view-customer-data">
-                        View Customer Data
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="create-customers" />
-                      <label htmlFor="create-customers">Create Customers</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="edit-customer-data" />
-                      <label htmlFor="edit-customer-data">
-                        Edit Customer Data
-                      </label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="delete-customers" />
-
-                      <label htmlFor="delete-customers">Delete Customers</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="export-customer-data" />
-
-                      <label htmlFor="export-customer-data">
-                        Export Customer Data
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Payment Information</h4>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="view-payment-data" />
-
-                      <label htmlFor="view-payment-data">
-                        View Payment Data
-                      </label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="process-payments" />
-
-                      <label htmlFor="process-payments">Process Payments</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="issue-refunds" />
-
-                      <label htmlFor="issue-refunds">Issue Refunds</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="export-payment-reports" />
-
-                      <label htmlFor="export-payment-reports">
-                        Export Payment Reports
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Content Management</h4>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="view-content" />
-
-                      <label htmlFor="view-content">View Content</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="create-content" />
-
-                      <label htmlFor="create-content">Create Content</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="edit-content" />
-
-                      <label htmlFor="edit-content">Edit Content</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="delete-content" />
-
-                      <label htmlFor="delete-content">Delete Content</label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="publish-content" />
-
-                      <label htmlFor="publish-content">Publish Content</label>
-                    </div>
-                  </div>
-                </div>
+                  )
+                )}
               </div>
 
               <div className="flex justify-end gap-4">
@@ -359,11 +256,68 @@ export default function AdminRolesPage() {
                   CANCEL
                 </Button>
 
-                <Button className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer">
+                <Button
+                  onClick={saveRole}
+                  className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer"
+                >
                   SAVE ROLE
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+        {/* Add New Membver Dialog  */}
+        <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+          <DialogContent>
+            <DialogHeader className="border-b pb-2">
+              <DialogTitle className="text-center">Add New Member</DialogTitle>
+            </DialogHeader>
+            <form className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                <label htmlFor="name">Name</label>
+                <Input
+                  type="text"
+                  placeholder="Enter Name"
+                  value={roleDetails.name}
+                  onChange={handleChangeRoleDetails}
+                />
+              </div>
+              <div className="flex flex-col gap-3">
+                <label htmlFor="email">Email Address</label>
+                <Input
+                  type="text"
+                  placeholder="Enter Email Address"
+                  // value={roleDetails.email}
+                  onChange={handleChangeRoleDetails}
+                />
+              </div>
+              <div className="flex flex-col gap-3">
+                <label htmlFor="role">Role</label>
+                <Input
+                  type="text"
+                  placeholder="Enter Role"
+                  // value={roleDetails.role}
+                  onChange={handleChangeRoleDetails}
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddMemberOpen(false)}
+                  className=" border-[#023E8A] text-[#023E8A] cursor-pointer"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={addMember}
+                  type="submit"
+                  className="bg-[#023E8A] border-blue-100 hover:bg-blue-100 text-white cursor-pointer"
+                >
+                  Add Member
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
         {/* Manage Users Dialog */}
@@ -416,7 +370,30 @@ export default function AdminRolesPage() {
             </div>
           </DialogContent>
         </Dialog>
+        <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+          <DialogContent className="w-full lg:max-w-md max-w-sm p-8 ">
+            <div className="space-y-[40px] flex flex-col items-center  ">
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-xl font-[500] text-[#181818]">
+                  Admin Added Successfully!
+                </DialogTitle>
+              </DialogHeader>
+
+              <img
+                src="/assets/images/Blue-check.svg"
+                alt="Success"
+                className="w-24 h-24 "
+              />
+
+              <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
+                You have successfully added a new Admin. An invitation email has
+                been sent to “xyz@gmail.com” to set up their account.
+              </DialogDescription>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
-}
+};
+export default AdminRolesPage;

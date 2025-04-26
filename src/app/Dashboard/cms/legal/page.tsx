@@ -1,14 +1,15 @@
 "use client";
-import React, {useState} from "react";
+import React, { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import About from "@/components/molecues/legal/About";
 import Privacy from "@/components/molecues/legal/Privacy";
 import Terms from "@/components/molecues/legal/Terms";
 import Partner from "@/components/molecues/legal/Partner";
 import Button from "@/components/reuseables/Button";
-import SuccessModal from "@/components/ui/LegalSuccessModal"
-
-
+import SuccessModal from "@/components/ui/LegalSuccessModal";
+import Link from "next/link";
+import axios from "axios";
+import env from "@/config/env";
 
 const page = () => {
   return (
@@ -29,6 +30,18 @@ const ContentTab = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("about");
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+
+//   const fetchData= async()=>{
+//     try {
+//       const response = await axios.get(`${env.api.privacypolicy}`);
+//       console.log(response.data);
+//     } catch (error) {
+//       console.error("Error fetching data:", error);
+//     }
+//   }
+// useEffect(()=>{
+//   fetchData()
+// })
   const [contents, setContents] = useState<ContentTypes>({
     about: `"At TravelMate, we make travel seamless and stress-free. Whether you're
     booking flights, finding the perfect stay, or renting a car, we provide
@@ -125,7 +138,7 @@ const ContentTab = () => {
       Phone: 1-800-TRAVEL-MATE Address: 123 Booking Street, Suite 456, Travel
       City, TC 12345`,
 
-      terms: `Last Updated: March 19, 2025
+    terms: `Last Updated: March 19, 2025
 
       1. Acceptance of Terms Welcome to TravelMate. These Terms of Use
       constitute a legally binding agreement between you and TravelMate Inc.
@@ -233,16 +246,18 @@ const ContentTab = () => {
     partner: `From luxury five-star hotels to cozy boutique stays and budget-friendly
     options, our accommodation partners offer variety and quality in every
     corner of the globe.`,
-  })
+  });
+
+
 
   const handleEditClick = (): void => {
     setIsEditing(!isEditing);
   };
 
   const handleContentChange = (section: keyof ContentTypes, value: string) => {
-    setContents(prev => ({
+    setContents((prev) => ({
       ...prev,
-      [section]: value
+      [section]: value,
     }));
   };
 
@@ -262,15 +277,24 @@ const ContentTab = () => {
           <p className="font-[600] text-[14px] lg:text-[20px] text-[#181818] leading-[100%] ">
             Manage Information and Policies
           </p>
-          <div onClick={handleEditClick}
-          className=" cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] leading-[100%] text-[#FFFFFF] ">
-            {isEditing ? 'Cancel' : 'Edit'}
+          <div
+            onClick={handleEditClick}
+            className=" cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] leading-[100%] text-[#FFFFFF] hidden lg:block"
+          >
+            {isEditing ? "Cancel" : "Edit"}
           </div>
+          <img
+            onClick={handleEditClick}
+            src="/assets/icons/mode_edit.svg"
+            alt="Edit"
+            className="cursor-pointer lg:hidden "
+          />
         </div>
-        <Tabs 
-        defaultValue="about" className="w-full space-y-8"
-        value={activeTab}
-        onValueChange={(value: string) => setActiveTab(value)}
+        <Tabs
+          defaultValue="about"
+          className="w-full space-y-8"
+          value={activeTab}
+          onValueChange={(value: string) => setActiveTab(value)}
         >
           <TabsList className="w-full bg-transparent border-[#CDCED1] border-b-[1px] pb-[6px] rounded-none">
             <TabsTrigger
@@ -300,25 +324,32 @@ const ContentTab = () => {
           </TabsList>
 
           <TabsContent value="about">
-            <About isEditing={isEditing} 
-            content={contents.about}
-            onContentChange={(value) => handleContentChange('about', value)}
+            <About
+              isEditing={isEditing}
+              content={contents.about}
+              onContentChange={(value) => handleContentChange("about", value)}
             />
           </TabsContent>
           <TabsContent value="privacy">
-            <Privacy isEditing={isEditing} 
-            content={contents.privacy}
-            onContentChange={(value) => handleContentChange('privacy', value)} />
+            <Privacy
+              isEditing={isEditing}
+              content={contents.privacy}
+              onContentChange={(value) => handleContentChange("privacy", value)}
+            />
           </TabsContent>
           <TabsContent value="terms">
-            <Terms isEditing={isEditing} 
-            content={contents.terms}
-            onContentChange={(value) => handleContentChange('terms', value)}/>
+            <Terms
+              isEditing={isEditing}
+              content={contents.terms}
+              onContentChange={(value) => handleContentChange("terms", value)}
+            />
           </TabsContent>
           <TabsContent value="partner">
-            <Partner isEditing={isEditing} 
-            content={contents.partner}
-            onContentChange={(value) => handleContentChange('partner', value)}/>
+            <Partner
+              isEditing={isEditing}
+              content={contents.partner}
+              onContentChange={(value) => handleContentChange("partner", value)}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -330,17 +361,14 @@ const ContentTab = () => {
           title="CONFIRM CHANGES"
           className="bg-[#023E8A] text-white"
         />
-        
       )}
-      
-      <Button full variant="success" title="GO TO BACK TO SERVICES" />
+      <Link href="/Dashboard/cms">
+        <Button full variant="success" title="GO TO BACK TO SERVICES" />
+      </Link>
 
-        <div className="bg-[#fff] p-[40px] rounded-[20px]">
-          <SuccessModal 
-            isOpen={showSuccessModal}
-            onClose={handleCloseModal}
-          />
-        </div>
+      <div className="bg-[#fff] p-[40px] rounded-[20px]">
+        <SuccessModal isOpen={showSuccessModal} onClose={handleCloseModal} />
+      </div>
     </div>
   );
 };

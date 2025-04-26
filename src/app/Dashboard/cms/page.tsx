@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 const page = () => {
   return (
     <div>
@@ -93,9 +94,9 @@ const CmsContent = () => {
                       className="flex items-center cursor-pointer"
                       onClick={() => {
                         if (item.Service === "Cars") {
-                          router.push("/Dashboard/cms/change-rate/cars")
+                          router.push("/Dashboard/cms/change-rate/cars");
                         } else {
-                          router.push("/Dashboard/cms/change-rate")
+                          router.push("/Dashboard/cms/change-rate");
                         }
                       }}
                     >
@@ -117,18 +118,24 @@ const CmsContent = () => {
           <div className="w-full h-[1px] bg-[#EBECED] "></div>
 
           <div className="p-4">
-            <div className="p-2 lg-p-10 space-y-4 rounded-[8px] bg-[#CCD8E8] ">
+            <div className="p-8 lg:p-10 lg:space-y-4 rounded-[8px] bg-[#CCD8E8] ">
               <h1 className="text-[16px] font-[500] text-[#023E8A] ">
                 How Agency Rates Work
               </h1>
 
-              <p className="text-[14px] lg:text-[16px] leading-[25px] font-[500] text-[#181818] ">
+              <p className="text-[14px] lg:text-sm leading-[25px] font-[600] text-[#181818] ">
                 These fees represent the markup your agency adds to the base
                 fees charged by service providers. For example, if an airline
                 charges N500,000 for a flight and your agency rate is N50,000,
                 the customer will see N550,000 at their own end.
               </p>
             </div>
+          </div>
+          <div className="w-full h-[1px] bg-[#EBECED] "></div>
+          <div className="lg:px-12 py-3 cursor-pointer w-full bg-[#D5EBDF] rounded-lg text-center">
+            <Link href="/Dashboard/cms/legal" className="uppercase text-[#2D9C5E]  w-full ">
+              Go to Information Policies
+            </Link>
           </div>
         </div>
       </div>

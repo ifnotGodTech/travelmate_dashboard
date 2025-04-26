@@ -45,17 +45,17 @@ const Partners = ({ content }: PartnersProps) => {
       <h1 className="text-[16px] lg:text-[20px] font-[400] text-[#181818] leading-[100%] ">
         Stay Partners
       </h1>
-      <p className="text-[#4E4F52] text-[14px] lg:text-[20px] font-[400] leading-[100%] ">
+      <p className="text-[#4E4F52] text-[15px] lg:text-[18px] font-[400] leading-6 ">
        {content}
       </p>
-      <ul className="flex space-x-10 flex-wrap">
-        <li className="text-[#4E4F52] text-[14px] lg:text-[20px] font-[400] leading-[100%]">
+      <ul className="flex space-x-10 flex-wrap pl-4">
+        <li className="text-[#4E4F52] text-[14px] lg:text-[16px] font-[400] leading-[100%] list-disc">
           Marriott Hotels
         </li>
-        <li className="text-[#4E4F52] text-[14px] lg:text-[20px] font-[400] leading-[100%]">
+        <li className="text-[#4E4F52] text-[14px] lg:text-[16px] font-[400] leading-[100%] list-disc">
           Marriott Hotels
         </li>
-        <li className="text-[#4E4F52] text-[14px] lg:text-[20px] font-[400] leading-[100%]">
+        <li className="text-[#4E4F52] text-[14px] lg:text-[16px] font-[400] leading-[100%] list-disc">
           Marriott Hotels
         </li>
       </ul>
