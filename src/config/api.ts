@@ -6,6 +6,11 @@ const api = () => {
     user: BASE_URL_LINK + "/api/users",
     bookings: BASE_URL_LINK + "/api/admin/bookings",
     faq: BASE_URL_LINK + "/api/admin/faqs",
+    ticket: BASE_URL_LINK + "/api/admin/tickets/",
+    messae: BASE_URL_LINK + "/api/admin/tickets/",
+    escalation: BASE_URL_LINK + "/api/admin/escalation-levels",
+    admin: BASE_URL_LINK + "/api/admin",
+    chat: BASE_URL_LINK + "/api/admin/chats",
   };
 };
 

@@ -1,165 +1,181 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useGetAllChat, useGetChatMessages } from "@/hooks/api/chat";
 
-interface Chat {
-  name: string;
-  message: string;
-  time: string;
-  status: string;
-  date: string;
-  number: number;
-}
+const page = () => {
+  return (
+    <div className="w-full h-[77vh] overflow-x-hidden">
+      <ChatPage />
+    </div>
+  );
+};
 
-interface Message {
-  sender: string;
-  text: string;
-}
-
-const Page: React.FC = () => {
+const ChatPage: React.FC = () => {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
 
-  const chats: Chat[] = Array(10).fill({
-    name: "Kemi Adeoti",
-    message: "Can you help me with my recent order?",
-    time: "4:44 PM",
-    status: "Online",
-    date: "16 February, 2025",
-    number: 3,
-  });
+  const { data, loading } = useGetAllChat({});
 
-  const messages: Message[] = [
-    { sender: "Kemi Adeoti", text: "Hi, I need help with my order." },
-    { sender: "Support", text: "Sure, can you provide your order ID?" },
-    { sender: "Kemi Adeoti", text: "Yes, it's 123456." },
-    { sender: "Support", text: "Thank you, let me check that for you." },
-  ];
+  // Memoize chats to prevent unnecessary recalculations
+  const chats = useMemo(() => {
+    return data.map((chat: any) => ({
+      id: chat.id,
+      name: chat.user_info.first_name || chat.user_info.email,
+      message: chat.last_message?.content || "No messages yet",
+      time: new Date(
+        chat.last_message?.created_at || chat.created_at
+      ).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      number: chat.unread_count,
+    }));
+  }, [data]);
 
   return (
-    <div className="w-full space-y-[16px] ">
-      <div className="">
-        <img src="/assets/icons/arrow-back.svg" alt="" className="" />
-      </div>
-      <div className="h-[77vh] min-w-[100%] overflow-hidden flex justify-center items-center">
-        {/* Chat Box */}
-        <div className="flex w-full h-[100%] border rounded-lg overflow-hidden py-[16px] px-[24px] bg-[#FFFFFF] ">
-          {/* Chat List */}
-          <div
-            className={` overflow-y-auto transition-all duration-300 space-y-[32px] ${
-              selectedChat !== null ? "w-1/3" : "w-full"
-            }`}
-          >
-            <h2 className="font-[500] lg:font-[600] text-[14px] lg:text-[20px] text-[#181818] sticky">
-              Chats
-            </h2>
-            <div className="w-full h-[2px] bg-[#EBECED] "></div>
-            <ul>
-              {chats.map((chat, index) => (
-                <li
-                  key={index}
-                  className={`p-2 mb-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
-                    selectedChat === index ? "bg-blue-100" : ""
-                  }`}
-                  onClick={() => setSelectedChat(index)}
-                >
-                  <div className="flex space-x-4 items-center">
-                    <img
-                      src="/assets/icons/flight_cancellation.svg"
-                      alt=""
-                      className=""
-                    />
-                    <div className="flex-1">
-                      <div className="flex justify-between">
-                        <div className="w-full space-y-[8px]">
-                          <p className="font-[400] text-[14px] lg:font-[500] lg:text-[16px] text-[#181818]">
-                            {chat.name}
-                          </p>
-                          <p className="text-[#67696D] text-[10px] leading-[100%] lg:text-[12px] lg:leading-[18px]  ">
-                            {chat.message}
-                          </p>
-                        </div>
-                        <div className="w-full flex justify-between items-center">
-                          <div className="flex justify-between items-center space-x-[40px] ">
-                            <p className=" text-[12px] leading-[18px] font-[400] lg:text-[14px] lg:leading-[100%] text-[#s181818]  ">
-                              {chat.date}
-                            </p>
-                            <p className="text-[12px] leading-[18px] font-[400] lg:text-[14px] lg:leading-[100%] text-[#s181818] ">
-                              {chat.time}
-                            </p>
-                          </div>
-
-                          <div className="bg-[#023E8A] rounded-full h-[30px] w-[30px] flex justify-center items-center ">
-                            <span className="text-[12px] leading-[18px] font-[400] lg:text-[14px] lg:leading-[100%] text-[#fff] ">
-                              {chat.number}
-                            </span>
-                          </div>
-
-                          <div className="">
-                            <img
-                              src="/assets/icons/arrow-down.svg"
-                              alt=""
-                              className="w-4 h-4 -rotate-90 "
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+    <div className="w-full h-full flex">
+      {/* Chat List Section */}
+      <div
+        className={`transition-all duration-300 ${
+          selectedChat === null
+            ? "w-full rounded-[10px]"
+            : "w-1/3 rounded-l-[20px]"
+        } h-full border-r bg-white overflow-y-auto p-4`}
+      >
+        <h2 className="font-semibold text-lg mb-4">Chats</h2>
+        <ul>
+          {chats.map((chat) => (
+            <li
+              key={chat.id}
+              onClick={() => setSelectedChat(chat.id)}
+              className={`p-2 mb-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
+                selectedChat === chat.id ? "bg-gray-200" : ""
+              }`}
+            >
+              <div className="flex space-x-[8px] lg:space-x-0 lg:justify-between items-center">
+                <div className="flex items-start lg:items-center space-x-[8px] flex-1">
+                  <img src="/assets/icons/Message-icon.svg" alt="Icon" />
+                  <div className="space-y-[8px]">
+                    <p className="font-[400] text-[14px] lg:font-[500] lg:text-[16px] text-[#181818]">
+                      {chat.name}
+                    </p>
+                    <p className="text-[#67696D] text-[10px] leading-[100%] lg:text-[12px] lg:leading-[18px] overflow-hidden whitespace-nowrap text-ellipsis max-w-[20ch] lg:max-w-[60ch]">
+                      {chat.message.length > 35
+                        ? `${chat.message.slice(0, 35)}...`
+                        : chat.message}
+                    </p>
                   </div>
-                  {/* <div className="flex justify-between">
-                  <span className="font-semibold">{chat.name}</span>
-                  <span className="text-sm text-gray-500">{chat.time}</span>
                 </div>
-                <p className="text-sm text-gray-600 truncate">{chat.message}</p> */}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Chat Area */}
-          {selectedChat !== null && (
-            <div className="flex-1 flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 bg-gray-100 border-b">
-                <h2 className="font-semibold">{chats[selectedChat].name}</h2>
-                <span className="text-sm text-gray-500">
-                  {chats[selectedChat].status}
-                </span>
-              </div>
-
-              {/* Chat Messages */}
-              <div className="flex-1 p-4 overflow-y-auto scrollbar-hide">
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 flex ${
-                      message.sender === "Support"
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`p-3 rounded-lg max-w-xs ${
-                        message.sender === "Support"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-black"
-                      }`}
-                    >
-                      {message.text}
-                    </div>
+                {selectedChat === null && (
+                  <div className="flex space-x-2 lg:space-x-[50px] flex-1 justify-end">
+                    <p className="text-[12px] lg:text-[14px] text-[#181818]">
+                      {chat.time}
+                    </p>
+                    {chat.number > 0 && (
+                      <div className="bg-[#023E8A] rounded-full h-[30px] w-[30px] flex justify-center items-center">
+                        <span className="text-white">{chat.number}</span>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-              {/* Message Input */}
-              <div className="p-4 border-t flex gap-4">
-                {/* <Input placeholder="Type a message" className="flex-1" />
-              <Button>Send</Button> */}
+      {/* Selected Chat Section */}
+      {selectedChat !== null && <Conversation selectedChat={selectedChat} />}
+    </div>
+  );
+};
+
+const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
+  const { messages, onFetchMessages, loadingMessage } = useGetChatMessages();
+
+  useEffect(() => {
+    onFetchMessages({ id: selectedChat });
+  }, [selectedChat]);
+
+  const userEmail =
+    messages?.user_info?.first_name ||
+    messages?.user_info?.email ||
+    "Unknown User";
+
+  return (
+    <div className="flex-1 flex flex-col bg-white rounded-r-[20px]">
+      <div className="p-4 border-b flex items-center space-x-4 ">
+        {messages?.user_info?.image || (
+          <ProfilePictureT email={messages?.user_info?.email} />
+        )}
+        <h2 className="font-semibold">{userEmail}</h2>
+      </div>
+      <div className="flex-1 p-4 overflow-y-auto">
+        {loadingMessage ? (
+          <div className="text-center text-gray-500">Loading messages...</div>
+        ) : (
+          messages?.messages?.map((message: any, index: number) => (
+            <div
+              key={index}
+              className={`mb-1 flex ${
+                message.sender_info?.id === 0 ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div
+                className={`p-3 max-w-[290px] ${
+                  message.sender_info?.id === 0
+                    ? "bg-[#023E8A] text-white"
+                    : "bg-[#EBECED] text-black"
+                } rounded-t-[26px] ${
+                  message.sender_info?.id === 0
+                    ? "rounded-bl-[26px]"
+                    : "rounded-br-[26px]"
+                }`}
+              >
+                {message.content}
               </div>
             </div>
-          )}
+          ))
+        )}
+      </div>
+
+      <div className="p-4 border-t flex items-center gap-4">
+        <div className="bg-[#EBECED] flex-1 p-3 space-x-4 border rounded-lg flex items center">
+          <img
+            src="/assets/icons/emoji.svg"
+            alt=""
+            className=" cursor-pointer"
+          />
+          <input
+            type="text"
+            placeholder="Type a message..."
+            className="flex-1 outline-none "
+          />
+          <img
+            src="/assets/icons/attachment.svg"
+            alt=""
+            className=" cursor-pointer"
+          />
         </div>
+        <button className="p-3 bg-[#023E8A] text-white rounded-lg">
+          <img
+            src="/assets/icons/white-send.svg"
+            alt=""
+            className=" cursor-pointer"
+          />
+        </button>
       </div>
     </div>
   );
 };
 
-export default Page;
+const ProfilePictureT = ({ email }: { email: string }) => {
+  const firstLetter = email?.charAt(0)?.toUpperCase() || "?";
+
+  return (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f5f5f5] text-[#181818] font-semibold text-[20px] ">
+      {firstLetter}
+    </div>
+  );
+};
+
+export default page;

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, ReactNode } from "react";
 import clsx from "clsx";
 
 // Button Component
@@ -33,6 +33,7 @@ type ButtonProps = {
   disabled?: boolean;
   loading?: boolean;
   isloading?: boolean;
+  children?: ReactNode; // Allow children prop
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -54,6 +55,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   loading = false,
   isloading = false,
+  children, // Accept children prop
 }) => {
   return (
     <button
@@ -141,6 +143,8 @@ const Button: React.FC<ButtonProps> = ({
           })}
         />
       )}
+      {/* Render children here */}
+      {children}
     </button>
   );
 };
@@ -201,8 +205,8 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({
       className={clsx(
         "cursor-pointer flex items-center justify-center gap-2 rounded-[8px] transition-all duration-200 ",
         {
-          "px-5 py-3": size === "16",
-          "px-4 py-2.5": size === "14",
+          "px-10 py-6": size === "16",
+          "px-6 py-4": size === "14",
           "bg-[#ccd8e8] text-[#023e8a]": variant === "light-blue",
           "bg-[#023e8a] text-[#fff]": variant === "blue",
           "bg-[#ffd2d2] text-[#d72638]": variant === "light-red",
