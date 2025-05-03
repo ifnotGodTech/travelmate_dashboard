@@ -4,15 +4,6 @@ import { useState } from "react";
 import {
   Search,
   Plus,
-  ChevronDown,
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  Database,
-  HeadphonesIcon,
-  PieChart,
-  Settings,
-  LogOut,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Sample data for roles
 const roles = [
@@ -62,9 +52,9 @@ export default function AdminRolesPage() {
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
-      <main className="flex-1 p-3">
-        <div className="rounded-lg bg-card p-3">
-          <h2 className="text-lg font-medium mb-6">
+      <main className="w-full">
+        <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
+          <h2 className="text-lg font-medium pb-6">
             Manage access control for your travel agency dashboard
           </h2>
           <Tabs
@@ -100,11 +90,11 @@ export default function AdminRolesPage() {
                   onClick={() => setIsCreateRoleOpen(true)}
                 >
                   <Plus className="md:mr-2 mr-0 h-4 w-4" />
-                  <span className="hidden md:block">Create New Role</span>{" "}
+                  <span className="hidden md:block">Create New Role</span>
                 </Button>
               </div>
               <div className="border rounded-lg">
-                <table className="w-full">
+                <table className="md:w-full  md:overflow-hidden">
                   <thead>
                     <tr className="bg-muted">
                       <th className="text-left p-3 font-medium md:text-base text-xs">
@@ -121,31 +111,31 @@ export default function AdminRolesPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="text-xs md:text-base">
                     {roles.map((role) => (
                       <tr key={role.name} className="border-t">
-                        <td className="p-3 md:text-base text-sm">
+                        <td className="p-2 md:text-base text-xs">
                           {role.name}
                         </td>
-                        <td className="p-3 text-muted-foreground md:text-base text-sm">
+                        <td className="p-2 text-muted-foreground md:text-base text-xs">
                           {role.description}
                         </td>
-                        <td className="p-3 md:text-base text-sm">
+                        <td className="p-2 md:text-base text-xs">
                           {role.assignedUsers} User
                           {role.assignedUsers !== 1 && "s"}
                         </td>
 
-                        <td className="p-3 flex md:flex-row md:gap-2 gap-0 flex-col justify-normal items-start">
+                        <td className="p-2 flex md:flex-row md:gap-2 gap-0 flex-col md:justify-normal justify-items-start items-start md:items-center">
                           <Button
                             variant="link"
-                            className="text-[#023E8A] cursor-pointer hover:text-blue-800 p-0 md:mr-4"
+                            className="text-[#023E8A] cursor-pointer hover:text-blue-800 p-0 md:mr-4 text-xs md:text-base"
                           >
-                            {" "}
+                             
                             Edit
                           </Button>
                           <Button
                             variant="link"
-                            className="text-green-600 hover:text-green-800 p-0 cursor-pointer"
+                            className="text-green-600 hover:text-green-800 p-0 cursor-pointer text-xs md:text-base"
                             onClick={() => setIsManageUsersOpen(true)}
                           >
                             Manage User
@@ -223,7 +213,7 @@ export default function AdminRolesPage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Role Name</label>{" "}
+                  <label className="text-sm font-medium">Role Name</label> 
                   <Input />
                 </div>
                 <div>
@@ -378,7 +368,7 @@ export default function AdminRolesPage() {
         </Dialog>
         {/* Manage Users Dialog */}
         <Dialog open={isManageUsersOpen} onOpenChange={setIsManageUsersOpen}>
-          <DialogContent className="fixed top-[10vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[85vh]">
+          <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[85vh]">
             <DialogHeader>
               <DialogTitle>Manage User</DialogTitle>
             </DialogHeader>
