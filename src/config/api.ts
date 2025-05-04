@@ -6,9 +6,11 @@ const api = () => {
     user: BASE_URL_LINK + "/api/users",
     bookings: BASE_URL_LINK + "/api/admin/bookings",
     faq: BASE_URL_LINK + "/api/admin/faqs",
-    // privacypolicy: BASE_URL_LINK + "/api/admin/privacy-policy",
-    // termsofuse: BASE_URL_LINK + "/api/admin/terms-of-use",
-    // aboutus: BASE_URL_LINK + "/api/admin/about-us",
+    privacypolicy: BASE_URL_LINK + "/api/admin/privacy-policy",
+    termsofuse: BASE_URL_LINK + "/api/admin/terms-of-use",
+    aboutus: BASE_URL_LINK + "/api/admin/about-us",
+    partners: BASE_URL_LINK + "/api/admin/partners",
+    partnercategories: BASE_URL_LINK + "/api/admin/partner-categories",
 
   };
 };

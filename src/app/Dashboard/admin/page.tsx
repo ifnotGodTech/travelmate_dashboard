@@ -66,7 +66,15 @@ const AdminRolesPage: React.FC = () => {
   const [isManageUsersOpen, setIsManageUsersOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeTab, setActiveTab] = useState("role-management");
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<Role[]>([
+    {
+      id: "1",
+      name: "Super Admin",
+      description: "Full access to all features",
+      assignedUsers: 1,
+      permissions: Object.values(availablePermissions).flat(),
+    },
+  ]);
 
   const [roleDetails, setRoleDetails] = useState<{
     name: string;
@@ -119,7 +127,7 @@ const AdminRolesPage: React.FC = () => {
       id: crypto.randomUUID(),
       name: roleDetails.name,
       description: roleDetails.description,
-      assignedUsers: 1,
+      assignedUsers: 0,
       permissions: roleDetails.permissions,
     };
     setRoles((prev) => [...prev, newRole]);
@@ -177,7 +185,6 @@ const AdminRolesPage: React.FC = () => {
               <RoleManagement
                 onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
                 roles={roles}
-                onAddMemberOpen={() => setIsAddMemberOpen(true)}
                 onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
               />
             </TabsContent>
@@ -187,6 +194,7 @@ const AdminRolesPage: React.FC = () => {
                 onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
                 roles={roles}
                 onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
+                onAddMemberOpen={() => setIsAddMemberOpen(true)}
               />
             </TabsContent>
           </Tabs>

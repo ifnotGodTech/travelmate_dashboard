@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
 import { FC, JSX } from "react";
+import { useRouter } from "next/navigation";
 
 interface Role {
   id: string;
@@ -13,17 +14,16 @@ interface RoleManagementProps {
   roles: Role[]; // Array of roles to display
   // searchValue: string; // Controlled search input value
   // onSearchChange: (value: string) => void; // Callback for search input changes
-  onAddMemberOpen: () => void; // Callback to open Add Member modal
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
   onManageUsersOpen: (roleId: string) => void; // Callback to open Manage Users modal
   // onEditRole: (roleId: string) => void; // Callback to edit a role
 }
 const RoleManagement: FC<RoleManagementProps> = ({
   roles,
-  onAddMemberOpen,
   onCreateRoleOpen,
   onManageUsersOpen,
 }): JSX.Element => {
+  const router = useRouter()
   return (
     <>
       <div className="flex justify-between items-center md:gap-32 gap-6">
@@ -32,13 +32,6 @@ const RoleManagement: FC<RoleManagementProps> = ({
           <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
         </div>
         <div className="flex items-center gap-2 justify-normal">
-          <Button
-            className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
-            onClick={onAddMemberOpen}
-          >
-            <Plus className="md:mr-2 mr-0 h-4 w-4" />
-            <span className="hidden md:block">Add New member</span>
-          </Button>
           <Button
             className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
             onClick={onCreateRoleOpen}
@@ -100,7 +93,7 @@ const RoleManagement: FC<RoleManagementProps> = ({
                     <Button
                       variant="link"
                       className="text-green-600 hover:text-green-800 p-0 cursor-pointer text-xs md:text-base"
-                      onClick={() => onManageUsersOpen(role.id)}
+                      onClick={() => router.push('/Dashboard/admin/manage-user')}
                     >
                       Manage User
                     </Button>

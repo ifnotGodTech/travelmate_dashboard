@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
 import { FC } from "react";
-
+import { useRouter } from "next/navigation";
 interface Role {
   id: string;
   name: string;
@@ -13,12 +13,14 @@ interface RoleAssignmentProps {
   roles: Role[]; // Array of roles to display
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
   onManageUsersOpen: (roleId: string) => void;
+  onAddMemberOpen: () => void;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
-  onCreateRoleOpen,
+  onAddMemberOpen,
   roles,
   onManageUsersOpen,
 }) => {
+  const route = useRouter();
   return (
     <>
       <div className="flex justify-between items-center md:gap-32 gap-6">
@@ -28,10 +30,10 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
         </div>
         <Button
           className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
-          onClick={onCreateRoleOpen}
+          onClick={onAddMemberOpen}
         >
           <Plus className="md:mr-2 mr-0 h-4 w-4" />
-          <span className="hidden md:block">Add New Role</span>
+          <span className="hidden md:block">Invite New Member</span>
         </Button>
       </div>
       {roles.map((role) => (
@@ -56,14 +58,14 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                     variant="link"
                     className="text-red-600 hover:text-red-800 p-0"
                   >
-                    Remove
+                    {role.name !== "Super Admin" && "Remove"}
                   </Button>
                 </div>
               ))}
           </div>
           <Button
             className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
-            onClick={() => onManageUsersOpen(role.id)}
+            onClick={() =>route.push('/Dashboard/admin/manage-user')}
           >
             Manage Users
           </Button>
