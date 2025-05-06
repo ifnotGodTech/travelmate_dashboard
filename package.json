@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-     "postinstall": "npm uninstall @next/swc-win32-x64-msvc && npm install @next/swc-linux-x64-gnu"
+    "postinstall": "npm uninstall @next/swc-win32-x64-msvc && npm install @next/swc-linux-x64-gnu"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",
