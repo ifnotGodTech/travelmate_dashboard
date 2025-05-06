@@ -5,7 +5,7 @@ import React from "react";
 
 const page = () => {
   return (
-    <div className="px-[16px] lg:px-[37px] bg-[white] lg:bg-transparent min-h-screeen space-y-10 ">
+    <div className="px-[16px] lg:px-[37px] bg-[white] lg:bg-transparent min-h-screeen space-y-10">
       <Stats />
       <Tab />
     </div>

@@ -11,6 +11,7 @@ const api = () => {
     escalation: BASE_URL_LINK + "/api/admin/escalation-levels",
     admin: BASE_URL_LINK + "/api/admin",
     chat: BASE_URL_LINK + "/api/admin/chats",
+    users: BASE_URL_LINK + "/api/superuser/",
   };
 };
 

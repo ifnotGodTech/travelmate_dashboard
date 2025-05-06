@@ -1,6 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import ChatService from "@/services/chat";
+const getFromLocalStorage = ({
+  key,
+  cb = () => null,
+}: {
+  key: string;
+  cb?: (value: any) => void;
+}): void => {
+  try {
+    const value = localStorage?.getItem(key);
+    if (value) {
+      const parsedValue = JSON.parse(value);
+      if (typeof cb === "function") cb(parsedValue);
+    }
+  } catch (e) {
+    console.error("Error accessing localStorage:", e);
+  }
+};
 
 type ChatResponse = {
   id: number;
@@ -86,4 +103,63 @@ export const useGetChatMessages = () => {
   };
 
   return { loadingMessage, messages, onFetchMessages };
+};
+
+export const useWebSocket = (sessionId: number) => {
+  const [messages, setMessages] = useState<any[]>([]); // Store incoming messages
+  const socketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    // Fetch access token from TRAVELMATE_APP_PERSISTOR in localStorage
+    let accessToken: string | null = null;
+    getFromLocalStorage({
+      key: "TRAVELMATE_APP_PERSISTOR",
+      cb: (value: { accessToken: string; refreshToken: string }) => {
+        accessToken = value?.accessToken || null;
+      },
+    });
+
+    if (!accessToken) {
+      console.error("Access token is missing.");
+      return;
+    }
+
+    // Establish WebSocket connection
+    const wsUrl = `wss://travelmate-backend-0suw.onrender.com/ws/chat/${sessionId}/?token=${accessToken}`;
+    socketRef.current = new WebSocket(wsUrl);
+
+    const socket = socketRef.current;
+
+    // Handle WebSocket events
+    socket.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setMessages((prev) => [...prev, data]);
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket closed");
+    };
+
+    // Cleanup WebSocket on unmount
+    return () => {
+      socket.close();
+    };
+  }, [sessionId]);
+
+  // Function to send a message
+  const sendMessage = (message: any) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    }
+  };
+
+  return { messages, sendMessage };
 };

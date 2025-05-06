@@ -1,6 +1,10 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import { useGetAllChat, useGetChatMessages } from "@/hooks/api/chat";
+import {
+  useGetAllChat,
+  useGetChatMessages,
+  useWebSocket,
+} from "@/hooks/api/chat";
 
 const page = () => {
   return (
@@ -43,7 +47,7 @@ const ChatPage: React.FC = () => {
       >
         <h2 className="font-semibold text-lg mb-4">Chats</h2>
         <ul>
-          {chats.map((chat) => (
+          {chats.map((chat : any) => (
             <li
               key={chat.id}
               onClick={() => setSelectedChat(chat.id)}
@@ -90,22 +94,39 @@ const ChatPage: React.FC = () => {
 };
 
 const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
-  const { messages, onFetchMessages, loadingMessage } = useGetChatMessages();
+  const [input, setInput] = useState("");
+  const { messages: liveMessages, sendMessage } = useWebSocket(selectedChat);
+
+  const {
+    messages: historyMessages,
+    onFetchMessages,
+    loadingMessage,
+  } = useGetChatMessages();
 
   useEffect(() => {
     onFetchMessages({ id: selectedChat });
   }, [selectedChat]);
 
   const userEmail =
-    messages?.user_info?.first_name ||
-    messages?.user_info?.email ||
+    historyMessages?.user_info?.first_name ||
+    historyMessages?.user_info?.email ||
     "Unknown User";
+
+  // Merge past messages and real-time messages
+  const allMessages = [...(historyMessages?.messages || []), ...liveMessages];
+
+  const handleSend = () => {
+    if (input.trim()) {
+      sendMessage({ content: input, chatId: selectedChat });
+      setInput("");
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-white rounded-r-[20px]">
       <div className="p-4 border-b flex items-center space-x-4 ">
-        {messages?.user_info?.image || (
-          <ProfilePictureT email={messages?.user_info?.email} />
+        {historyMessages?.user_info?.image || (
+          <ProfilePictureT email={historyMessages?.user_info?.email} />
         )}
         <h2 className="font-semibold">{userEmail}</h2>
       </div>
@@ -113,7 +134,7 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
         {loadingMessage ? (
           <div className="text-center text-gray-500">Loading messages...</div>
         ) : (
-          messages?.messages?.map((message: any, index: number) => (
+          allMessages.map((message: any, index: number) => (
             <div
               key={index}
               className={`mb-1 flex ${
@@ -147,6 +168,8 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
           />
           <input
             type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
             className="flex-1 outline-none "
           />
@@ -156,7 +179,10 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
             className=" cursor-pointer"
           />
         </div>
-        <button className="p-3 bg-[#023E8A] text-white rounded-lg">
+        <button
+          onClick={handleSend}
+          className="p-3 bg-[#023E8A] text-white rounded-lg"
+        >
           <img
             src="/assets/icons/white-send.svg"
             alt=""
@@ -167,7 +193,6 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
     </div>
   );
 };
-
 const ProfilePictureT = ({ email }: { email: string }) => {
   const firstLetter = email?.charAt(0)?.toUpperCase() || "?";
 

@@ -1,3 +1,4 @@
+"use client";
 import Button from "@/components/reuseables/Button";
 import {
   Table,
@@ -8,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import React from "react";
+import { useGetUsers } from "@/hooks/api/user";
 
 const page = () => {
   return (
@@ -143,99 +145,64 @@ const Filter = () => {
   );
 };
 
-interface UserHistory {
-  id: string;
-  Name: string;
-  Joined: string;
-  bookings: string;
-  point: string;
-  email: string;
-  profileImg: string;
-}
+const UsersTable = () => {
+  const { users, loadMore, loading, error } = useGetUsers();
 
-const userHistoryData: UserHistory[] = [
-  {
-    id: "1",
-    Name: "Kemi Adeoti",
-    Joined: "04 Feb. ‘25",
-    bookings: "25",
-    point: "2000",
-    email: "kemiadeoti@gmail.com",
-    profileImg: "/assets/images/profile-image.svg",
-  },
-  {
-    id: "2",
-    Name: "Kemi Adeoti",
-    Joined: "04 Feb. ‘25",
-    bookings: "25",
-    point: "2000",
-    email: "kemiadeoti@gmail.com",
-    profileImg: "/assets/images/profile-image.svg",
-  },
-  {
-    id: "3",
-    Name: "John doe",
-    Joined: "04 Feb. ‘25",
-    bookings: "25",
-    point: "2000",
-    email: "kemiadeoti@gmail.com",
-    profileImg: "/assets/images/nav-user.svg",
-  },
-];
-
-const UsersTable: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 py-6 bg-[#fff]">
       <div className="overflow-x-auto">
-        <Table className="w-full border-collapse table-fixed">
+        <Table className="w-full table-fixed border-separate border-spacing-x-4 border-spacing-y-2 px-6">
           <TableHeader>
             <TableRow>
-              <TableHead className="py-3 px-4 text-sm lg:text-base font-semibold text-neutral-900">
+              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
                 Name
               </TableHead>
-              <TableHead className="py-3 px-4 text-sm lg:text-base font-semibold text-neutral-900">
+              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
                 Joined
               </TableHead>
-              <TableHead className="py-3 px-4 text-sm lg:text-base font-semibold text-neutral-900 hidden lg:table-cell">
+              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left hidden lg:table-cell">
                 Total Bookings
               </TableHead>
-              <TableHead className="py-3 px-4 text-sm lg:text-base font-semibold text-neutral-900 hidden lg:table-cell">
+              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left hidden lg:table-cell">
                 Loyalty Points
               </TableHead>
-              <TableHead className="py-3 px-4 text-sm lg:text-base font-semibold text-neutral-900 hidden lg:table-cell">
+              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
                 Email Address
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {userHistoryData.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell className="py-4 px-4">
+            {users.map((user, index) => (
+              <TableRow key={user.id} className="bg-[#fff]">
+                <TableCell className="py-4 px-6">
                   <div className="flex items-center space-x-4">
                     <img
-                      src={item.profileImg}
+                      src="/assets/images/profile-image.svg"
                       alt="Profile"
                       className="w-10 h-10 rounded-full"
                     />
                     <span className="text-sm lg:text-base font-normal text-neutral-900">
-                      {item.Name}
+                      {user.name ||
+                        `${user.first_name || "no_firstname"} ${
+                          user.last_name || "no_lastname"
+                        }`}
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-4 px-4 text-sm lg:text-base font-normal text-neutral-900">
-                  {item.Joined}
+                <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900">
+                  {new Date(user.date_created).toLocaleDateString()}
                 </TableCell>
-                <TableCell className="py-4 px-4 text-sm lg:text-base font-normal text-neutral-900 hidden lg:table-cell">
-                  {item.bookings}
+                <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900 hidden lg:table-cell">
+                  {user.total_bookings}
                 </TableCell>
                 <TableCell
-                  className="py-4 px-4 text-sm lg:text-base font-normal text-neutral-900 truncate max-w-[80px] lg:max-w-none hidden lg:table-cell"
-                  title={item.point.toString()}
+                  className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900 truncate max-w-[80px] lg:max-w-none hidden lg:table-cell"
+                  title="30"
                 >
-                  {item.point}
+                  {"30"}
                 </TableCell>
-                <TableCell className="py-4 px-4 text-sm lg:text-base font-normal text-neutral-900 hidden lg:table-cell">
-                  {item.email}
+                <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900">
+                  {user.email}
                 </TableCell>
                 <TableCell className="py-4 text-right">
                   <div className="flex items-center justify-end space-x-2">
@@ -251,12 +218,20 @@ const UsersTable: React.FC = () => {
           </TableBody>
         </Table>
       </div>
-      <div className="flex justify-center mt-4">
-        <button className="bg-gray-200 hover:bg-gray-300 text-blue-700 rounded-md px-10 py-4 flex items-center space-x-4">
-          <span className="text-sm">Load more</span>
-          <img src="/assets/icons/loader.svg" alt="Loader" />
-        </button>
-      </div>
+      {loading && <p className="text-center text-blue-700">Loading...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
+      {users.length > 0 && (
+        <div className="flex justify-center mt-4">
+          <button
+            className="bg-gray-200 hover:bg-gray-300 text-blue-700 rounded-md px-10 py-4 flex items-center space-x-4"
+            onClick={loadMore}
+            disabled={loading}
+          >
+            <span className="text-sm">Load more</span>
+            <img src="/assets/icons/loader.svg" alt="Loader" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
