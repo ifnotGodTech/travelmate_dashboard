@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, Plus } from "lucide-react";
-
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,15 +15,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import RoleManagement from "../../../components/molecues/admin/RoleManagement";
 import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
-import { permission } from "process";
 
-// Sample users
-const users = Array(6)
-  .fill(null)
-  .map((_, i) => ({
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-  }));
 interface Role {
   id: string;
   name: string;
@@ -61,10 +52,11 @@ const availablePermissions = {
   ],
 };
 const AdminRolesPage: React.FC = () => {
+  const router = useRouter();
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isManageUsersOpen, setIsManageUsersOpen] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [activeTab, setActiveTab] = useState("role-management");
   const [roles, setRoles] = useState<Role[]>([
     {
@@ -100,6 +92,10 @@ const AdminRolesPage: React.FC = () => {
     const { name, value } = e.target;
     setRoleDetails((prev) => ({ ...prev, [name]: value }));
   };
+  const handleNewInvite = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewMember((prev) => ({ ...prev, [name]: value }));
+  };
   // Handle permission checkbox changes
   const handlePermissionChange = (permission: string, checked: boolean) => {
     setRoleDetails((prev) => ({
@@ -109,16 +105,9 @@ const AdminRolesPage: React.FC = () => {
         : prev.permissions.filter((p) => p !== permission),
     }));
   };
-  useEffect(() => {
-    if (showSuccessModal) {
-      const timeout = setTimeout(() => {
-        setShowSuccessModal(false);
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-  });
   // Save new role
-  const saveRole = () => {
+  const saveRole = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!roleDetails.name) {
       alert("Role name is required");
       return;
@@ -135,7 +124,8 @@ const AdminRolesPage: React.FC = () => {
     setIsCreateRoleOpen(false);
   };
   // Add new member
-  const addMember = () => {
+  const addMember = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!newMember.name || !newMember.email || !newMember.role) {
       alert("All fields are required");
       return;
@@ -148,16 +138,19 @@ const AdminRolesPage: React.FC = () => {
           : role
       )
     );
-    setNewMember({ name: "", email: "", role: "" }); // Reset form
+    // setNewMember({ name: "", email: "", role: "" }); // Reset form
     setIsAddMemberOpen(false);
-    setShowSuccessModal(true);
+    setShowConfirmModal(true);
   };
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
       <main className="w-full">
         <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-          <h2 className="text-lg font-medium pb-6">
+          <h2
+            className="text-lg font-medium pb-6 cursor-pointer"
+            onClick={() => router.push("/accept-invite")}
+          >
             Manage access control for your travel agency dashboard
           </h2>
           <Tabs
@@ -205,7 +198,7 @@ const AdminRolesPage: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Create New Role</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
+            <form onSubmit={saveRole} className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Role Name</label>
@@ -265,29 +258,33 @@ const AdminRolesPage: React.FC = () => {
                 </Button>
 
                 <Button
-                  onClick={saveRole}
+                  type="submit"
                   className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer"
                 >
                   SAVE ROLE
                 </Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
-        {/* Add New Membver Dialog  */}
+
+        {/* Invite New Membver Dialog  */}
         <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
           <DialogContent>
             <DialogHeader className="border-b pb-2">
-              <DialogTitle className="text-center">Add New Member</DialogTitle>
+              <DialogTitle className="text-center">
+                Invite New Member
+              </DialogTitle>
             </DialogHeader>
-            <form className="flex flex-col gap-4">
+            <form className="flex flex-col gap-4" onSubmit={addMember}>
               <div className="flex flex-col gap-3">
                 <label htmlFor="name">Name</label>
                 <Input
                   type="text"
                   placeholder="Enter Name"
-                  value={roleDetails.name}
-                  onChange={handleChangeRoleDetails}
+                  value={newMember.name}
+                  name="name"
+                  onChange={handleNewInvite}
                 />
               </div>
               <div className="flex flex-col gap-3">
@@ -295,8 +292,9 @@ const AdminRolesPage: React.FC = () => {
                 <Input
                   type="text"
                   placeholder="Enter Email Address"
-                  // value={roleDetails.email}
-                  onChange={handleChangeRoleDetails}
+                  value={newMember.email}
+                  name="email"
+                  onChange={handleNewInvite}
                 />
               </div>
               <div className="flex flex-col gap-3">
@@ -304,8 +302,9 @@ const AdminRolesPage: React.FC = () => {
                 <Input
                   type="text"
                   placeholder="Enter Role"
-                  // value={roleDetails.role}
-                  onChange={handleChangeRoleDetails}
+                  value={newMember.role}
+                  name="role"
+                  onChange={handleNewInvite}
                 />
               </div>
               <div className="flex justify-end gap-4">
@@ -318,7 +317,6 @@ const AdminRolesPage: React.FC = () => {
                 </Button>
 
                 <Button
-                  onClick={addMember}
                   type="submit"
                   className="bg-[#023E8A] border-blue-100 hover:bg-blue-100 text-white cursor-pointer"
                 >
@@ -328,57 +326,9 @@ const AdminRolesPage: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
-        {/* Manage Users Dialog */}
-        <Dialog open={isManageUsersOpen} onOpenChange={setIsManageUsersOpen}>
-          <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[85vh]">
-            <DialogHeader>
-              <DialogTitle>Manage User</DialogTitle>
-            </DialogHeader>
 
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-medium">Choose Users</h4>
-
-                {users.map((user, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between items-center py-2 border-b"
-                  >
-                    <span>{user.name}</span>
-
-                    <Button
-                      variant="link"
-                      className="text-blue-600 hover:text-blue-800 p-0"
-                    >
-                      Add User
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-medium">Current Users</h4>
-
-                {users.slice(0, 2).map((user, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between items-center py-2 border-b"
-                  >
-                    <span>{user.name}</span>
-
-                    <Button
-                      variant="link"
-                      className="text-red-600 hover:text-red-800 p-0"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        {/* COnfirm Modal for Inviing new Member  */}
+        <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
           <DialogContent className="w-full lg:max-w-md max-w-sm p-8 ">
             <div className="space-y-[40px] flex flex-col items-center  ">
               <DialogHeader className="text-center">
@@ -400,6 +350,8 @@ const AdminRolesPage: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+       
       </main>
     </div>
   );

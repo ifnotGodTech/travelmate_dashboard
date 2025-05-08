@@ -23,7 +23,7 @@ const RoleManagement: FC<RoleManagementProps> = ({
   onCreateRoleOpen,
   onManageUsersOpen,
 }): JSX.Element => {
-  const router = useRouter()
+  const router = useRouter();
   return (
     <>
       <div className="flex justify-between items-center md:gap-32 gap-6">
@@ -42,8 +42,8 @@ const RoleManagement: FC<RoleManagementProps> = ({
         </div>
       </div>
       <div className="border rounded-lg">
-        <table className="md:w-full  md:overflow-hidden">
-          <thead>
+        <table className="w-full  md:overflow-hidden">
+          <thead className="w-full">
             <tr className="bg-muted">
               <th className="text-left p-3 font-medium md:text-base text-xs">
                 Role Name
@@ -93,7 +93,13 @@ const RoleManagement: FC<RoleManagementProps> = ({
                     <Button
                       variant="link"
                       className="text-green-600 hover:text-green-800 p-0 cursor-pointer text-xs md:text-base"
-                      onClick={() => router.push('/Dashboard/admin/manage-user')}
+                      onClick={() =>
+                        roles.find((item) =>
+                          item.name === "Super Admin"
+                            ? router.push("/Dashboard/admin/manage-super-admin")
+                            : router.push("/Dashboard/admin/manage-user")
+                        )
+                      }
                     >
                       Manage User
                     </Button>
