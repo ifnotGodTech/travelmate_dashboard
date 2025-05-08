@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import TicketService from "@/services/ticket";
 
@@ -45,6 +45,7 @@ export function useGetAllTicket({
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Ticket[]>([]);
   const [nextPage, setNextPage] = useState<string | null>(null); // Track next page URL
+  const hasFetched = useRef(false); // Prevent multiple API calls
 
   const fetchTickets = async (url?: string) => {
     setLoading(true);
@@ -69,7 +70,10 @@ export function useGetAllTicket({
   };
 
   useEffect(() => {
-    if (initalFetch) fetchTickets();
+    if (initalFetch && !hasFetched.current) {
+      hasFetched.current = true; // Mark as fetched to prevent multiple calls
+      fetchTickets();
+    }
   }, [initalFetch]);
 
   return { loading, data, nextPage, loadMore };

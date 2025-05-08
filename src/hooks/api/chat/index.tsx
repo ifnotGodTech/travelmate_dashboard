@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
+import useWebSocket from "react-use-websocket";
 import ChatService from "@/services/chat";
 const getFromLocalStorage = ({
   key,
@@ -53,6 +54,7 @@ export function useGetAllChat({
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>([]);
   const [nextPage, setNextPage] = useState<string | null>(null); // Track next page URL
+  const hasFetched = useRef(false); // Prevent multiple API calls
 
   const fetchTickets = async (url?: string) => {
     setLoading(true);
@@ -77,7 +79,10 @@ export function useGetAllChat({
   };
 
   useEffect(() => {
-    if (initalFetch) fetchTickets();
+    if (initalFetch && !hasFetched.current) {
+      hasFetched.current = true; // Mark as fetched
+      fetchTickets();
+    }
   }, [initalFetch]);
 
   return { loading, data, nextPage, loadMore };
@@ -105,61 +110,72 @@ export const useGetChatMessages = () => {
   return { loadingMessage, messages, onFetchMessages };
 };
 
-export const useWebSocket = (sessionId: number) => {
-  const [messages, setMessages] = useState<any[]>([]); // Store incoming messages
-  const socketRef = useRef<WebSocket | null>(null);
+export const useWebSocketService = (sessionId: number) => {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [socketUrl, setSocketUrl] = useState<string | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null); // WebSocket instance
 
   useEffect(() => {
-    // Fetch access token from TRAVELMATE_APP_PERSISTOR in localStorage
-    let accessToken: string | null = null;
     getFromLocalStorage({
       key: "TRAVELMATE_APP_PERSISTOR",
       cb: (value: { accessToken: string; refreshToken: string }) => {
-        accessToken = value?.accessToken || null;
+        setAccessToken(value?.accessToken || null);
       },
     });
+  }, []);
 
-    if (!accessToken) {
-      console.error("Access token is missing.");
-      return;
+  useEffect(() => {
+    if (accessToken && sessionId) {
+      const url = `wss://travelmate-backend-0suw.onrender.com/ws/chat/${sessionId}/?token=${accessToken}`;
+      setSocketUrl(url);
     }
 
-    // Establish WebSocket connection
-    const wsUrl = `wss://travelmate-backend-0suw.onrender.com/ws/chat/${sessionId}/?token=${accessToken}`;
-    socketRef.current = new WebSocket(wsUrl);
-
-    const socket = socketRef.current;
-
-    // Handle WebSocket events
-    socket.onopen = () => {
-      console.log("WebSocket connected");
-    };
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setMessages((prev) => [...prev, data]);
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket closed");
-    };
-
-    // Cleanup WebSocket on unmount
     return () => {
-      socket.close();
+      // Cleanup previous WebSocket when sessionId changes or component unmounts
+      if (socket) {
+        socket.close();
+      }
     };
-  }, [sessionId]);
+  }, [accessToken, sessionId]);
 
-  // Function to send a message
-  const sendMessage = (message: any) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(message));
+  useEffect(() => {
+    if (socketUrl) {
+      const ws = new WebSocket(socketUrl);
+
+      ws.onopen = () => console.log("WebSocket connected");
+      ws.onerror = (error) => console.error("WebSocket error:", error);
+      ws.onclose = (event) => {
+        console.error("WebSocket closed unexpectedly:", event);
+        setTimeout(() => console.log("Reconnecting WebSocket..."), 3000);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => {
+          if (!prev.some((msg) => msg.id === data.id)) {
+            return [...prev, data];
+          }
+          return prev;
+        });
+      };
+
+      setSocket(ws);
+
+      return () => {
+        // Close the WebSocket when the component unmounts or the session changes
+        ws.close();
+      };
+    }
+  }, [socketUrl]);
+
+  const send = (message: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+    } else {
+      console.error("WebSocket is not connected.");
     }
   };
 
-  return { messages, sendMessage };
+  return { messages, send };
 };
