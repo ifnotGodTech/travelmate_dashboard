@@ -1,5 +1,6 @@
 "use client";
 import Button from "@/components/reuseables/Button";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -9,7 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import React from "react";
-import { useGetUsers } from "@/hooks/api/user";
+import { useGetUsers, useExportCSV } from "@/hooks/api/user";
+import { format } from "date-fns";
 
 const page = () => {
   return (
@@ -29,6 +31,15 @@ const UserManagemntComponents = () => {
 };
 
 const Filter = () => {
+  const { exporting, onExportCSV } = useExportCSV();
+
+  const handleExport = () => {
+    onExportCSV({
+      successCallback: () => {
+        console.log("CSV exported successfully!");
+      },
+    });
+  };
   return (
     <div className="space-y-[40px]">
       <div className="flex space-x-4 lg:space-x-2 items-center">
@@ -127,7 +138,10 @@ const Filter = () => {
         </div>
 
         <div className="lg:hidden">
-          <div className="py-4 px-6 rounded-[8px] bg-[#FF6F1E]">
+          <div
+            className="py-3 px-4 rounded-[8px] bg-[#FF6F1E]"
+            onClick={handleExport}
+          >
             <img src="/assets/icons/down-orange.svg" alt="" className="" />
           </div>
         </div>
@@ -135,9 +149,11 @@ const Filter = () => {
         <div className="hidden lg:block ">
           <Button
             variant="orange-deep"
-            title="Export as CSV file"
+            title={exporting ? "Exporting..." : "Export as CSV file"}
             icon="/assets/icons/down-orange.svg"
             responsiveHideText
+            onClick={handleExport}
+            disabled={exporting} // Disable button while exporting
           />
         </div>
       </div>
@@ -146,12 +162,13 @@ const Filter = () => {
 };
 
 const UsersTable = () => {
-  const { users, loadMore, loading, error } = useGetUsers();
+  const router = useRouter();
+  const { users, loadMore, loading, error, nextPageUrl } = useGetUsers();
 
   return (
-    <div className="space-y-6 py-6 bg-[#fff]">
+    <div className="space-y-6 py-6 bg-[#fff] rounded-[20px]">
       <div className="overflow-x-auto">
-        <Table className="w-full table-fixed border-separate border-spacing-x-4 border-spacing-y-2 px-6">
+        <Table className="w-full table-fixed px-6">
           <TableHeader>
             <TableRow>
               <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
@@ -160,78 +177,73 @@ const UsersTable = () => {
               <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
                 Joined
               </TableHead>
-              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left hidden lg:table-cell">
-                Total Bookings
-              </TableHead>
-              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left hidden lg:table-cell">
-                Loyalty Points
-              </TableHead>
-              <TableHead className="py-3 px-6 text-sm lg:text-base font-semibold text-neutral-900 text-left">
-                Email Address
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user, index) => (
-              <TableRow key={user.id} className="bg-[#fff]">
+              <TableRow
+                key={user.id}
+                onClick={() => router.push(`/Dashboard/user/${user.id}`)}
+                className="bg-[#fff] transition-colors duration-200 hover:bg-gray-50 cursor-pointer"
+              >
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center space-x-4">
-                    <img
-                      src="/assets/images/profile-image.svg"
-                      alt="Profile"
-                      className="w-10 h-10 rounded-full"
-                    />
+                    <ProfilePictureT email={user.email} />
                     <span className="text-sm lg:text-base font-normal text-neutral-900">
-                      {user.name ||
-                        `${user.first_name || "no_firstname"} ${
-                          user.last_name || "no_lastname"
-                        }`}
+                      {`${user.first_name || "---"} ${user.last_name || "---"}`}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900">
-                  {new Date(user.date_created).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900 hidden lg:table-cell">
-                  {user.total_bookings}
-                </TableCell>
-                <TableCell
-                  className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900 truncate max-w-[80px] lg:max-w-none hidden lg:table-cell"
-                  title="30"
-                >
-                  {"30"}
-                </TableCell>
-                <TableCell className="py-4 px-6 text-sm lg:text-base font-normal text-neutral-900">
-                  {user.email}
-                </TableCell>
-                <TableCell className="py-4 text-right">
-                  <div className="flex items-center justify-end space-x-2">
-                    <img
-                      src="/assets/icons/chevron-down.svg"
-                      alt="Chevron Down"
-                      className="w-4 lg:w-5"
-                    />
-                  </div>
+                  {format(new Date(user.date_created), "do MMMM, yyyy")}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      {loading && <p className="text-center text-blue-700">Loading...</p>}
+      {loading && <LoadingUser />}
       {error && <p className="text-center text-red-500">{error}</p>}
-      {users.length > 0 && (
+      {nextPageUrl && (
         <div className="flex justify-center mt-4">
           <button
-            className="bg-gray-200 hover:bg-gray-300 text-blue-700 rounded-md px-10 py-4 flex items-center space-x-4"
+            className="bg-gray-200 text-blue-700 rounded-md px-10 py-4 flex items-center space-x-4 transition-colors duration-200 hover:bg-gray-300"
             onClick={loadMore}
             disabled={loading}
           >
-            <span className="text-sm">Load more</span>
-            <img src="/assets/icons/loader.svg" alt="Loader" />
+            <span className="text-sm">
+              {loading ? "Loading..." : "Load more"}
+            </span>
+            <img
+              src="/assets/icons/loader.svg"
+              alt="Loader"
+              className={`${loading ? "animate-spin block " : "hidden"}`}
+            />
           </button>
         </div>
       )}
+    </div>
+  );
+};
+
+const ProfilePictureT = ({ email }: { email: string }) => {
+  const firstLetter = email?.charAt(0)?.toUpperCase() || "?" || "";
+
+  return (
+    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f5f5f5] text-[#181818] font-semibold text-[20px]">
+      {firstLetter}
+    </div>
+  );
+};
+
+const LoadingUser = () => {
+  return (
+    <div className="w-full space-y-[12px] px-6">
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-ful"></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-ful"></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-ful"></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-ful"></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-ful"></div>
     </div>
   );
 };

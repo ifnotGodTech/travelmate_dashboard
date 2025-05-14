@@ -123,3 +123,5 @@ export function useDeleteFaq() {
 
   return { isloading, onDeleteFaq };
 }
+
+

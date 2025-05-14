@@ -1,8 +1,10 @@
-"use client"
+"use client";
 import Button from "@/components/reuseables/Button";
 import React from "react";
-import { useGetUser } from "@/hooks/api/user";
+import { useGetUser, useDeactivateUser } from "@/hooks/api/user";
 import { useParams } from "next/navigation";
+import { format } from "date-fns";
+import { UserActivityTable } from "@/components/molecues/user/UserActivities";
 
 const page = () => {
   return (
@@ -38,6 +40,19 @@ const UserDetailRow = ({ label, value }: any) => (
 const ProfileComponent = () => {
   const { userId }: { userId: string } = useParams();
 
+  const { deactivating, onDeactivateUser } = useDeactivateUser();
+
+  const handleDeactivate = () => {
+    onDeactivateUser({
+      email,
+      userId,
+      successCallback: () => {
+        console.log("User successfully deactivated!");
+        // Additional logic after successful deactivation (e.g., refetch data, redirect, etc.)
+      },
+    });
+  };
+
   const { data, loading } = useGetUser({
     UserId: userId as string,
     initalFetch: true,
@@ -49,7 +64,7 @@ const ProfileComponent = () => {
     },
   });
 
-  if (loading) return <div>Loading...</div>;
+  // if (loading) return <div>Loading...</div>;
   if (!data) return <div>No user data found.</div>;
 
   const {
@@ -57,7 +72,9 @@ const ProfileComponent = () => {
     first_name,
     last_name,
     profile_picture,
+    address,
     date_created,
+    mobile_nmumber,
     total_bookings,
     flight_bookings = [],
     car_bookings = [],
@@ -73,28 +90,33 @@ const ProfileComponent = () => {
       {/* Profile Card */}
       <div className="bg-[#fff] rounded-[20px]">
         <div className="space-y-[40px] lg:p-[40px] p-[16px]">
-          {/* Joined and Last Edited Info */}
-          <div className="flex items-center lg:space-x-10 space-x-4">
-            {[
-              {
-                label: "Joined:",
-                value: date_created
-                  ? new Date(date_created).toLocaleString()
-                  : "N/A",
-              },
-              { label: "Last Edited:", value: "Never" },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex space-x-[3px] flex-col lg:flex-row lg:items-center items-start"
-              >
-                <span className={labelStyle}>{item.label}</span>
-                <span className="font-[400] text-[14px] text-[#181818]">
-                  {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="">
+              <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-[245px]"></div>
+            </div>
+          ) : (
+            <div className="flex items-center lg:space-x-10 space-x-4">
+              {[
+                {
+                  label: "Joined:",
+                  value: date_created
+                    ? format(new Date(date_created), "do MMMM, yyyy ")
+                    : "N/A",
+                },
+                { label: "Last Edited:", value: "Never" },
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  className="flex space-x-[3px] flex-col lg:flex-row lg:items-center items-start"
+                >
+                  <span className={labelStyle}>{item.label}</span>
+                  <span className="font-[600] text-[14px] text-[#181818]">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* User Information */}
           <div className={sectionContainer}>
@@ -102,33 +124,39 @@ const ProfileComponent = () => {
               <h1 className="font-[600] text-[16px] lg:text-[18px] text-[#181818]">
                 User Information
               </h1>
-              <img
-                src={profile_picture || "/assets/images/profile-image.svg"}
-                alt="Profile"
-                className="w-[60px] lg:w-[80px]"
-              />
+              {loading ? (
+                <div className="w-20 h-20 rounded-full animate-pulse bg-[#f5f5f5]"></div>
+              ) : (
+                <ProfilePictureT email={email} />
+              )}
             </div>
 
-            <div className="space-y-6 w-full lg:w-[654px]">
-              {[
-                { label: "First Name", value: first_name || "N/A" },
-                { label: "Last Name", value: last_name || "N/A" },
-                {
-                  label: "Email Address",
-                  value: email || "N/A",
-                },
-              ].map((item, index) => (
-                <UserDetailRow
-                  key={index}
-                  label={item.label}
-                  value={item.value}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <LoadingUserData />
+            ) : (
+              <div className="space-y-6 w-full lg:w-[654px]">
+                {[
+                  { label: "First Name", value: first_name || "N/A" },
+                  { label: "Last Name", value: last_name || "N/A" },
+                  {
+                    label: "Email Address",
+                    value: email || "N/A",
+                  },
+                  { label: "Address", value: address || "---" },
+                  { label: "Phone Number", value: mobile_nmumber || "---" },
+                ].map((item, index) => (
+                  <UserDetailRow
+                    key={index}
+                    label={item.label}
+                    value={item.value}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Rewards and Loyalty Points */}
-          <div className={sectionContainer}>
+          {/* <div className={sectionContainer}>
             <h1 className={sectionHeading}>Rewards and Loyalty Points</h1>
             <div className="w-full lg:w-[496px] flex justify-between">
               {[
@@ -146,10 +174,10 @@ const ProfileComponent = () => {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Points Overview */}
-          <div className={sectionContainer}>
+          {/* <div className={sectionContainer}>
             <h1 className={sectionHeading}>Points Overview</h1>
             <div className="w-full lg:w-[665px] flex justify-between items-end">
               {[
@@ -172,24 +200,26 @@ const ProfileComponent = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
-          <UserActivityTable />
+          <UserActivityTable userId={userId} />
         </div>
         <div className="h-[1px] w-full bg-[#F5F5F5]"></div>
 
         <div className="flex flex-col lg:flex-row lg:space-x-[24px] space-y-[24px] lg:space-y-0 lg:p-[40px] p-[16px]">
-          <Button
+          {/* <Button
             variant="success"
             title="MANAGE USER REWARDS"
             full
             icon="/assets/icons/money.svg"
-          />
+          /> */}
           <Button
             variant="light-red"
-            title="DEACTIVATE USER ACCOUNT"
+            title={deactivating ? "DEACTIVATING..." : "DEACTIVATE USER ACCOUNT"}
             full
             icon="/assets/icons/delete.svg"
+            onClick={handleDeactivate}
+            disabled={loading}
           />
         </div>
       </div>
@@ -197,131 +227,28 @@ const ProfileComponent = () => {
   );
 };
 
+const ProfilePictureT = ({ email }: { email: string }) => {
+  const firstLetter = email?.charAt(0)?.toUpperCase() || "?" || "";
 
-interface UserHistory {
-  id: string;
-  date: string;
-  amount: string;
-  why: string;
-  status: string;
-}
-
-const userHistoryData: UserHistory[] = [
-  {
-    id: "#117826",
-    date: "04 Feb. ‘25",
-    amount: "₦28,000",
-    why: "Car Rental",
-    status: "Pending",
-  },
-  {
-    id: "#117826",
-    date: "04 Feb. ‘25",
-    amount: "₦28,000",
-    why: "Hotel Rental",
-    status: "Awarded",
-  },
-  {
-    id: "#117826",
-    date: "04 Feb. ‘25",
-    amount: "₦28,000",
-    why: "Flight",
-    status: "Pending",
-  },
-];
-
-const UserActivityTable: React.FC = () => {
   return (
-    <div className="space-y-[24px]">
-      <div className="flex justify-between">
-        <h1 className="font-[600] text-[14px] lg:text-[20px] lg:font-[500] text-[#181818]">
-          Booking History
-        </h1>
-
-        <div className="flex space-x-2 items-center cursor-pointer">
-          <p className="font-[500] text-[12px] lg:text-[16px] lg:font-[500] text-[#FF6F1E] flex space-x-[4px]">
-            <span>Export</span>
-            <span className="hidden lg:block">full history</span>
-          </p>
-          <img
-            src="/assets/icons/export.svg"
-            alt="Export Icon"
-            className="w-[16px] lg:w-[24px]"
-          />
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse table-fixed">
-          <tbody>
-            {userHistoryData.map((item, index) => (
-              <tr key={index}>
-                <td className="py-[16px] w-full">
-                  <div className="flex items-center space-x-[24px] w-full">
-                    <span className="flex-1 text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.id}
-                    </span>
-                    <span className="flex-1 text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.date}
-                    </span>
-                    <span className="flex-1 text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left hidden lg:block">
-                      {item.amount}
-                    </span>
-                    <span
-                      className="flex-1 text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left truncate max-w-[80px] lg:max-w-none"
-                      title={item.why} // Shows full text on hover
-                    >
-                      {item.why}
-                    </span>
-
-                    <span
-                      className={`flex-1 text-[12px] lg:text-[16px] font-[600] ${
-                        item.status === "Pending"
-                          ? "text-[#FF6F1E]"
-                          : "text-[#2D9C5E]"
-                      } text-left`}
-                    >
-                      {item.status}
-                    </span>
-
-                    {/* Actions */}
-                    <div className="flex  lg:flex-1 items-center space-x-[8px]">
-                      <div className="flex items-center space-x-[4px] text-[#023E8A] cursor-pointer">
-                        <p className="hidden lg:block text-[12px] lg:text-[14px]">
-                          Download Receipt
-                        </p>
-                        <img
-                          src="/assets/icons/download-2.svg"
-                          alt="Download"
-                          className="w-[16px] lg:w-[20px]"
-                        />
-                      </div>
-                      <div className="cursor-pointer hidden lg:block">
-                        <img
-                          src="/assets/icons/chevron-down.svg"
-                          alt="Chevron Down"
-                          className="w-[16px] lg:w-[20px]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex justify-center mt-4 ">
-        <div className="bg-[#EBECED] cursor-pointer rounded-[8px] space-x-[16px] px-[40px] py-[16px] flex  items-center ">
-          <p className="font-[400] text-[14px] text-[#023E8A] leading-[100%] ">
-            Load more
-          </p>
-          <img src="/assets/icons/loader.svg" alt="" className="" />
-        </div>
-      </div>
+    <div className="w-20 h-20 rounded-full flex items-center justify-center bg-[#f5f5f5] text-[#181818] font-semibold text-[28px]">
+      {firstLetter}
     </div>
   );
 };
 
+const LoadingUserData = () => {
+  return (
+    <div className="w-full space-y-[12px] px-6">
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-[300px] "></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-[300px] "></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-[300px] "></div>
+      <div className="bg-gray-300 rounded-[12px] animate-pulse h-[40px] w-[300px] "></div>
+    </div>
+  );
+};
+
+const BookingEmpty = () => {
+  return <div className=""></div>;
+};
 export default page;

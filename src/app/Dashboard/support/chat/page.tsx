@@ -9,7 +9,7 @@ import { format } from "date-fns";
 
 const page = () => {
   return (
-    <div className="w-full h-[77vh] overflow-x-hidden">
+    <div className="w-full lg:h-[77vh] h-[85vh] overflow-x-hidden">
       <ChatPage />
     </div>
   );
@@ -37,15 +37,17 @@ const ChatPage: React.FC = () => {
     });
   }, [data]);
 
+  const handleBackToChats = () => {
+    setSelectedChat(null);
+  };
+
   return (
     <div className="w-full h-full flex">
-      {/* Chat List Section */}
+      {/* Chat List Section - Always visible on lg screens, hidden on mobile when chat selected */}
       <div
         className={`transition-all duration-300 ${
-          selectedChat === null
-            ? "w-full rounded-[10px]"
-            : "w-1/3 rounded-l-[20px]"
-        } h-full border-r bg-white overflow-y-auto p-4`}
+          selectedChat === null ? "w-full" : "hidden lg:block lg:w-1/3"
+        } h-full lg:border-r bg-white overflow-y-auto p-4`}
       >
         <h2 className="font-semibold text-lg mb-4">Chats</h2>
         {loading ? (
@@ -75,20 +77,12 @@ const ChatPage: React.FC = () => {
                     </div>
                   </div>
                   {selectedChat === null && (
-                    <div className="flex space-x-2 lg:space-x-[50px]  flex-1 justify-end">
+                    <div className="flex space-x-2 lg:space-x-[50px] flex-1 justify-end">
                       <div className="flex items-end lg:space-x-[40px] space-x-0 flex-col lg:flex-row space-y-[8px] lg:space-y-0 justify-end ">
-                        <p
-                          className={`text-[12px] lg:text-[14px] text-[#181818] ${
-                            selectedChat ? "hidden" : "block"
-                          }`}
-                        >
+                        <p className="text-[12px] lg:text-[14px] text-[#181818]">
                           {chat.date}
                         </p>
-                        <p
-                          className={`text-[12px] lg:text-[14px] text-[#181818] ${
-                            selectedChat ? "hidden" : "block"
-                          }`}
-                        >
+                        <p className="text-[12px] lg:text-[14px] text-[#181818]">
                           {chat.time}
                         </p>
                       </div>
@@ -113,12 +107,27 @@ const ChatPage: React.FC = () => {
         )}
       </div>
 
-      {selectedChat !== null && <Conversation selectedChat={selectedChat} />}
+      {/* Selected Chat Section */}
+      <div
+        className={`transition-all duration-300 ${
+          selectedChat === null ? "hidden" : "w-full lg:w-2/3"
+        }`}
+      >
+        {selectedChat !== null && (
+          <Conversation 
+            selectedChat={selectedChat} 
+            onBack={handleBackToChats}
+          />
+        )}
+      </div>
     </div>
   );
 };
 
-const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
+const Conversation: React.FC<{ 
+  selectedChat: number;
+  onBack: () => void;
+}> = ({ selectedChat, onBack }) => {
   const [input, setInput] = useState("");
   const { messages: liveMessages, send } = useWebSocketService(selectedChat);
   const {
@@ -137,7 +146,6 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
     historyMessages?.user_info?.last_name || "---"
   }`;
 
-  // Combine past and real-time messages
   const allMessages = useMemo(() => {
     const history = historyMessages?.messages || [];
     const live = liveMessages.filter(
@@ -158,7 +166,6 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
     }
   };
 
-  // Scroll to bottom whenever messages change or new message is sent
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -166,15 +173,25 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
   }, [allMessages]);
 
   return (
-    <div className="flex-1 flex flex-col bg-white rounded-r-[20px]">
-      <div className="p-4 border-b">
+    <div className="flex flex-col h-full bg-white rounded-r-[20px]">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center">
+        <button 
+          onClick={onBack} 
+          className="mr-3 lg:hidden flex items-center justify-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+        
         {loadingMessage ? (
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f1f1f1] animate-pulse text-[#181818] font-semibold text-[20px]"></div>
-            <div className="w-44 h-7 rounded-[10px] flex items-center justify-center bg-[#f1f1f1] animate-pulse text-[#181818] font-semibold text-[20px]"></div>
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="w-8 h-8 rounded-full bg-[#f1f1f1] animate-pulse" />
+            <div className="w-44 h-7 rounded-[10px] bg-[#f1f1f1] animate-pulse" />
           </div>
         ) : (
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 flex-1">
             {historyMessages?.user_info?.image || (
               <ProfilePictureT email={historyMessages?.user_info?.email} />
             )}
@@ -182,43 +199,47 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
           </div>
         )}
       </div>
+
+      {/* Messages */}
       <div className="flex-1 p-4 overflow-y-auto">
         {loadingMessage ? (
           <div className="text-center text-gray-500">Loading messages...</div>
         ) : (
-          allMessages.map((message: any, index: number) => (
-            <div
-              key={message.id || index}
-              className={`mb-1 flex ${
-                message.sender_info?.id === historyMessages?.admin_info?.id
-                  ? "justify-end"
-                  : "justify-start"
-              }`}
-            >
+          allMessages.map((message: any, index: number) => {
+            const isFromAdmin =
+              message.sender_info?.id === historyMessages?.admin_info?.id ||
+              message.sender_id === historyMessages?.admin_info?.id;
+            return (
               <div
-                className={`p-3 max-w-[290px] ${
-                  message.sender_info?.id === historyMessages?.admin_info?.id
-                    ? "bg-[#023E8A] text-white"
-                    : "bg-gray-300 text-black"
-                } rounded-t-[26px] ${
-                  message.sender_info?.id === historyMessages?.admin_info?.id
-                    ? "rounded-br-[26px]"
-                    : "rounded-bl-[26px]"
+                key={message.id || index}
+                className={`mb-1 flex ${
+                  isFromAdmin ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.message || message.content || "No content available"}
+                <div
+                  className={`p-3 max-w-[290px] ${
+                    isFromAdmin
+                      ? "bg-[#023E8A] text-white"
+                      : "bg-gray-300 text-black"
+                  } rounded-t-[26px] ${
+                    isFromAdmin ? "rounded-bl-[26px]" : "rounded-br-[26px]"
+                  }`}
+                >
+                  {message.message || message.content || "No content available"}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
-        {/* Scroll to the latest message */}
         <div ref={messageEndRef} />
       </div>
+
+      {/* Input */}
       <div className="p-4 border-t flex items-center gap-4">
-        <div className="bg-[#EBECED] flex-1 p-3 space-x-4 border rounded-lg flex items-center">
+        <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
           <img
             src="/assets/icons/emoji.svg"
-            alt=""
+            alt="Emoji"
             className="cursor-pointer"
           />
           <input
@@ -226,23 +247,19 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 outline-none"
-          />
-          <img
-            src="/assets/icons/attachment.svg"
-            alt=""
-            className="cursor-pointer"
+            className="flex-1 outline-none bg-transparent"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSend();
+              }
+            }}
           />
         </div>
         <button
           onClick={handleSend}
           className="p-3 bg-[#023E8A] text-white rounded-lg"
         >
-          <img
-            src="/assets/icons/white-send.svg"
-            alt="Send"
-            className="cursor-pointer"
-          />
+          <img src="/assets/icons/white-send.svg" alt="Send" />
         </button>
       </div>
     </div>
@@ -252,13 +269,13 @@ const Conversation: React.FC<{ selectedChat: number }> = ({ selectedChat }) => {
 const ChatsLoader = () => {
   return (
     <div className="space-y-[20px] w-full">
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
-      <div className="w-full h-10 rounded-[10px]  bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
+      <div className="w-full h-10 rounded-[10px] bg-[#f1f1f1] animate-pulse"></div>
     </div>
   );
 };

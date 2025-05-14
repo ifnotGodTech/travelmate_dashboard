@@ -17,10 +17,18 @@ class Service {
   getAllUser = (url?: string) => {
     const endpoint = url || env.api.users;
     return axios.get(endpoint);
-  }
+  };
 
   getUser({ UserId }: { UserId?: string }) {
     return axios.get(env.api.users + UserId + "/");
+  }
+
+  deactivateUser({ userId, email }: { userId?: string; email?: string }) {
+    return axios.patch(env.api.users + userId + "/deactivate/", email);
+  }
+
+  exportCSV() {
+    return axios.get(env.api.users + "export/");
   }
 }
 
