@@ -35,14 +35,13 @@ const Page = () => {
 
 const AddComponent = () => {
   const { isSuccess, loading, onAddFaq } = useAddFaq();
-  const [showModal, setShowModal] = useState(false); // State to control modal visibility
+  const [showModal, setShowModal] = useState(false); 
 
   const handleSubmit = async (values: typeof initialValues) => {
     await onAddFaq({
       payload: values,
       successCallback: () => {
         setShowModal(true);
-        console.log("FAQ added successfully.");
       },
     });
   };
