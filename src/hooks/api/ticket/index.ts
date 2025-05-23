@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import TicketService from "@/services/ticket";
+import axios from "axios";
 
 export interface User {
   id: number;
@@ -16,6 +17,7 @@ export interface Ticket {
   category: string;
   description: string;
   status: string;
+  priority: string;
   created_at: string;
   updated_at: string;
   user: User;
@@ -33,51 +35,92 @@ interface Level {
   email: string;
 }
 
-export function useGetAllTicket({
-  initalFetch = true,
-  successCallback,
-  errorCallback,
-}: {
-  initalFetch?: boolean;
-  successCallback?: (message: string) => void;
-  errorCallback?: (props: { message?: string; description?: string }) => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<Ticket[]>([]);
-  const [nextPage, setNextPage] = useState<string | null>(null); // Track next page URL
-  const hasFetched = useRef(false); // Prevent multiple API calls
+export const useGetAllTickets = () => {
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/admin/tickets/";
 
-  const fetchTickets = async (url?: string) => {
-    setLoading(true);
-    try {
-      const res = await TicketService.getTickets(url); // Pass optional URL for pagination
-      setData((prev) => [...prev, ...res.data.results]); // Append new results to existing data
-      setNextPage(res.data.next); // Update the next page URL
-      if (successCallback) successCallback("Tickets fetched successfully.");
-    } catch (error: any) {
-      if (errorCallback)
-        errorCallback({
-          message: "An error occurred while fetching tickets",
-          description: error?.message || "Unknown error",
-        });
-    } finally {
-      setLoading(false);
-    }
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFiltersState] = useState<Record<string, any>>({});
+  const hasFetchedInitial = useRef(false);
+  const isFetching = useRef(false); // Prevent redundant fetches
+
+  // Build URL with filters
+  const buildUrl = useCallback(() => {
+    const params = new URLSearchParams(filters);
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  }, [filters]);
+
+  // Fetch tickets function (memoized)
+  const fetchTickets = useCallback(
+    async (url?: string) => {
+      if (isFetching.current) return; // Prevent redundant fetching
+      isFetching.current = true;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const endpoint = url || buildUrl();
+        const response = await axios.get(endpoint);
+        const data: { results: Ticket[]; next: string | null } = response.data;
+
+        setTickets((prevTickets) =>
+          url ? [...prevTickets, ...data.results] : data.results
+        );
+        setNextPageUrl(data.next);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred."
+        );
+      } finally {
+        setLoading(false);
+        isFetching.current = false;
+      }
+    },
+    [buildUrl]
+  );
+
+  // Set filters with deep comparison to prevent redundant updates
+  const setFilters = (newFilters: Record<string, any>) => {
+    setFiltersState((prevFilters) => {
+      const prevString = JSON.stringify(prevFilters);
+      const newString = JSON.stringify(newFilters);
+      return prevString === newString ? prevFilters : newFilters;
+    });
   };
 
-  const loadMore = () => {
-    if (nextPage) fetchTickets(nextPage);
-  };
-
+  // Initial fetch on mount
   useEffect(() => {
-    if (initalFetch && !hasFetched.current) {
-      hasFetched.current = true; // Mark as fetched to prevent multiple calls
+    if (!hasFetchedInitial.current) {
+      fetchTickets();
+      hasFetchedInitial.current = true;
+    }
+  }, [fetchTickets]);
+
+  // Fetch tickets when filters change
+  useEffect(() => {
+    if (hasFetchedInitial.current) {
       fetchTickets();
     }
-  }, [initalFetch]);
+  }, [filters, fetchTickets]);
 
-  return { loading, data, nextPage, loadMore };
-}
+  // Load next page
+  const loadNext = useCallback(() => {
+    if (nextPageUrl) fetchTickets(nextPageUrl);
+  }, [nextPageUrl, fetchTickets]);
+
+  return {
+    tickets,
+    loadNext,
+    loading,
+    error,
+    nextPageUrl,
+    setFilters,
+  };
+};
 
 export function useGetTicket({
   TicketId,
@@ -90,8 +133,8 @@ export function useGetTicket({
   successCallback?: (message: string) => void;
   errorCallback?: (props: { message?: string; description?: string }) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<Ticket | null>(null);
+  const [loadingTicket, setLoading] = useState(false);
+  const [ticket, setData] = useState<Ticket | null>(null);
 
   const fetchTicket = async () => {
     if (!TicketId) return;
@@ -115,7 +158,7 @@ export function useGetTicket({
     if (initalFetch) fetchTicket();
   }, [initalFetch, TicketId]);
 
-  return { loading, data };
+  return { loadingTicket, ticket };
 }
 
 export function useGetAllEscalationLevel({

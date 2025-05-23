@@ -14,9 +14,18 @@ type TEscalationPayload = {
 };
 
 class Service {
-  getTickets(url?: string) {
+  // TicketService with filter and search
+  getTickets({
+    url,
+    filters,
+  }: {
+    url?: string;
+    filters?: Record<string, any>;
+  }) {
     const endpoint = url || env.api.ticket;
-    return axios.get(endpoint);
+    const queryString = new URLSearchParams(filters).toString(); // Convert filters object to query string
+    const fullUrl = queryString ? `${endpoint}?${queryString}` : endpoint;
+    return axios.get(fullUrl);
   }
 
   getTicketsStats = ({ days }: { days?: number }) => {

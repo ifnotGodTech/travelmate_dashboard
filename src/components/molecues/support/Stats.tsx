@@ -22,8 +22,6 @@ const Stats = () => {
     updateDays(days); // Update stats whenever `days` changes
   }, [days]);
 
-  console.log("Stats data:", data);
-
   return (
     <div className="space-y-6 mt-[10] ">
       <div className="">
@@ -78,7 +76,7 @@ const TimeFilterDropdown = ({
 
   const handleSelect = (option: (typeof options)[0]) => {
     setSelectedOption(option.label);
-    setDays(option.days); // Update the days filter
+    setDays(option.days);
   };
 
   return (

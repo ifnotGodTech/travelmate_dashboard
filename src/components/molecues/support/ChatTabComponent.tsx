@@ -51,10 +51,8 @@ const ChatTabContent = () => {
                 {chats.map((chat: any) => (
                   <li
                     key={chat.id}
-                    onClick={() => setSelectedChat(chat.id)}
-                    className={`p-2 mb-2 rounded-lg cursor-pointer hover:bg-gray-100 ${
-                      selectedChat === chat.id ? "bg-gray-200" : ""
-                    }`}
+                    onClick={() => router.push("/Dashboard/support/chat")}
+                    className={`p-2 mb-2 rounded-lg cursor-pointer hover:bg-gray-100 `}
                   >
                     <div className="flex space-x-[8px] lg:space-x-0 lg:justify-between items-center">
                       <div className="flex items-start lg:items-center space-x-[8px] flex-1">

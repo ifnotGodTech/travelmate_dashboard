@@ -1,16 +1,10 @@
 import axios from "axios";
 import env from "@/config/env";
 
-type TEscalateTicket = {
-  escalation_level: number;
-  escalation_reason: number;
-  escalation_note: string;
-  escalation_response_time: string;
-};
-type TEscalationPayload = {
-  name: string;
-  description: string;
+type TDeactivatePayload = {
   email: string;
+  reason?: string;
+  additional_note?: string;
 };
 
 class Service {
@@ -23,8 +17,14 @@ class Service {
     return axios.get(env.api.users + UserId + "/");
   }
 
-  deactivateUser({ userId, email }: { userId?: string; email?: string }) {
-    return axios.patch(env.api.users + userId + "/deactivate/", email);
+  deactivateUser({
+    userId,
+    payload,
+  }: {
+    userId?: string;
+    payload: TDeactivatePayload;
+  }) {
+    return axios.patch(env.api.users + userId + "/deactivate/", payload);
   }
 
   exportCSV() {

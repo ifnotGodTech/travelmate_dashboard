@@ -9,14 +9,44 @@ import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useParams } from "next/navigation";
 import { useRespondToTicket, useGetTicket } from "@/hooks/api/ticket";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+
+const formatDate = (isoDate: any) => {
+  if (!isoDate) {
+    return "Invalid date";
+  }
+
+  const date = new Date(isoDate);
+
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return format(date, "EEEE dd/MM/yyyy | hh:mm a");
+};
+
+const formatChatDate = (isoDate: any) => {
+  if (!isoDate) {
+    return "Invalid date";
+  }
+
+  const date = new Date(isoDate);
+
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return format(date, "EEEE hh:mm a");
+};
 
 const page = () => {
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [isResolved, setIsResolved] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
   const { id }: { id: string } = useParams();
 
-  const { data, loading } = useGetTicket({
+  const { loadingTicket, ticket } = useGetTicket({
     TicketId: id as string,
     initalFetch: true,
     successCallback: (message) => {
@@ -62,104 +92,53 @@ const page = () => {
 
   return (
     <>
-      <ContentWrapper>
-        <div className="bg-[#fff] lg:rounded-[20px]">
-          <div className="space-y-6 p-10">
-            <div className="">
-              <h3 className="font-[500] lg:text-[16px] text-[14px] text-[#181818]">
-                {data?.created_at
-                  ? format(
-                      new Date(data.created_at),
-                      "EEEE do 'of' MMM.yyyy | hh:mmaaa"
-                    )
-                  : "Date not available"}
-              </h3>
-            </div>
-            <div className="py-4 px-6 space-y-4 bg-[#ebeced]">
-              <p className="font-[400] lg:text-[18px] text-[14px] text-[#4e4f52]">
-                Customer: {data?.user?.first_name || "N/A"}{" "}
-                {data?.user?.last_name || "N/A"}
-              </p>
-              <p className="font-[400] lg:text-[18px] text-[14px] text-[#4e4f52]">
-                Subject: {data?.description || "N/A"}
-              </p>
-            </div>
-            <form onSubmit={formik.handleSubmit} className="space-y-6">
-              <div className="space-y-6">
-                <h1 className="font-[500] lg:text-[20px] text-[14px] text-[#181818]">
-                  Respond to Customer
-                </h1>
-                <textarea
-                  name="content"
-                  id="content"
-                  className="w-full rounded-[12px] py-[16px] px-[24px] placeholder:text-[16px] font-[500] text-[#181818] outline-none border-[1px] border-gray-300"
-                  placeholder="Type your message here..."
-                  rows={9}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.content}
-                ></textarea>
-                {formik.touched.content && formik.errors.content ? (
-                  <p className="text-red-500 text-sm">
-                    {formik.errors.content}
-                  </p>
-                ) : null}
-              </div>
+      <div className="space-y-6">
+        <div className="flex justify-between">
+          <img src="/assets/icons/arrow-back.svg" alt="" className="" />
 
-              <div className="flex flex-col lg:flex-row justify-between gap-[24px] py-[20px]">
-                <div className="relative">
-                  {/* Button for adding attachment */}
-                  <Button
-                    title="Add attachment"
-                    variant="gray-white"
-                    border
-                    weight="600"
-                    icon="/assets/icons/dark-plus.svg"
-                    iconPosition="left" full
-                  >
-                    <input
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={handleFileChange}
-                    />
-                  </Button>
-                  {attachment && (
-                    <p className="mt-2 text-sm text-gray-700">
-                      {attachment.name}
-                    </p>
-                  )}
-                </div>
-                <ToggleButton
-                  title="Mark as resolved"
-                  isActive={isResolved}
-                  onClick={() => setIsResolved(!isResolved)}
-                  variant="gray-white"
-                  border
-                />
-              </div>
-
-              <Button
-                title="ESCALATE REQUEST"
-                variant={
-                  !formik.isValid || responding || !formik.dirty
-                    ? "gray"
-                    : "blue"
-                }
-                full
-                icon="/assets/icons/white-caution.svg"
-                iconPosition="left"
-                disabled={!formik.isValid || responding || !formik.dirty}
-                loading={responding}
-                size="16"
-                weight="600"
-                className="transition-all ease-in-out"
-                type="submit"
-              />
-            </form>
+          <div className="flex space-x-6">
+            <div
+              className="rounded-[8px] border-[1px] border-[#D72638] text-[#D72638] font-[500] cursor-pointer p-4"
+              onClick={() =>
+                router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
+              }
+            >
+              Escalate ticket
+            </div>
+            <div className="rounded-[8px] bg-[#023E8A] text-[#fff] font-[500] cursor-pointer p-4">
+              Mark as resolved
+            </div>
           </div>
         </div>
-      </ContentWrapper>
+
+        <div className="space-y-4">
+          <p className="font-[500] text-[16px] text-[#181818]">
+            {formatDate(ticket?.created_at)}
+          </p>
+          <h2 className="text-[22px] font-[600] text-[#181818]">
+            {ticket?.title}
+          </h2>
+          <div className="flex space-x-3 items-center">
+            <p className="text-[16px] font-[600] text-[#4E4F52] ">
+              Customer:{" "}
+              <span className="font-[500]">
+                {ticket?.user.first_name} {ticket?.user.last_name}
+              </span>
+            </p>
+            <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
+            <p className="text-[16px] font-[600] text-[#4E4F52] ">
+              Category: <span className="font-[500]">{ticket?.category}</span>
+            </p>
+            <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
+            <p className="text-[16px] font-[600] text-[#4E4F52] ">
+              Chat Status: <span className="font-[500]">{ticket?.status}</span>
+            </p>
+          </div>
+        </div>
+
+        <Chat ticket={ticket} />
+      </div>
+
       {showModal && (
         <SuccessModal
           title="Ticket escalated Successfully"
@@ -168,6 +147,89 @@ const page = () => {
         />
       )}
     </>
+  );
+};
+
+const Chat = ({ ticket }: any) => {
+  return (
+    <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px]  flex flex-col">
+      <div className="flex justify-center items-center space-x-4">
+        <div className="w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818]">
+          Responding: Elvis- 17/07/2025 | 11:07AM
+        </div>
+        <div className="w-[220px] h-[1px] bg-[#181818]"></div>
+      </div>
+      <div className="flex-1 overflow-auto p-4 space-y-6">
+        {ticket?.messages.map((mes: any) => {
+          const isUser = ticket?.user.id === mes.sender.id;
+          return (
+            <div
+              key={mes.id}
+              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+            >
+              <div className="space-y-2 max-w-[80%]">
+                {/* Message Content */}
+                {mes.content && (
+                  <div
+                    className={`py-3 px-4 text-[16px] font-medium rounded-xl shadow-md ${
+                      isUser
+                        ? "bg-[#f0f0f0] text-[#181818] text-end "
+                        : "bg-[#023E8A] text-white"
+                    }`}
+                  >
+                    {mes.content}
+                  </div>
+                )}
+
+                {/* Attachment */}
+                {mes.attachment && (
+                  <div
+                    className={`mt-2 ${isUser ? "text-right" : "text-left"}`}
+                  >
+                    <img
+                      src={mes.attachment}
+                      alt="Attachment"
+                      className="w-[250px] h-auto rounded-lg shadow-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Timestamp */}
+                <span
+                  className={`block text-sm font-light text-[#67696D] ${
+                    isUser ? "text-right" : "text-left"
+                  }`}
+                >
+                  {mes.time}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="sticky bottom-0 rounded-b-[24px] bg-[#fff]">
+        <div className="p-4 flex items-center gap-4 w-full">
+          <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
+            <img
+              src="/assets/icons/emoji.svg"
+              alt="Emoji"
+              className="cursor-pointer"
+            />
+            <input
+              type="text"
+              placeholder="Type a message..."
+              className="flex-1 outline-none bg-transparent"
+            />
+          </div>
+          <button className="p-3 bg-[#023E8A] flex space-x-2 items-center text-white rounded-lg cursor-pointer ">
+            <img src="/assets/icons/white-send.svg" alt="Send" />
+            <span className="text-[#fff] font-[500] text-[20px] ">Send</span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

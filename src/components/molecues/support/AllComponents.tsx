@@ -76,23 +76,23 @@ export const AllContent: React.FC = () => {
                 <TableCell className="hidden lg:table-cell">
                   <span
                     className={`px-4 py-3 rounded-[4px] text-[10px] lg:text-[12px] ${
-                      index < 3
+                      ticket.priority === "High"
                         ? "bg-red-100 text-red-600"
                         : "bg-green-100 text-green-600"
                     }`}
                   >
-                    {index < 3 ? "High" : "Low"}
+                    {ticket.priority}
                   </span>
                 </TableCell>
                 <TableCell>
                   <span
                     className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                      index < 3
+                      ticket.priority === "pending"
                         ? "bg-green-100 text-green-600"
                         : "bg-orange-100 text-orange-600"
                     }`}
                   >
-                    {index < 3 ? "New" : "Pending"}
+                    {ticket.status}
                   </span>
                 </TableCell>
                 <TableCell>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import UserService from "@/services/user";
 import axios from "axios";
+import env from "@/config/env";
 
 export function useGetUser({
   UserId,
@@ -54,6 +55,7 @@ interface User {
   profile_picture: string;
   date_created: string;
   total_bookings: number;
+  is_active: boolean;
 }
 
 interface UsersResponse {
@@ -64,21 +66,39 @@ interface UsersResponse {
 }
 
 export const useGetUsers = () => {
+  const BASE_URL = "https://travelmate-backend-0suw.onrender.com/api/superuser";
+
   const [users, setUsers] = useState<User[]>([]);
-  const [nextPageUrl, setNextPageUrl] = useState<string | null>("");
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [previousPageUrl, setPreviousPageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const hasFetched = useRef(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isActive, setIsActive] = useState<string | null>(null);
 
-  const fetchUsers = async (url?: string) => {
+  const hasFetchedInitial = useRef(false);
+
+  const buildUrl = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    if (isActive !== null) params.append("is_active", isActive);
+
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  const fetchUsers = async (url?: string, reset = false) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await UserService.getAllUser(url);
+
+      const endpoint = url || buildUrl();
+      const response = await axios.get(endpoint);
       const data: UsersResponse = response.data;
 
-      setUsers((prevUsers) => [...prevUsers, ...data.results]);
+      // Replace the users list if reset === true, else append
+      setUsers(reset ? data.results : [...users, ...data.results]);
       setNextPageUrl(data.next);
+      setPreviousPageUrl(data.previous);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred."
@@ -88,18 +108,40 @@ export const useGetUsers = () => {
     }
   };
 
+  // Fetch initial data once
   useEffect(() => {
-    if (!hasFetched.current) {
-      fetchUsers();
-      hasFetched.current = true;
+    if (!hasFetchedInitial.current) {
+      fetchUsers(undefined, true);
+      hasFetchedInitial.current = true;
     }
   }, []);
 
-  const loadMore = () => {
-    if (nextPageUrl) fetchUsers(nextPageUrl);
+  // Refetch when searchTerm or isActive changes
+  useEffect(() => {
+    fetchUsers(undefined, true);
+  }, [searchTerm, isActive]);
+
+  // Load next page and replace user list
+  const loadNext = () => {
+    if (nextPageUrl) fetchUsers(nextPageUrl, true);
   };
 
-  return { users, loadMore, loading, error, nextPageUrl };
+  // Load previous page and replace user list
+  const loadPrevious = () => {
+    if (previousPageUrl) fetchUsers(previousPageUrl, true);
+  };
+
+  return {
+    users,
+    loadNext,
+    loadPrevious,
+    loading,
+    error,
+    nextPageUrl,
+    previousPageUrl,
+    setSearchTerm,
+    setIsActive,
+  };
 };
 
 export const useUserBookings = (userId: string) => {
@@ -138,18 +180,18 @@ export const useDeactivateUser = () => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const onDeactivateUser = async ({
-    email,
+    payload,
     userId,
     successCallback,
   }: {
-    email: string;
+    payload: { email: string; reason?: string; additional_note?: string };
     userId: any;
     successCallback?: () => void;
   }) => {
     setLoading(true);
     setIsSuccess(false); // Reset success state before the API call
     try {
-      const res = await UserService.deactivateUser({ userId, email });
+      const res = await UserService.deactivateUser({ userId, payload });
       const {
         message = res.data.Message || "🚀 User Deactivated successfully",
         description = "",
@@ -175,37 +217,49 @@ export const useDeactivateUser = () => {
 
   return { deactivating, onDeactivateUser, isSuccess };
 };
+
 export const useExportCSV = () => {
   const [exporting, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const onExportCSV = async ({
     successCallback,
+    errorCallback,
   }: {
     successCallback?: () => void;
+    errorCallback?: (error: Error) => void;
   }) => {
     setLoading(true);
     setIsSuccess(false);
+
     try {
       const res = await UserService.exportCSV();
-      const {
-        message = res.data.Message || "🚀 User Deactivated successfully",
-        description = "",
-      } = res.data || {};
+      const blob = new Blob([res.data], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
 
-      showSuccessToast({ message, description });
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "users.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      try {
-        successCallback?.();
-      } catch (callbackError) {
-        console.error("Error in successCallback:", callbackError);
-      }
-
+      successCallback?.();
       setIsSuccess(true);
-    } catch (error: any) {
-      showErrorToast({
-        message: "unable to deactivate user at the moment",
+
+      showSuccessToast({
+        message: "CSV Export Successful",
+        description: "The user data has been exported to CSV format.",
       });
+    } catch (error: any) {
+      console.error("Error exporting CSV:", error);
+
+      showErrorToast({
+        message: "Export Failed",
+        description: "An error occurred while exporting the CSV.",
+      });
+
+      errorCallback?.(error as Error);
     } finally {
       setLoading(false);
     }
