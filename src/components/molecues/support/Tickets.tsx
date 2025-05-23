@@ -120,100 +120,103 @@ export const TicketTabContent: React.FC = ({
               Resolved
             </TabsTrigger>
           </TabsList>
-          <div className="lg:px-[24px] px-[16px]">
-            <Table className="border-none border-collapse">
-              <TableHeader>
-                <TableRow className="items-center border-none hover:bg-none">
-                  <TableCell className="font-semibold border-none">
-                    Subject
-                  </TableCell>
-                  <TableCell className="font-semibold border-none">
-                    Customer
-                  </TableCell>
-                  <TableCell className="font-semibold border-none">
-                    Created at
-                  </TableCell>
-                  <TableCell className="font-semibold border-none">
-                    Status
-                  </TableCell>
-                  <TableCell className="font-semibold border-none">
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tickets.map((ticket, index) => (
-                  <TableRow
-                    key={`${ticket.id}-${index}`}
-                    className="items-center cursor-pointer border-none"
-                  >
-                    <TableCell className="border-none">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src="/assets/icons/flight_cancellation.svg"
-                          alt="icon"
-                          className="w-[30px] lg:w-[40px]"
-                        />
-                        <div className="space-y-[8px]">
-                          <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
-                            {ticket.title}
-                          </h2>
-                          <p className="text-[#9B9EA4] text-[12px]">
-                            {ticket.ticket_id} • {ticket.category}
-                          </p>
-                        </div>
-                      </div>
+          {loading ? (
+            <Skeleton />
+          ) : (
+            <div className="lg:px-[24px] px-[16px]">
+              <Table className="border-none border-collapse">
+                <TableHeader>
+                  <TableRow className="items-center border-none hover:bg-none">
+                    <TableCell className="font-semibold border-none">
+                      Subject
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell border-none">
-                      <div className="space-y-2">
-                        <p className="text-[#181818] text-[14px] font-[500] capitalize">
-                          {ticket.user.first_name || "---"}{" "}
-                          {ticket.user.last_name || "---"}
-                        </p>
-                        <p className="text-[#9B9EA4] text-[12px]">
-                          {ticket.user.email || "---"}
-                        </p>
-                      </div>
+                    <TableCell className="font-semibold border-none">
+                      Customer
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell border-none">
-                      <div className="space-y-2">
-                        <p className="text-[#181818] text-[14px] font-[500]">
-                          {format(
-                            addDays(new Date(ticket.created_at), 2),
-                            "dd/MM/yyyy"
-                          )}
-                        </p>
-                        <p className="text-[#9B9EA4] text-[12px]">
-                          <span>{getRelativeTime(ticket.created_at)}</span>
-                        </p>
-                      </div>
+                    <TableCell className="font-semibold border-none">
+                      Created at
                     </TableCell>
-                    <TableCell className="border-none">
-                      <span
-                        className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                          ticket.priority === "pending"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-orange-100 text-orange-600"
-                        }`}
-                      >
-                        {ticket.status}
-                      </span>
+                    <TableCell className="font-semibold border-none">
+                      Status
                     </TableCell>
-                    <TableCell className="border-none">
-                      <TableDropdown
-                        parentWidth={180}
-                        onViewDetails={() => handleViewDetails(ticket)}
-                        onViewMessage={() => handleViewMessage(ticket)}
-                      />
+                    <TableCell className="font-semibold border-none">
+                      Action
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {tickets.map((ticket, index) => (
+                    <TableRow
+                      key={`${ticket.id}-${index}`}
+                      className="items-center cursor-pointer border-none"
+                    >
+                      <TableCell className="border-none">
+                        <div className="flex items-center space-x-4">
+                          <img
+                            src="/assets/icons/flight_cancellation.svg"
+                            alt="icon"
+                            className="w-[30px] lg:w-[40px]"
+                          />
+                          <div className="space-y-[8px]">
+                            <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
+                              {ticket.title}
+                            </h2>
+                            <p className="text-[#9B9EA4] text-[12px]">
+                              {ticket.ticket_id} • {ticket.category}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell border-none">
+                        <div className="space-y-2">
+                          <p className="text-[#181818] text-[14px] font-[500] capitalize">
+                            {ticket.user.first_name || "---"}{" "}
+                            {ticket.user.last_name || "---"}
+                          </p>
+                          <p className="text-[#9B9EA4] text-[12px]">
+                            {ticket.user.email || "---"}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell border-none">
+                        <div className="space-y-2">
+                          <p className="text-[#181818] text-[14px] font-[500]">
+                            {format(
+                              addDays(new Date(ticket.created_at), 2),
+                              "dd/MM/yyyy"
+                            )}
+                          </p>
+                          <p className="text-[#9B9EA4] text-[12px]">
+                            <span>{getRelativeTime(ticket.created_at)}</span>
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="border-none">
+                        <span
+                          className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
+                            ticket.priority === "pending"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-orange-100 text-orange-600"
+                          }`}
+                        >
+                          {ticket.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="border-none">
+                        <TableDropdown
+                          parentWidth={180}
+                          onViewDetails={() => handleViewDetails(ticket)}
+                          onViewMessage={() => handleViewMessage(ticket)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-            {/* Loading Spinner at the Bottom */}
-            {loading && <Skeleton />}
-          </div>
+              {/* Loading Spinner at the Bottom */}
+            </div>
+          )}
           {nextPageUrl && !loading && (
             <div className="flex justify-center mt-4">
               <button
@@ -250,7 +253,7 @@ export function getRelativeTime(timestamp: string): string {
 
 const Skeleton = ({ rows = 5, columns = 4 }) => {
   return (
-    <div className="w-full space-y-[12px] mt-5">
+    <div className="w-full space-y-[12px] mt-5 px-4 ">
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <div
           key={rowIndex}
