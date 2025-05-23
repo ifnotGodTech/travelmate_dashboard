@@ -26,7 +26,7 @@ const Page = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
       />
-      <div className="bg-white rounded-[20px] p-4">
+      <div className="bg-[#FFFFFF] py-[16px] rounded-[8px] shadow-md">
         <TicketTabContent
           selectedOption={selectedOption}
           searchTerm={searchTerm}
