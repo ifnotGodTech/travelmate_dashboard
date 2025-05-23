@@ -50,25 +50,33 @@ const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
     onContentChange(updated);
   };
 
+  const formatSnakeToTitle = (value: string): string => {
+    return value
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+  
   return (
     <div className="space-y-12">
       {content.map((cat, catIndex) => (
         <div key={cat.id} className="space-y-4">
           {/* Category Title */}
           <h3 className="text-lg font-semibold text-gray-900 capitalize">
-            {isEditing ? (
-              <input
-                type="text"
-                className="border border-gray-300 p-2 w-full text-lg font-semibold"
-                value={cat.name}
-                onChange={(e) =>
-                  handleCategoryChange(catIndex, "name", e.target.value)
-                }
-              />
-            ) : (
-              `${cat.name} Partner`
-            )}
-          </h3>
+  {isEditing ? (
+    <input
+      type="text"
+      className="border border-gray-300 p-2 w-full text-lg font-semibold"
+      value={cat.name}
+      onChange={(e) =>
+        handleCategoryChange(catIndex, "name", e.target.value)
+      }
+    />
+  ) : (
+    `${formatSnakeToTitle(cat.name)} Partner`
+  )}
+</h3>
+
 
           {/* Category Description */}
           <div>

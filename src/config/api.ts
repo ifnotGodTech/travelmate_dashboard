@@ -11,6 +11,10 @@ const api = () => {
     aboutus: BASE_URL_LINK + "/api/admin/about-us",
     partners: BASE_URL_LINK + "/api/admin/partners",
     partnercategories: BASE_URL_LINK + "/api/admin/partner-categories",
+    dashboardactivities: BASE_URL_LINK + "/api/admin/dashboard/activities",
+    dashboardrevenue: BASE_URL_LINK + "/api/admin/dashboard/revenue",
+    dashboardmessages: BASE_URL_LINK + "/api/admin/dashboard/messages",
+    superadmin: BASE_URL_LINK + '/api/superadmin/'
 
   };
 };

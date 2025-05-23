@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ChartData } from "@/components/data";
+// import { ChartData } from "@/components/data";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -18,38 +18,175 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import axios from "axios";
+import env from "@/config/env";
+import { ChevronDown, ChevronRight } from "lucide-react";
+
 const page = () => {
+  const [activity, setActivity] = useState<ActivityProps[]>([]);
+  const [messages, setMessages] = useState<MessageProps[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [bookings, setBookings] = useState<BookingsProps[]>([]);
+  const [revenue, setRevenue] = useState<RevenueProps | null>(null);
+  const [users, setUsers] = useState<UsersProps[]>([]);
+  const [selectedOption, setSelectedOption] = useState("This week");
+  const [chartData, setChartData] = useState<BookingsProps[]>([]);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [activities, messages, revenue, bookings, user] = await Promise.all(
+        [
+          axios.get(env.api.dashboardactivities),
+          axios.get(env.api.dashboardmessages),
+          axios.get(env.api.dashboardrevenue),
+          axios.get(env.api.bookings),
+          axios.get(env.api.user),
+        ]
+      );
+      setActivity(activities.data);
+      setMessages(messages.data);
+      setBookings(bookings.data);
+      setRevenue(revenue.data);
+      setUsers(user.data.results);
+      // setChartData(bookings.data);
+      console.log(bookings.data);
+    } catch (error) {
+      console.log(error);
+      throw new Error("Error fetching users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const generateWeeklyChartData=(bookings: BookingsProps[])=>{
+    const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  // Initialize a structure for each weekday with zero values
+  const weeklyData = weekDays.map((day) => ({
+    day,
+    flight: 0,
+    hotel: 0,
+    car: 0,
+    total_amount: 0,
+  }));
+
+  // Sum up total_amounts per booking type per day
+  bookings.forEach((item) => {
+    const date = new Date(item.created_at);
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
+
+    const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
+    if (target && item.total_amount) {
+      target[item.booking_type] += item.total_amount;
+    }
+  });
+  return weeklyData
+  }
+  
+  const filteredData = useMemo(() => {
+    const now = new Date();
+    return bookings.filter((item) => {
+      const createdAt = new Date(item.created_at);
+
+      if (selectedOption === "This week") {
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        return createdAt >= startOfWeek;
+      } else if (selectedOption === "This month") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      } else if (selectedOption === "This year") {
+        return createdAt.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }, [bookings, selectedOption]);
+ 
+  const weeklyData = useMemo(() => generateWeeklyChartData(filteredData), [filteredData])
+
   return (
     <div className="space-y-10 py-4 lg:py-0">
-      <Statistics />
-      <DataGrid />
+      <Statistics
+        bookings={bookings}
+        revenue={revenue}
+        users={users}
+        selectedOption={selectedOption}
+        setSelectedOption={setSelectedOption}
+      />
+      <DataGrid
+        activity={activity}
+        loading={loading}
+        messages={messages}
+        bookings={bookings}
+        chartData={chartData}
+        weeklyData={weeklyData}
+      />
     </div>
   );
 };
 
-const Statistics = () => {
+const Statistics = ({
+  bookings,
+  revenue,
+  users,
+  selectedOption,
+  setSelectedOption,
+}: {
+  bookings: BookingsProps[];
+  revenue: RevenueProps | null;
+  users: UsersProps[];
+  selectedOption: string;
+  setSelectedOption: any;
+}) => {
+  let NGNNaira = new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  function formatMoney(number: number) {
+    if (Math.abs(number) >= 1000000) {
+      return (number / 1000000).toFixed(1) + "M";
+    }
+    return number.toLocaleString();
+  }
+
   return (
     <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 ">
       <div className="space-y-6">
-        <TimeFilterDropdown />
+        <TimeFilterDropdown
+          selectedOption={selectedOption}
+          setSelectedOption={setSelectedOption}
+        />
         <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Users"
-            value="2,481"
+            value={users.length.toLocaleString()}
             color="#50AC79"
             icon="/assets/icons/ana-users.svg"
             smColor="#D5EBDF"
           />
           <StatCard
             title="Bookings"
-            value="4,892"
+            value={bookings.length.toLocaleString()}
             color="#023E8A"
             icon="/assets/icons/ana-bookings.svg"
             smColor="#CCD8E8"
           />
           <StatCard
             title="Revenue"
-            value="N4.2m"
+            value={
+              revenue
+                ? Math.abs(revenue.total_revenue) >= 1000000
+                  ? `₦${formatMoney(revenue.total_revenue)}`
+                  : NGNNaira.format(revenue.total_revenue)
+                : "₦0"
+            }
             color="#FF6F1E"
             icon="/assets/icons/ana-revenue.svg"
             smColor="#FFCFB4"
@@ -60,7 +197,9 @@ const Statistics = () => {
         <p className="text-sm lg:text-base font-semibold text-[#181818]">
           Total Revenue
         </p>
-        <h1 className="text-2xl font-semibold text-[#023E8A]">N89,200,000</h1>
+        <h1 className="text-2xl font-semibold text-[#023E8A]">
+          {revenue ? NGNNaira.format(Number(revenue.total_revenue)) : "₦0"}
+        </h1>
       </div>
     </div>
   );
@@ -78,60 +217,76 @@ const StatCard = ({
   color: string;
   icon: string;
   smColor: string;
-}) => (
-  <>
-    <div
-      className="lg:p-[20px] hidden lg:block lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] cursor-pointer bg-transparent lg:bg-none"
-      style={{ backgroundColor: color }}
-    >
+}) => {
+  return (
+    <>
       <div
-        className={
-          "w-10 h-10 rounded-[8px] flex justify-center items-center bg-[#fff] "
-        }
+        className="lg:p-[20px] hidden lg:block lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] cursor-pointer bg-transparent lg:bg-none"
+        style={{ backgroundColor: color }}
       >
-        <img src={icon} alt="" className="" />{" "}
+        <div
+          className={
+            "w-10 h-10 rounded-[8px] flex justify-center items-center bg-[#fff] "
+          }
+        >
+          <img src={icon} alt="" className="" />{" "}
+        </div>
+        <div className="space-y-2">
+          <h1 className="font-[600] text-[28px] leading-[100%] text-[#fff]">
+            {value}
+          </h1>
+          <p className="font-[500] text-[16px] leading-[100%] text-[#fff]">
+            {title}
+          </p>
+        </div>
       </div>
-      <div className="space-y-2">
-        <h1 className="font-[600] text-[28px] leading-[100%] text-[#fff]">
-          {value}
-        </h1>
-        <p className="font-[500] text-[16px] leading-[100%] text-[#fff]">
-          {title}
-        </p>
-      </div>
-    </div>
 
-    <div className=" space-x-2 lg:hidden flex items-center ">
-      <div
-        className="w-10 h-10 rounded-full flex justify-center items-center"
-        style={{ backgroundColor: smColor }}
-      >
-        <img src={icon} alt="" className="" />{" "}
+      <div className=" space-x-2 lg:hidden flex items-center ">
+        <div
+          className="w-10 h-10 rounded-full flex justify-center items-center"
+          style={{ backgroundColor: smColor }}
+        >
+          <img src={icon} alt="" className="" />{" "}
+        </div>
+        <div className="space-y-2">
+          <h1 className="font-[600] text-[14px] lg:text-[28px]  leading-[100%] text-[#181818]">
+            {value}
+          </h1>
+          <p className="font-[500] text-[12px] b:text-[16px]  leading-[100%] text-[#555]">
+            {title}
+          </p>
+        </div>
       </div>
-      <div className="space-y-2">
-        <h1 className="font-[600] text-[14px] lg:text-[28px]  leading-[100%] text-[#181818]">
-          {value}
-        </h1>
-        <p className="font-[500] text-[12px] b:text-[16px]  leading-[100%] text-[#555]">
-          {title}
-        </p>
-      </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
-const DataGrid = () => {
+const DataGrid = ({
+  activity,
+  loading,
+  messages,
+  bookings,
+  chartData,
+  weeklyData,
+}: {
+  activity: ActivityProps[];
+  loading: boolean;
+  messages: MessageProps[];
+  bookings: BookingsProps[];
+  chartData: BookingsProps[];
+  weeklyData: any;
+}) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-10">
         <QuickActions />
         <div className="grid grid-rows-2 gap-6 h-[652px]">
-          <Chart />
-          <Activity />
+          <Chart chartData={chartData} weeklyData={weeklyData} />
+          <Activity activity={activity} loading={loading} />
         </div>
       </div>
       <div className="lg:col-span-1">
-        <Chat />
+        <Chat messages={messages} loading={loading} />
       </div>
     </div>
   );
@@ -185,11 +340,17 @@ const Legend = () => {
   );
 };
 
-const Chart = () => {
+const Chart = ({
+  chartData,
+  weeklyData,
+}: {
+  chartData: BookingsProps[];
+  weeklyData: any;
+}) => {
   const router = useRouter();
 
   return (
-    <div className="bg-white lg:px-4 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
+    <div className="bg-white lg:px-6 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Booking Trends</h2>
         <div className="hidden lg:block">
@@ -205,30 +366,42 @@ const Chart = () => {
       <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={ChartData}
+            data={weeklyData}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
+            <XAxis dataKey="day" className="text-xs"/>
+            <YAxis
+            className="text-[8px]"
+              tickFormatter={(value) =>
+                new Intl.NumberFormat("en-NG", {
+                  style: "currency",
+                  currency: "NGN",
+                  maximumFractionDigits: 0,
+                })
+                  .format(value)
+                  .replace(/\.00/, "")
+              }
+            />
+
             <Tooltip />
             <Line
               type="monotone"
-              dataKey="Flight"
+              dataKey="flight"
               stroke="#FF6D00"
               strokeWidth={2}
               dot={{ r: 4 }}
             />
             <Line
               type="monotone"
-              dataKey="Hotel"
+              dataKey="hotel"
               stroke="#00C853"
               strokeWidth={2}
               dot={{ r: 4 }}
             />
             <Line
               type="monotone"
-              dataKey="Car"
+              dataKey="car"
               stroke="#2962FF"
               strokeWidth={2}
               dot={{ r: 4 }}
@@ -243,71 +416,100 @@ const Chart = () => {
   );
 };
 
-const Chat = () => {
-  const message = Array(10).fill({
-    message: "Ticket booked by Sam Ade",
-    time: "4:44 PM",
-  });
-
+const Chat = ({
+  messages,
+  loading,
+}: {
+  messages: MessageProps[];
+  loading: boolean;
+}) => {
+  const router = useRouter();
+  const getMeridian = (dateString: string) => {
+    const date = new Date(dateString);
+    const hour = date.getHours();
+    return hour >= 12 ? "PM" : "AM";
+  };
   return (
-    <div className="bg-[#fff] h-full px-[10px] py-[30px] rounded-[16px] overflow-y-auto">
+    <div className="bg-[#fff] lg:h-full h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
       <div className="space-y-6">
         <div className="flex justify-between items-center lg:px-[20px] ">
           <h3 className="font-[500] text-[18px] text-[#181818] leading-[100%]">
             Messages
           </h3>
-          <div className="flex items-center space-x-2 cursor-pointer ">
+          <div
+            className="flex items-center space-x-2 cursor-pointer "
+            onClick={() => router.push("/Dashboard/support")}
+          >
             <p className="font-[500] text-[16px] text-[#023E8A] leading-[100%]">
               See all
             </p>
-            <img
-              src="/assets/icons/chevron-down.svg"
-              alt=""
-              className="w-[20px] lg:w-[16px]"
-            />
+            <ChevronRight stroke="#023E8A" />
           </div>
         </div>
         <div className="w-full h-[3px] bg-[#EBECED]"></div>
         <div className="">
-          {message.map((msg, i) => (
-            <div key ={i}
-              className={`py-3 lg:px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
-                i === message.length - 1
-                  ? ""
-                  : "border-b-[2px] border-[#F5F5F5]"
-              }`}
-            >
-              <img
-                src="/assets/icons/flight_cancellation.svg"
-                alt=""
-                className=""
-              />
-              <div className="flex-1 justify-between flex items-center">
-                <p className="font-[400] text-[16px] text-[#181818] leading-[100%]">
-                  {msg.message.length > 15
-                    ? `${msg.message.slice(0, 20)}...`
-                    : msg.message}
-                </p>
-                <span className="font-[400] text-[12px] text-[#9B9EA4] leading-[100%]">
-                  {msg.time}
-                </span>
+          {loading ? (
+            <Loading />
+          ) : (
+            messages.slice(0, 10).map((msg, i) => (
+              <div
+                key={msg.id}
+                className={`py-3 lg:px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
+                  i === messages.length - 1
+                    ? ""
+                    : "border-b-[2px] border-[#F5F5F5]"
+                }`}
+              >
+                <img
+                  src={
+                    msg.type === "ticket_message"
+                      ? `/assets/icons/flight_cancellation.svg`
+                      : `/assets/icons/Message-icon.svg`
+                  }
+                  alt=""
+                  className=""
+                />
+                <div className="flex-1 justify-between flex items-center">
+                  <p className="font-[400] text-sm text-[#181818] leading-[100%]">
+                    {msg.title.length > 15
+                      ? `${msg.title.slice(0, 20)}...`
+                      : `${msg.title} by ${msg.sender}`}
+                  </p>
+                  <span className="font-[400] text-[12px] text-[#9B9EA4] leading-[100%]">
+                    {new Date(msg.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    {getMeridian(msg.created_at)}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const Activity = () => {
-  const activity = Array(3).fill({
-    name: "Kemi Adeoti",
-    time: "02:40PM",
-    amount: "N248,000",
-    title: "Flight Booking",
-  });
+const Activity = ({
+  activity,
+  loading,
+}: {
+  activity: ActivityProps[];
+  loading: boolean;
+}) => {
   const router = useRouter();
+  let NGNNaira = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "NGN",
+  });
+  const getMeridian = (dateString: string) => {
+    const date = new Date(dateString);
+    const hour = date.getHours();
+    return hour >= 12 ? "PM" : "AM";
+  };
+
   return (
     <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto">
       <div className="space-y-6">
@@ -315,53 +517,72 @@ const Activity = () => {
           <h1 className="text-lg font-medium text-[#181818]">
             Recent Activities
           </h1>
-          <div className="flex items-center space-x-2 cursor-pointer">
+          <div
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => router.push("/Dashboard/bookings")}
+          >
             <p className="text-base font-medium text-[#023E8A]">See all</p>
-            <img src="/assets/icons/chevron-down.svg" alt="" className="w-5" />
+            <ChevronRight stroke="#023E8A" />
           </div>
         </div>
         <div className="space-y-4">
-          {activity.map((act, i) => (
-            <div
-              key={i}
-              className="flex justify-between items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
-              onClick={() => router.push("/Dashboard/user/profile")}
-            >
-              <div className="flex items-center space-x-3">
-                <img
-                  src="/assets/images/profile-image.svg"
-                  alt=""
-                  className="w-10"
-                />
-                <p className="text-base font-medium text-[#181818]">
-                  {act.name}
-                </p>
-              </div>
-              <p className="text-sm text-[#181818]">{act.title}</p>
-              <div className="flex items-center space-x-2">
-                <div className="text-right">
-                  <p className="text-sm text-[#181818]">{act.amount}</p>
-                  <p className="text-sm text-[#9B9EA4]">{act.time}</p>
+          {loading ? (
+            <Loading />
+          ) : (
+            activity.map((act, i) => (
+              <div
+                key={i}
+                className="flex justify-between items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
+                onClick={() => router.push("/Dashboard/user/profile")}
+              >
+                <div className="flex items-center space-x-3">
+                  <img
+                    src="/assets/images/profile-image.svg"
+                    alt=""
+                    className="w-10"
+                  />
+                  <p className="text-base font-medium text-[#181818]">
+                    {act.user_full_name}
+                  </p>
                 </div>
-                <img
-                  src="/assets/icons/chevron-down.svg"
-                  alt=""
-                  className="w-5"
-                />
+                <p className="text-sm text-[#181818]">{act.booking_type}</p>
+                <div className="flex items-center space-x-2">
+                  <div className="text-right">
+                    <p className="text-sm text-[#181818]">
+                      {NGNNaira.format(act.amount)}
+                    </p>
+                    <p className="text-sm text-[#9B9EA4]">
+                      {new Date(act.date).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      {getMeridian(act.date)}
+                    </p>
+                  </div>
+                  <img
+                    src="/assets/icons/chevron-down.svg"
+                    alt=""
+                    className="w-5"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export const TimeFilterDropdown = () => {
-  const [selectedOption, setSelectedOption] = useState("This week");
-
+// TimeFilterDropdown.tsx
+export const TimeFilterDropdown = ({
+  selectedOption,
+  setSelectedOption,
+}: {
+  selectedOption: string;
+  setSelectedOption: (value: string) => void;
+}) => {
   const options = ["This week", "This month", "This year"];
-
   return (
     <div className="relative">
       <DropdownMenu>
@@ -370,24 +591,20 @@ export const TimeFilterDropdown = () => {
             <p className="text-sm lg:text-base font-semibold text-[#181818]">
               {selectedOption}
             </p>
-            <img
-              src="/assets/icons/chevron-down.svg"
-              alt="Dropdown Icon"
-              className="w-5 rotate-90"
-            />
+            <ChevronDown />
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="w-full mt-2 border border-gray-300 rounded-lg bg-white shadow-lg space-y-2 "
+          className="w-full mt-2 border rounded-lg bg-white shadow-lg space-y-2"
           align="start"
         >
           {options.map((option) => (
             <DropdownMenuItem
               key={option}
               onClick={() => setSelectedOption(option)}
-              className={`px-3 py-2 space-y-2 ${
+              className={`px-3 py-2 space-y-2 cursor-pointer ${
                 selectedOption === option
-                  ? "font-bold text-[#181818] bg-gray-100"
+                  ? "font-bold text-white bg-gray-400"
                   : "text-gray-700"
               }`}
             >
@@ -400,4 +617,73 @@ export const TimeFilterDropdown = () => {
   );
 };
 
+export const Loading = () => {
+  return (
+    <div className="text-center flex items-center justify-center gap-3">
+      <p>Loading...</p>
+      <svg
+        className="animate-spin -ml-1 mr-2 h-4 w-4 text-black"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        ></circle>
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </div>
+  );
+};
 export default page;
+
+type ActivityProps = {
+  user_full_name: string;
+  amount: number;
+  date: string;
+  profile_picture: string;
+  booking_type: string;
+};
+
+type MessageProps = {
+  content: string;
+  created_at: string;
+  id: string;
+  link: string;
+  sender: null;
+  title: string;
+  type: string;
+};
+
+type RevenueProps = {
+  total_revenue: number;
+  car_revenue: number;
+  flight_revenue: number;
+  currency: string;
+};
+type UsersProps = any[];
+type BookingsProps = {
+  booking_type: "flight" | "hotel" | "car";
+  created_at: string;
+  details: {
+    arrival?: string;
+    departure?: string;
+    departure_date?: string;
+    flight_number?: string;
+  };
+  email: string;
+  id: string;
+  specific_id: number;
+  status: string;
+  total_amount: number | null;
+  user: string;
+};

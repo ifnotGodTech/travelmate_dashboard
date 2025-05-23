@@ -8,6 +8,7 @@ interface Role {
   name: string;
   description: string;
   assignedUsers: number;
+  person: string; // Optional property for the person's name
 }
 interface RoleAssignmentProps {
   roles: Role[]; // Array of roles to display
@@ -36,8 +37,8 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
           <span className="hidden md:block">Invite New Member</span>
         </Button>
       </div>
-      {roles.map((role) => (
-        <div key={role.name} className="space-y-4">
+      {roles.map((role, index) => (
+        <div key={index} className="space-y-4">
           <div>
             <h3 className="text-lg font-medium">{role.name}</h3>
             <p className="text-muted-foreground text-sm pt-2">
@@ -53,7 +54,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                   key={i}
                   className="flex justify-between items-center py-2 border-b"
                 >
-                  <span>Jane Smith</span>
+                  <span>{role.person || ""}</span>
                   <Button
                     variant="link"
                     className="text-red-600 hover:text-red-800 p-0"
