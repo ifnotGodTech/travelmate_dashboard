@@ -1,8 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import Link from "next/link";
-import Button from "@/components/reuseables/Button";
+import { useRouter } from "next/navigation";
 import { FaqSection } from "./Faq";
 import { TicketTabContent } from "./Tickets";
 import ChatTabContent from "./ChatTabComponent";
@@ -11,6 +10,7 @@ import { Filter, TicketDetailsDialog } from "./Reuseables";
 import { format } from "date-fns";
 
 const TicketTable: React.FC = () => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -66,10 +66,13 @@ const TicketTable: React.FC = () => {
           </TabsList>
 
           <div className="flex gap-6">
-            <div className="p-4 rounded-[8px] border-[1px] border-[#023E8A] text-[20px] font-[500] text-[#023E8A] ">
+            <div
+              className="p-4 rounded-[8px] border-[1px] border-[#023E8A] text-[20px] font-[500] text-[#023E8A] cursor-pointer "
+              onClick={() => router.push("/Dashboard/support/ticket")}
+            >
               View all tickets
             </div>
-            <div className="p-4 rounded-[8px] bg-[#023E8A] text-[20px] font-[500] text-[#fff]">
+            <div className="p-4 rounded-[8px] bg-[#023E8A] text-[20px] font-[500] text-[#fff] cursor-pointer ">
               All Escalated tickets
             </div>
           </div>
