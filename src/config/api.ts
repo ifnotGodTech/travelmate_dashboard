@@ -12,7 +12,16 @@ const api = () => {
     admin: BASE_URL_LINK + "/api/admin",
     chat: BASE_URL_LINK + "/api/admin/chats",
     users: BASE_URL_LINK + "/api/superuser/",
-    roles: BASE_URL_LINK + "/api/superadmin/",
+    privacypolicy: BASE_URL_LINK + "/api/admin/privacy-policy",
+    termsofuse: BASE_URL_LINK + "/api/admin/terms-of-use",
+    aboutus: BASE_URL_LINK + "/api/admin/about-us",
+    partners: BASE_URL_LINK + "/api/admin/partners",
+    partnercategories: BASE_URL_LINK + "/api/admin/partner-categories",
+    dashboardactivities: BASE_URL_LINK + "/api/admin/dashboard/activities",
+    dashboardrevenue: BASE_URL_LINK + "/api/admin/dashboard/revenue",
+    dashboardmessages: BASE_URL_LINK + "/api/admin/dashboard/messages",
+    superadmin: BASE_URL_LINK + '/api/superadmin/'
+
   };
 };
 

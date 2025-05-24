@@ -20,7 +20,7 @@ const ChatPage: React.FC = () => {
 
   const { data, loading } = useGetAllChat({});
 
-  const chats = useMemo(() => {
+  const chats = useMemo(() => {``
     return data.map((chat: any) => {
       const updatedDate = new Date(chat.updated_at);
 
