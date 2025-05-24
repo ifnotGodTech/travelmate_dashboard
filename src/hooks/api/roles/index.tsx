@@ -1,0 +1,31 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import RolesService from "@/services/roles";
+
+export function useGetAllEscalationLevel({
+  initalFetch = true,
+  refresh = false,
+}: {
+  initalFetch?: boolean;
+  refresh?: boolean;
+}) {
+  const [Levelloading, setLoading] = useState(false);
+  const [Leveldata, setData] = useState<any | null>(null);
+
+  const onEscalationLevel = async () => {
+    setLoading(true);
+    try {
+      const res = await RolesService.getRoles();
+      setData(res.data);
+    } catch (error) {
+      console.error("Error fetching escalation levels:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initalFetch || refresh) onEscalationLevel();
+  }, [initalFetch, refresh]);
+
+  return { Levelloading, Leveldata };
+}

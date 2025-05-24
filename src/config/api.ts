@@ -12,6 +12,7 @@ const api = () => {
     admin: BASE_URL_LINK + "/api/admin",
     chat: BASE_URL_LINK + "/api/admin/chats",
     users: BASE_URL_LINK + "/api/superuser/",
+    roles: BASE_URL_LINK + "/api/superadmin/",
   };
 };
 

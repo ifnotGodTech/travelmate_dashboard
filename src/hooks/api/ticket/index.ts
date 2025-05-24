@@ -161,35 +161,6 @@ export function useGetTicket({
   return { loadingTicket, ticket };
 }
 
-export function useGetAllEscalationLevel({
-  initalFetch = true,
-  refresh = false,
-}: {
-  initalFetch?: boolean;
-  refresh?: boolean;
-}) {
-  const [Levelloading, setLoading] = useState(false);
-  const [Leveldata, setData] = useState<any | null>(null);
-
-  const onEscalationLevel = async () => {
-    setLoading(true);
-    try {
-      const res = await TicketService.getEscalationLevel();
-      setData(res.data);
-    } catch (error) {
-      console.error("Error fetching escalation levels:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (initalFetch || refresh) onEscalationLevel();
-  }, [initalFetch, refresh]);
-
-  return { Levelloading, Leveldata };
-}
-
 export function useGetAllEscalationReasons({
   initalFetch = true,
   refresh = false,
@@ -405,3 +376,79 @@ export function useGetAllTicketStats({
     fetchTicketsStats,
   };
 }
+
+export function useClaimTicket() {
+  const [claiming, setClaiming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onClaiming = async ({
+    TicketId,
+    successCallback,
+  }: {
+    TicketId: string;
+    successCallback?: () => void;
+  }) => {
+    setClaiming(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await TicketService.claimTicket({ TicketId });
+      const message = res.data?.detail || "Ticket response sent successfully";
+      showSuccessToast({ message });
+
+      if (successCallback) {
+        successCallback();
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to claim at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return { claiming, onClaiming, isSuccess };
+}
+
+export const useResolveTicket = () => {
+  const [resolving, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onResolveTicket = async ({
+    TicketId,
+    successCallback,
+  }: {
+    TicketId: string;
+    successCallback?: () => void;
+  }) => {
+    setLoading(true);
+    setIsSuccess(false);
+    try {
+      const res = await TicketService.resolveTicket(TicketId);
+      const message = res.data.detail || "Ticket response sent sucessfully";
+
+      showSuccessToast({ message });
+
+      try {
+        successCallback?.();
+      } catch (callbackError) {
+        console.error("Error in successCallback:", callbackError);
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to ticket at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { resolving, onResolveTicket, isSuccess };
+};

@@ -6,9 +6,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { SuccessModal } from "@/components/reuseables/SuccessModal";
+import { useRouter } from "next/navigation";
 import DateRangeDialog from "@/components/reuseables/DateDialog";
 import { parseISO, addDays, format, isValid } from "date-fns";
+import { useClaimTicket } from "@/hooks/api/ticket";
+import { useResolveTicket } from "@/hooks/api/ticket";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 export const TableDropdown = ({
   parentWidth,
@@ -57,7 +60,7 @@ export const TableDropdown = ({
   );
 };
 
-const DetailRow = ({
+export const DetailRow = ({
   label,
   value,
 }: {
@@ -88,7 +91,7 @@ export const TicketDetailsDialog = ({
       onClick={onClose}
     >
       <div
-        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-l-[20px] shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-l-[20px] h-[90vh] ooverflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
           selectedTicket ? "scale-100" : "scale-95"
         } transition-transform duration-300`}
         onClick={(e) => e.stopPropagation()}
@@ -171,8 +174,19 @@ export const ViewingChatModal = ({
   ticketLoading,
   onClose,
 }: any) => {
-  const isAdminAssigned = true;
   const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
+  const router = useRouter();
+  const { claiming, onClaiming } = useClaimTicket();
+
+  const handleClaimTicket = () => {
+    onClaiming({
+      TicketId: ticketDetails?.id,
+      successCallback: () => {
+        router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
+      },
+    });
+  };
+
   return (
     <div
       className={`fixed inset-0 z-50 bg-black/50 ${
@@ -186,89 +200,120 @@ export const ViewingChatModal = ({
         } transition-transform duration-300`}
         onClick={(e) => e.stopPropagation()}
       >
-        {isAdminAssigned ? (
-          <>
-            <div className="border-b-[1px] w-full border-[#BCBEC2]">
-              <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-                Ticket Already claimed
-              </h2>
+        <>
+          {ticketLoading ? (
+            <div className="h-[300px] items-center flex justify-center ">
+              <div className="w-10 h-10 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
             </div>
+          ) : (
+            <>
+              {ticketDetails?.claimed_admin !== null ? (
+                <>
+                  <div className="border-b-[1px] w-full border-[#BCBEC2]">
+                    <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+                      Ticket Already claimed
+                    </h2>
+                  </div>
 
-            <div className=" px-[16px] lg:px-[32px]">
-              <p className="font-[400] text-[16px] lg:text-[20px]">
-                This chat is currently being handled by Elvis. You can either
-                view the ticket or claim it. Claiming the ticket will transfer
-                responsibility to you, removing Elvis from the conversation. The
-                customer will be notified of the change. Would you like to
-                proceed?
-              </p>
-            </div>
+                  <div className=" px-[16px] lg:px-[32px]">
+                    <p className="font-[400] text-[16px] lg:text-[20px]">
+                      This chat is currently being handled by{" "}
+                      {ticketDetails?.claimed_admin.first_name || "---"}. You
+                      can either view the ticket or claim it. Claiming the
+                      ticket will transfer responsibility to you, removing Elvis
+                      from the conversation. The customer will be notified of
+                      the change. Would you like to proceed?
+                    </p>
+                  </div>
 
-            <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-              <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[24px] items-center justify-end ">
-                <div className="p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
-                  <span className="text-[#023E8A] text-[20px] font-[500] ">
-                    View Only
-                  </span>
-                </div>
+                  <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+                    <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[24px] items-center justify-end ">
+                      <div className="p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
+                        <span className="text-[#023E8A] text-[20px] font-[500] ">
+                          View Only
+                        </span>
+                      </div>
 
-                <div className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer ">
-                  <span className="text-[#fff] text-[20px] font-[500] ">
-                    Yes, Proceed
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="border-b-[1px] w-full border-[#BCBEC2]">
-              <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-                Ticket {ticketDetails?.ticket_id}
-              </h2>
-            </div>
+                      <div className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer ">
+                        <span className="text-[#fff] text-[20px] font-[500] ">
+                          Yes, Proceed
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="border-b-[1px] w-full border-[#BCBEC2]">
+                    <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+                      Ticket {ticketDetails?.ticket_id}
+                    </h2>
+                  </div>
 
-            <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
-              <DetailRow label="Created at" value={formattedDate} />
-              <DetailRow label="Category" value={ticketDetails?.category} />
-              <DetailRow label="Status" value={ticketDetails?.status} />
-              <DetailRow label="Subject" value={ticketDetails?.title} />
-            </div>
+                  <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
+                    <DetailRow label="Created at" value={formattedDate} />
+                    <DetailRow
+                      label="Category"
+                      value={ticketDetails?.category}
+                    />
+                    <DetailRow label="Status" value={ticketDetails?.status} />
+                    <DetailRow label="Subject" value={ticketDetails?.title} />
+                  </div>
 
-            <div className="px-[16px] lg:px-[32px]">
-              <DetailRow
-                label="Description"
-                value={ticketDetails?.description}
-              />
-            </div>
+                  <div className="px-[16px] lg:px-[32px]">
+                    <DetailRow
+                      label="Description"
+                      value={ticketDetails?.description}
+                    />
+                  </div>
 
-            <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-              <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
-                <div className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer ">
-                  <img
-                    src="/assets/icons/MessageModal.svg"
-                    alt=""
-                    className=""
-                  />
-                  <span className="text-[#D72638] text-[20px] font-[500] ">
-                    Escalate Ticket
-                  </span>
-                </div>
+                  <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+                    <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
+                      <div className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer onClick ">
+                        <img
+                          src="/assets/icons/MessageModal.svg"
+                          alt=""
+                          className=""
+                        />
+                        <span
+                          className="text-[#D72638] text-[20px] font-[500] "
+                          onClick={() =>
+                            router.push(
+                              `/Dashboard/support/ticket/${ticketDetails.id}/escalate`
+                            )
+                          }
+                        >
+                          Escalate Ticket
+                        </span>
+                      </div>
 
-                <div className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer ">
-                  <img
-                    src="/assets/icons/ModalDanger.svg"
-                    alt=""
-                    className=""
-                  />
-                  <span className="text-[#fff] text-[20px] font-[500] ">
-                    Claim Ticket
-                  </span>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+                      <div
+                        className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer "
+                        onClick={handleClaimTicket}
+                      >
+                        {" "}
+                        {claiming ? (
+                          <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <>
+                            <img
+                              src="/assets/icons/ModalDanger.svg"
+                              alt=""
+                              className=""
+                            />
+                            <span className="text-[#fff] text-[20px] font-[500] ">
+                              "Claim Ticket"
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </>
 
         <button
           className="absolute top-[16px] right-[16px] text-gray-500 cursor-pointer"
@@ -396,6 +441,87 @@ export const Filter = ({
         dateRange={dateRange}
         setDateRange={setDateRange}
       />
+    </div>
+  );
+};
+
+export const ConfirmResolution = ({
+  selectedTicket,
+  onClose,
+  setShowModal,
+}: {
+  selectedTicket: any;
+  onClose: () => void;
+  setShowModal: (value: boolean) => void;
+}) => {
+  const { resolving, onResolveTicket } = useResolveTicket();
+
+  const handleResolution = () => {
+    if (!selectedTicket?.id) return;
+    onResolveTicket({
+      TicketId: selectedTicket.id,
+      successCallback: () => {
+        onClose();
+        setShowModal(true);
+      },
+    });
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 bg-black/50 flex justify-center items-center transition-opacity duration-300 ${
+        selectedTicket ? "visible opacity-100" : "invisible opacity-0"
+      }`}
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-[20px] shadow-lg border border-[#9B9EA4] space-y-6 transition-transform duration-300 ${
+          selectedTicket ? "scale-100" : "scale-95"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b w-full border-[#BCBEC2]">
+          <h2 className="font-semibold text-[16px] lg:text-[28px] px-4 lg:px-8 py-2 text-[#181818]">
+            Confirm Resolution
+          </h2>
+        </div>
+
+        <div className="px-4 lg:px-8">
+          <p className="font-normal text-[16px] lg:text-[20px]">
+            Are you sure you want to mark this ticket as resolved? This will
+            close the conversation with the customer, and they will be notified
+            that their issue has been resolved.
+          </p>
+        </div>
+
+        <div className="mt-10 border-t border-[#BCBEC2]">
+          <div className="px-4 lg:px-8 py-4 flex space-x-6 items-center justify-end">
+            <button
+              className="p-4 rounded-lg border border-[#023E8A] text-[#023E8A] text-[16px] font-medium"
+              onClick={onClose}
+              disabled={resolving}
+            >
+              Cancel
+            </button>
+
+            <button
+              className={`p-4 rounded-lg text-white text-[16px] font-medium ${
+                resolving
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-[#023E8A] hover:bg-[#012D65]"
+              }`}
+              onClick={handleResolution}
+              disabled={resolving}
+            >
+              {resolving ? (
+                <div className="w-6 h-6 border-4 border-gray-200 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                "Confirm Resolution"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

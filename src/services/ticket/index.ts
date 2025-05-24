@@ -38,6 +38,10 @@ class Service {
     return axios.get(env.api.ticket + TicketId + "/");
   }
 
+  claimTicket({ TicketId }: { TicketId?: string }) {
+    return axios.post(env.api.ticket + TicketId + "/claim/");
+  }
+
   getEscalationLevel() {
     return axios.get(env.api.escalation + "/");
   }
@@ -69,6 +73,10 @@ class Service {
     return axios.post(env.api.ticket + TicketId + "/messages/", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+  }
+
+  resolveTicket(TicketId: string) {
+    return axios.post(`${env.api.ticket}${TicketId}/resolve/`);
   }
 }
 
