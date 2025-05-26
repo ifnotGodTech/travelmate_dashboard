@@ -9,8 +9,6 @@ import {
 import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import Button from "@/components/reuseables/Button";
-import { useGetAllTicket } from "@/hooks/api/ticket";
-import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import { useRouter } from "next/navigation";
 
 export const AllContent: React.FC = () => {

@@ -85,13 +85,13 @@ export const TicketDetailsDialog = ({
   const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
   return (
     <div
-      className={`fixed inset-0 z-50 bg-black/50 ${
+      className={`fixed inset-0 z-100 bg-black/50 ${
         selectedTicket ? "visible opacity-100" : "invisible opacity-0"
-      } flex justify-end items-center transition-opacity duration-300`}
+      } flex justify-end lg:items-center items-end transition-opacity duration-300`}
       onClick={onClose}
     >
       <div
-        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-l-[20px] h-[90vh] ooverflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-t-[20px] lg:rounded-t-[0px] lg:rounded-l-[20px] h-[90vh] overflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
           selectedTicket ? "scale-100" : "scale-95"
         } transition-transform duration-300`}
         onClick={(e) => e.stopPropagation()}
@@ -137,6 +137,39 @@ export const TicketDetailsDialog = ({
               )}
             </div>
           </div>
+
+          {ticketDetails?.claim_history?.length !== 0 && (
+            <>
+              <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+              <div className="px-[16px] lg:px-[32px] space-y-3">
+                <h2 className="text-[18px] font-[500] text-[#18181]">
+                  Claim History
+                </h2>
+                <div className="space-y-4">
+                  {ticketLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="sace-y-2">
+                      {ticketDetails?.claim_history?.map(
+                        (text: any, i: any) => (
+                          <p
+                            className="text-[14px] font-[400] text-[#343537]"
+                            key={i}
+                          >
+                            {`This chat was claimed by ${
+                              text.claimed_admin.first_name || "---"
+                            } ${" "} ${
+                              text.claimed_admin.lastt_name || "---"
+                            } - ${formatCreatedAt(text?.timestamp, 2)}  `}{" "}
+                          </p>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
           <div className="border-[#9B9EA4]  border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">
             <h2 className="text-[18px] font-[500] text-[#18181]">
@@ -147,10 +180,10 @@ export const TicketDetailsDialog = ({
                 <Loading />
               ) : (
                 <>
-                  <DetailRow label="Customer’s Name" value={name} />
+                  <DetailRow label="Subject" value={ticketDetails?.title} />
                   <DetailRow
-                    label="Customer’s Email"
-                    value={ticketDetails?.user.email}
+                    label="Description"
+                    value={ticketDetails?.description}
                   />
                 </>
               )}
@@ -189,13 +222,13 @@ export const ViewingChatModal = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-black/50 ${
+      className={`fixed inset-0 z-10 bg-black/50 ${
         selectedTicket ? "visible opacity-100" : "invisible opacity-0"
       } flex justify-center items-center transition-opacity duration-300`}
       onClick={onClose}
     >
       <div
-        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-[20px] shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+        className={`bg-white w-[90%] max-w-[600px] lg:max-w-[720px] py-3 rounded-[20px] shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
           selectedTicket ? "scale-100" : "scale-95"
         } transition-transform duration-300`}
         onClick={(e) => e.stopPropagation()}
@@ -227,14 +260,14 @@ export const ViewingChatModal = ({
                   </div>
 
                   <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-                    <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[24px] items-center justify-end ">
-                      <div className="p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
+                    <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
+                      <div className=" w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
                         <span className="text-[#023E8A] text-[20px] font-[500] ">
                           View Only
                         </span>
                       </div>
 
-                      <div className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer ">
+                      <div className=" w-full lg:w-auto  p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer ">
                         <span className="text-[#fff] text-[20px] font-[500] ">
                           Yes, Proceed
                         </span>
@@ -346,11 +379,9 @@ export const formatCreatedAt = (isoDate: string, daysToAdd: number): string => {
   }
 };
 
-const Loading = () => {
+export const Loading = () => {
   return (
     <div className="w-full space-y-3 ">
-      <div className="w-full h-8 bg-gray-300 rounded-[8px] animate-pulse"></div>
-      <div className="w-full h-8 bg-gray-300 rounded-[8px] animate-pulse"></div>
       <div className="w-full h-8 bg-gray-300 rounded-[8px] animate-pulse"></div>
     </div>
   );
@@ -361,14 +392,10 @@ export const Filter = ({
   setSearchTerm,
   selectedOption,
   setSelectedOption,
+  filterOption,
+  datePickerOpen,
+  setDatePickerOpen,
 }: any) => {
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    from: undefined,
-    to: undefined,
-  });
-
-  // Format date for display
   const formatDateRange = () => {
     if (dateRange.from && dateRange.to) {
       return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
@@ -378,61 +405,120 @@ export const Filter = ({
     }
     return "dd/mm/yyyy - dd/mm/yyyy";
   };
+  const [dateRange, setDateRange] = useState({
+    from: undefined,
+    to: undefined,
+  });
+  let options;
+
+  if (filterOption === "chat") {
+    options = [
+      { label: "All", value: "" },
+      { label: "Waiting", value: "WAITING" },
+      { label: "Active", value: "ACTIVE" },
+      { label: "Closed", value: "CLOSED" },
+    ];
+  } else if (filterOption === "ticket") {
+    options = [
+      { label: "All", value: "" },
+      { label: "New", value: "new" },
+      { label: "In Progress", value: "in_progress" },
+      { label: "Resolved", value: "resolved" },
+    ];
+  } else if (filterOption === "faq") {
+    options = [
+      { label: "All", value: "" },
+      { label: "General", value: "general" },
+      { label: "Technical", value: "technical" },
+      { label: "Billing", value: "billing" },
+    ];
+  } else {
+    options = [{ label: "All", value: "" }];
+  }
+
   return (
-    <div className="">
-      <div className="flex space-y-[12px] lg:space-y-0 space-x-[47px] justify-between flex-col lg:flex-row  items-center">
+    <div className="w-full px-4 lg:px-0">
+      <div
+        className="
+          flex flex-wrap justify-between items-center gap-4
+          lg:flex-nowrap lg:space-x-12
+        "
+      >
         {/* Search Bar */}
-        <div className="w-full lg:py- py-[10px] px-[12px] lg:px-6 flex items-center border border-[#ACAEB3] rounded-full space-x-2">
+        <div
+          className="
+            flex items-center flex-grow min-w-[220px] max-w-full
+            border border-[#ACAEB3] rounded-full
+            py-2 px-4
+          "
+        >
           <img
             src="/assets/icons/search.svg"
             alt="Search Icon"
-            className="w-4 h-4"
+            className="w-4 h-4 flex-shrink-0"
           />
           <input
             type="text"
-            className="flex-1 text-[16px] placeholder:text-[#9B9EA4] text-[#181818] placeholder:font-light focus:outline-none placeholder:text-[16px] font-[400]"
-            placeholder="Search by Name , Email or Ticket ID"
+            className="
+              flex-grow ml-2 text-[16px] placeholder:text-[#9B9EA4] text-[#181818]
+              placeholder:font-light focus:outline-none placeholder:text-[16px] font-[400]
+              min-w-0
+            "
+            placeholder="Search by Name, Email or Ticket ID"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="flex justify-between items-center space-x-3 w-full ">
-          <FilterDropdown
-            selectedOption={selectedOption}
-            setSelectedOption={setSelectedOption}
-            options={[
-              { label: "All", value: "" },
-              { label: "New", value: "new" },
-              { label: "In Progress", value: "in_progress" },
-              { label: "Resolved", value: "resolved" },
-            ]}
-          />
+        {/* Dropdown & Date Picker */}
+        <div
+          className="
+            flex items-center flex-grow min-w-[220px] max-w-full gap-3
+          "
+        >
+          <div className="flex-grow min-w-[140px] max-w-[250px]">
+            <FilterDropdown
+              selectedOption={selectedOption}
+              setSelectedOption={setSelectedOption}
+              options={options}
+            />
+          </div>
 
-          {/* Date Filter - Now Clickable */}
           <div
-            className="flex items-center lg:py-4 py-[6px] px-[8px] lg:px-[px] bg-white border lg:shadow-none shadow-sm border-[#EBECED] rounded-full space-x-1 cursor-pointer flex-1 "
+            className="
+              flex flex-1 items-center bg-white border border-[#EBECED] rounded-full
+              py-2 px-3 cursor-pointer flex-shrink-0 min-w-[160px]
+              shadow-sm lg:shadow-none
+            "
             onClick={() => setDatePickerOpen(true)}
           >
             <img
               src="/assets/icons/calendar.svg"
               alt="Calendar Icon"
-              className="w-6"
+              className="w-6 flex-shrink-0"
             />
-            <div className="lg:flex items-center">
+            <div className="ml-2 flex flex-col lg:flex-row lg:items-center">
               <span className="text-[14px] font-light text-[#181818]">
                 Filter by Date
               </span>
-              <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:block ">
-                :{" "}
+              <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate max-w-[110px]">
                 {dateRange.from ? formatDateRange() : "dd/mm/yyyy - dd/mm/yyyy"}
               </span>
             </div>
           </div>
         </div>
-        <div className=" text-[#023E8A] text-[14px] font-[400] p-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer ">
+        <button
+          className="
+            text-[#023E8A] text-[14px] font-[400] p-3 border border-[#023E8A]
+            rounded-[8px] cursor-pointer flex-shrink-0
+            whitespace-nowrap
+          "
+          onClick={() => {
+            // add apply logic here
+          }}
+        >
           Apply
-        </div>
+        </button>
       </div>
 
       <DateRangeDialog

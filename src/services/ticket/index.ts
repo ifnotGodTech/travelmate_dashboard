@@ -68,7 +68,7 @@ class Service {
     payload,
   }: {
     TicketId: string;
-    payload: FormData;
+    payload: any;
   }) {
     return axios.post(env.api.ticket + TicketId + "/messages/", payload, {
       headers: { "Content-Type": "multipart/form-data" },

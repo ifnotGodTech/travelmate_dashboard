@@ -148,12 +148,12 @@ const Chat = ({ ticket, loadingTicket }: any) => {
     onSubmit: (values, { resetForm }) => {
       onRespondToTicket({
         TicketId: ticket?.id,
-        payload: { content: values.message },
+        payload: { content: values.message   as any},
         successCallback: () => {
           console.log("Message sent successfully");
 
           // Append the new message to the state
-          setMessages((prevMessages) => [
+          setMessages((prevMessages: any) => [
             ...prevMessages,
             {
               id: Date.now(), // Temporary ID for new message

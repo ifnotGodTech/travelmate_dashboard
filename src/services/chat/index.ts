@@ -16,6 +16,10 @@ class Service {
     return axios.get(endpoint);
   }
 
+  getChat({ id }: { id: string }) {
+    return axios.get(env.api.chat + id + "/");
+  }
+
   getChatMessages({ id }: { id: number }) {
     return axios.get(env.api.chat + "/" + id);
   }

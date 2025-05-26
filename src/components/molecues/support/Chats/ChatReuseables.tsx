@@ -1,0 +1,205 @@
+"use client";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { formatCreatedAt } from "../Reuseables";
+import { Loading } from "../Reuseables";
+
+export const ChatTableDropdown = ({
+  parentWidth,
+  onViewDetails,
+  onViewMessage,
+}: {
+  parentWidth: number;
+  onViewDetails?: () => void;
+  onViewMessage?: () => void;
+}) => {
+  const options = [
+    { label: "Claim Chat", action: onViewDetails },
+    { label: "View Chat Details", action: onViewMessage },
+  ];
+
+  return (
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="text-gray-500 hover:text-gray-700 cursor-pointer flex justify-start">
+            <img src="/assets/icons/tableMenu.svg" alt="Menu" />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="absolute z-10 mt-2 border border-gray-300 rounded-lg bg-white shadow-lg"
+          style={{
+            minWidth: "180px",
+            maxWidth: parentWidth - 16,
+            overflow: "hidden",
+            left: "auto",
+            right: 0,
+          }}
+        >
+          {options.map((option) => (
+            <DropdownMenuItem
+              key={option.label}
+              onClick={option.action}
+              className="px-3 py-2 text-gray-700 hover:bg-gray-100"
+            >
+              {option.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
+
+export const DetailRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="space-y-2">
+    <p className="text-[16px] font-[500] capitalize text-[#343537]">{label}</p>
+    <span className="text-[14px] font-[400] text-[#343537]">{value}</span>
+  </div>
+);
+
+export const ChatDetailsDialog = ({
+  selectedTicket,
+  chatDetails,
+  chatLoading,
+  onClose,
+}: any) => {
+  const name = `${chatDetails?.user_info.first_name || "---"} ${
+    chatDetails?.user_info.last_name || "---"
+  }`;
+
+  return (
+    <div
+      className={`fixed inset-0 z-100 bg-black/50 ${
+        selectedTicket ? "visible opacity-100" : "invisible opacity-0"
+      } flex justify-end lg:items-center items-end transition-opacity duration-300`}
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-t-[20px] lg:rounded-t-[0px] lg:rounded-l-[20px] max-h-[90vh] ooverflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+          selectedTicket ? "scale-100" : "scale-95"
+        } transition-transform duration-300`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b-[1px] w-full border-[#BCBEC2]">
+          <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+            Chat Details
+          </h2>
+        </div>
+        <div className="space-y-6">
+          <div className="px-[16px] lg:px-[32px] space-y-6">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Chat Information
+            </h2>
+            {chatLoading ? (
+              <Loading />
+            ) : (
+              <div className="grid grid-cols-3 gap-6">
+                <DetailRow
+                  label="chat ID"
+                  value={"Chat--00" + chatDetails?.id}
+                />
+                <DetailRow label="Status" value={chatDetails?.status} />
+                <DetailRow
+                  label="Created at"
+                  value={formatCreatedAt(chatDetails?.created_at, 2)}
+                />
+                {chatDetails?.closed_at !== null && (
+                  <>
+                    <DetailRow
+                      label="Closed at"
+                      value={formatCreatedAt(chatDetails?.closed_at, 2)}
+                    />
+                    <DetailRow
+                      label="Closure Type"
+                      value={formatCreatedAt(chatDetails?.closed_at, 2)}
+                    />
+                  </>
+                )}{" "}
+              </div>
+            )}
+          </div>
+
+          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="px-[16px] lg:px-[32px] space-y-3">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Customer Information
+            </h2>
+            <div className="space-y-4">
+              {chatLoading ? (
+                <Loading />
+              ) : (
+                <>
+                  <DetailRow label="Customer’s Name" value={name} />
+                  <DetailRow
+                    label="Customer’s Email"
+                    value={chatDetails?.user_info.email}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {chatDetails?.claim_history?.length !== 0 && (
+            <>
+              <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+              <div className="px-[16px] lg:px-[32px] space-y-3">
+                <h2 className="text-[18px] font-[500] text-[#18181]">
+                  Claim History
+                </h2>
+                <div className="space-y-4">
+                  {chatLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="sace-y-2">
+                      {chatDetails?.claim_history?.map((text: any) => (
+                        <p className="text-[14px] font-[400] text-[#343537]">{`This chat was claimed by ${
+                          text.claimed_admin_info.first_name || "---"
+                        } ${" "} ${text.claimed_admin_info.last_name || "---"} - ${formatCreatedAt(text?.timestamp, 2)}  `} </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="px-[16px] lg:px-[32px] space-y-3">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Issue Description
+            </h2>
+            <div className="space-y-4">
+              {chatLoading ? (
+                <Loading />
+              ) : (
+                <>
+                  <DetailRow
+                    label="Customer’s Email"
+                    value={chatDetails?.title}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          className="absolute top-[16px] right-[16px] text-gray-500 cursor-pointer"
+          onClick={onClose}
+        >
+          <img src="/assets/icons/modalClose.svg" alt="" className="w-[20px]" />
+        </button>
+      </div>
+    </div>
+  );
+};

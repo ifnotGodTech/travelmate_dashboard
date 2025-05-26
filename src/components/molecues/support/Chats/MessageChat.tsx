@@ -8,36 +8,35 @@ import {
 } from "@/components/ui/table";
 import { useState, useEffect } from "react";
 import { formatDistanceToNow, parseISO, format, addDays } from "date-fns";
-import {
-  TableDropdown,
-  TicketDetailsDialog,
-  ViewingChatModal,
-} from "./Reuseables";
-import { useGetAllTickets, useGetTicket } from "@/hooks/api/ticket";
+import { useGetAllChat, useGetChat } from "@/hooks/api/chat";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChatDetailsDialog, ChatTableDropdown } from "./ChatReuseables";
 
-export const TicketTabContent: React.FC<any> = ({
+export const MessageTabContent: React.FC<any> = ({
   selectedOption,
   searchTerm,
 }) => {
   const router = useRouter();
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  // Keep ticketId as string or null
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  // Initialize statusFilter with selectedOption or 'all' fallback
   const [statusFilter, setStatusFilter] = useState<string>(
-    selectedOption === "all" || !selectedOption ? "all" : selectedOption
+    selectedOption || ""
   );
 
-  const { tickets, loadNext, loading, error, nextPageUrl, setFilters } =
-    useGetAllTickets();
+  const {
+    chats,
+    loadNext,
+    loading,
+    error: chatError,
+    nextPageUrl,
+    setFilters,
+  } = useGetAllChat();
 
-  const { ticket: ticketDetails, loadingTicket } = useGetTicket({
-    TicketId: ticketId as string,
-    initalFetch: !!ticketId,
+  const { chat: chatDetails, loadingChat } = useGetChat({
+    ChatId: ticketId as string,
+    initialFetch: !!ticketId,
     successCallback: (message) => {
       console.log(message);
     },
@@ -46,14 +45,11 @@ export const TicketTabContent: React.FC<any> = ({
     },
   });
 
-  // Sync statusFilter and filters with selectedOption and searchTerm props
   useEffect(() => {
     const filters: any = {};
     if (selectedOption) {
       filters.status = selectedOption === "all" ? "" : selectedOption;
-      setStatusFilter(selectedOption === "all" ? "all" : selectedOption);
-    } else {
-      setStatusFilter("all");
+      setStatusFilter(selectedOption === "all" ? "" : selectedOption);
     }
     if (searchTerm) {
       filters.search = searchTerm;
@@ -61,16 +57,9 @@ export const TicketTabContent: React.FC<any> = ({
     setFilters(filters);
   }, [selectedOption, searchTerm, setFilters]);
 
-  // Handle tab change triggered by user
-  const handleTabChange = (value: string) => {
-    setStatusFilter(value);
-    setFilters({ status: value === "all" ? "" : value });
-  };
-
-  // Handlers for Ticket Details Dialog
-  const handleViewDetails = (ticket: any) => {
-    setSelectedTicket(ticket);
-    setTicketId(ticket.id);
+  const handleViewDetails = (chat: any) => {
+    setSelectedTicket(chat);
+    setTicketId(chat.id);
     setIsDetailsDialogOpen(true);
   };
 
@@ -80,17 +69,9 @@ export const TicketTabContent: React.FC<any> = ({
     setTicketId(null);
   };
 
-  // Handlers for Viewing Chat Modal
-  const handleViewMessage = (ticket: any) => {
-    setSelectedTicket(ticket);
-    setTicketId(ticket.id);
-    setIsChatModalOpen(true);
-  };
-
-  const handleChatModalClose = () => {
-    setIsChatModalOpen(false);
-    setSelectedTicket(null);
-    setTicketId(null);
+  const handleTabChange = (value: string) => {
+    setStatusFilter(value === "all" ? "" : value);
+    setFilters({ status: value === "all" ? "" : value });
   };
 
   const styling =
@@ -101,12 +82,12 @@ export const TicketTabContent: React.FC<any> = ({
       <div className="space-y-[32px]">
         <div className="flex justify-between items-center mb-4 px-[16px]">
           <h2 className="lg:text-[20px] text-[14px] text-[#181818] font-[500] lg:font-[600]">
-            Tickets
+            Chats
           </h2>
         </div>
 
         <Tabs
-          value={statusFilter}
+          defaultValue="all"
           className="space-y-[40px]"
           onValueChange={handleTabChange}
         >
@@ -114,14 +95,14 @@ export const TicketTabContent: React.FC<any> = ({
             <TabsTrigger value="all" className={styling}>
               All
             </TabsTrigger>
-            <TabsTrigger value="new" className={styling}>
-              New
+            <TabsTrigger value="WAITING" className={styling}>
+              Waiting
             </TabsTrigger>
-            <TabsTrigger value="in_progress" className={styling}>
-              In Progress
+            <TabsTrigger value="ACTIVE" className={styling}>
+              Active
             </TabsTrigger>
-            <TabsTrigger value="resolved" className={styling}>
-              Resolved
+            <TabsTrigger value="CLOSED" className={styling}>
+              Closed
             </TabsTrigger>
           </TabsList>
 
@@ -129,13 +110,12 @@ export const TicketTabContent: React.FC<any> = ({
             <Skeleton />
           ) : (
             <div className="lg:px-[24px] px-[4px]">
-              {/* Wrap table in scrollable container */}
               <div className="overflow-x-auto">
                 <Table className="border-none border-collapse min-w-[600px]">
                   <TableHeader>
                     <TableRow className="items-center border-none hover:bg-none">
                       <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
-                        Subject
+                        Message Preview
                       </TableCell>
                       <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
                         Customer
@@ -152,24 +132,19 @@ export const TicketTabContent: React.FC<any> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tickets.map((ticket, index) => (
+                    {chats.map((chat, index) => (
                       <TableRow
-                        key={`${ticket.id}-${index}`}
+                        key={`${chat.id}-${index}`}
                         className="items-center cursor-pointer border-none"
                       >
                         <TableCell className="border-none min-w-[200px] whitespace-nowrap">
                           <div className="flex items-center space-x-4">
-                            <img
-                              src="/assets/icons/flight_cancellation.svg"
-                              alt="icon"
-                              className="w-[30px] lg:w-[40px]"
-                            />
                             <div className="space-y-[8px]">
                               <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
-                                {ticket.title}
+                                {chat.title}
                               </h2>
                               <p className="text-[#9B9EA4] text-[12px]">
-                                {ticket.ticket_id} • {ticket.category}
+                                {"Chat--00" + chat.id}
                               </p>
                             </div>
                           </div>
@@ -177,11 +152,11 @@ export const TicketTabContent: React.FC<any> = ({
                         <TableCell className="border-none min-w-[180px] whitespace-nowrap">
                           <div className="space-y-2">
                             <p className="text-[#181818] text-[14px] font-[500] capitalize">
-                              {ticket.user.first_name || "---"}{" "}
-                              {ticket.user.last_name || "---"}
+                              {chat.user_info.first_name || "---"}{" "}
+                              {chat.user_info.last_name || "---"}
                             </p>
                             <p className="text-[#9B9EA4] text-[12px]">
-                              {ticket.user.email || "---"}
+                              {chat.user_info.email || "---"}
                             </p>
                           </div>
                         </TableCell>
@@ -189,35 +164,31 @@ export const TicketTabContent: React.FC<any> = ({
                           <div className="space-y-2">
                             <p className="text-[#181818] text-[14px] font-[500]">
                               {format(
-                                addDays(new Date(ticket.created_at), 2),
+                                addDays(new Date(chat.created_at), 2),
                                 "dd/MM/yyyy"
                               )}
                             </p>
                             <p className="text-[#9B9EA4] text-[12px]">
-                              <span>{getRelativeTime(ticket.created_at)}</span>
+                              <span>{getRelativeTime(chat.created_at)}</span>
                             </p>
                           </div>
                         </TableCell>
                         <TableCell className="border-none whitespace-nowrap">
                           <span
                             className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                              ticket.status === "new"
-                                ? "bg-[#CCD8E8] text-[#181818]"
-                                : ticket.status === "in_progress"
-                                ? "bg-[#EFB60880]/50  text-[#181818]"
-                                : ticket.status === "resolved"
-                                ? "bg-[#2D9C5E80]/50  text-[#181818]"
-                                : "bg-gray-100 text-gray-600" // fallback for other/unknown statuses
+                              chat.priority === "pending"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-orange-100 text-orange-600"
                             }`}
                           >
-                            {ticket.status.replace("_", " ").toUpperCase()}
+                            {chat.status}
                           </span>
                         </TableCell>
                         <TableCell className="border-none whitespace-nowrap">
-                          <TableDropdown
+                          <ChatTableDropdown
                             parentWidth={180}
-                            onViewDetails={() => handleViewDetails(ticket)}
-                            onViewMessage={() => handleViewMessage(ticket)}
+                            onViewDetails={() => {}}
+                            onViewMessage={() => handleViewDetails(chat)}
                           />
                         </TableCell>
                       </TableRow>
@@ -225,8 +196,6 @@ export const TicketTabContent: React.FC<any> = ({
                   </TableBody>
                 </Table>
               </div>
-
-              {/* Loading Spinner at the Bottom */}
             </div>
           )}
 
@@ -243,17 +212,11 @@ export const TicketTabContent: React.FC<any> = ({
         </Tabs>
       </div>
 
-      <TicketDetailsDialog
+      <ChatDetailsDialog
         selectedTicket={isDetailsDialogOpen ? selectedTicket : null}
-        ticketDetails={ticketDetails}
-        ticketLoading={loadingTicket}
+        chatDetails={chatDetails}
+        chatLoading={loadingChat}
         onClose={handleDetailsDialogClose}
-      />
-      <ViewingChatModal
-        selectedTicket={isChatModalOpen ? selectedTicket : null}
-        ticketDetails={ticketDetails}
-        ticketLoading={loadingTicket}
-        onClose={handleChatModalClose}
       />
     </>
   );

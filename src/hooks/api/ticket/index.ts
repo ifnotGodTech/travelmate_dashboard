@@ -161,6 +161,35 @@ export function useGetTicket({
   return { loadingTicket, ticket };
 }
 
+export function useGetAllEscalationLevel({
+  initalFetch = true,
+  refresh = false,
+}: {
+  initalFetch?: boolean;
+  refresh?: boolean;
+}) {
+  const [Levelloading, setLoading] = useState(false);
+  const [Leveldata, setData] = useState<any | null>(null);
+
+  const onEscalationLevel = async () => {
+    setLoading(true);
+    try {
+      const res = await TicketService.getEscalationLevel();
+      setData(res.data);
+    } catch (error) {
+      console.error("Error fetching escalation levels:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initalFetch || refresh) onEscalationLevel();
+  }, [initalFetch, refresh]);
+
+  return { Levelloading, Leveldata };
+}
+
 export function useGetAllEscalationReasons({
   initalFetch = true,
   refresh = false,
@@ -451,4 +480,89 @@ export const useResolveTicket = () => {
   };
 
   return { resolving, onResolveTicket, isSuccess };
+};
+
+export const useGetAllEscalatedTickets = () => {
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/admin/tickets/escalated/";
+
+  const [tickets, setTickets] = useState<any>([]);
+  // const [nextPageUrl, setNextPageUrl] = useState<string | null>(null); // Pagination disabled
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFiltersState] = useState<Record<string, any>>({});
+  const hasFetchedInitial = useRef(false);
+  const isFetching = useRef(false); // Prevent redundant fetches
+
+  // Build URL with filters
+  const buildUrl = useCallback(() => {
+    const params = new URLSearchParams(filters);
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  }, [filters]);
+
+  // Fetch tickets function (memoized)
+  const fetchTickets = useCallback(
+    async (url?: string) => {
+      if (isFetching.current) return; // Prevent redundant fetching
+      isFetching.current = true;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const endpoint = url || buildUrl();
+        const response = await axios.get(endpoint);
+
+        const data: Ticket[] = response.data; // Adjusted to match direct array structure
+
+        setTickets(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred."
+        );
+      } finally {
+        setLoading(false);
+        isFetching.current = false;
+      }
+    },
+    [buildUrl]
+  );
+
+  // Set filters with deep comparison to prevent redundant updates
+  const setFilters = (newFilters: Record<string, any>) => {
+    setFiltersState((prevFilters) => {
+      const prevString = JSON.stringify(prevFilters);
+      const newString = JSON.stringify(newFilters);
+      return prevString === newString ? prevFilters : newFilters;
+    });
+  };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    if (!hasFetchedInitial.current) {
+      fetchTickets();
+      hasFetchedInitial.current = true;
+    }
+  }, [fetchTickets]);
+
+  // Fetch tickets when filters change
+  useEffect(() => {
+    if (hasFetchedInitial.current) {
+      fetchTickets();
+    }
+  }, [filters, fetchTickets]);
+
+  // Load next page (Disabled)
+  // const loadNext = useCallback(() => {
+  //   if (nextPageUrl) fetchTickets(nextPageUrl);
+  // }, [nextPageUrl, fetchTickets]);
+
+  return {
+    tickets,
+    // loadNext, // Pagination disabled
+    loading,
+    error,
+    // nextPageUrl, // Pagination disabled
+    setFilters,
+  };
 };

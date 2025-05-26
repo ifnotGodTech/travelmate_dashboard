@@ -1,5 +1,6 @@
-"use client"
-import { Filter } from "@/components/molecues/support/AllEscalatedTicket";
+"use client";
+import { Filter } from "@/components/molecues/support/AllEscalatedTicketCmonents";
+import { EscaleteTable } from "@/components/molecues/support/EscalatedTable";
 import React from "react";
 
 type Props = {};
@@ -11,6 +12,7 @@ const page = (props: Props) => {
         <img src="/assets/icons/arrow-back.svg" alt="" className="" />
       </div>
       <Filter />
+      <EscaleteTable />
     </div>
   );
 };
