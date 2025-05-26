@@ -89,7 +89,7 @@ export const ChatDetailsDialog = ({
       onClick={onClose}
     >
       <div
-        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-t-[20px] lg:rounded-t-[0px] lg:rounded-l-[20px] max-h-[90vh] ooverflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-t-[20px] lg:rounded-t-[0px] lg:rounded-l-[20px] h-[90vh] overflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6  ${
           selectedTicket ? "scale-100" : "scale-95"
         } transition-transform duration-300`}
         onClick={(e) => e.stopPropagation()}
