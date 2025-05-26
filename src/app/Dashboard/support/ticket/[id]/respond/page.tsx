@@ -38,43 +38,27 @@ const page = () => {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-[72px]"> {/* Add padding to account for sticky buttons */}
         <div className="flex justify-between items-center">
           <img
             src="/assets/icons/arrow-back.svg"
             alt="Back"
             className="cursor-pointer"
-            onClick={() => router.back()}
+            onClick={router.back}
           />
-          <div className="flex space-x-6">
-            <button
-              className="rounded-[8px] border border-[#D72638] text-[#D72638] font-medium p-4"
-              onClick={() =>
-                router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
-              }
-            >
-              Escalate Ticket
-            </button>
-            <button
-              className="rounded-[8px] bg-[#023E8A] text-white font-medium p-4"
-              onClick={() => setShowConfirmModal(true)}
-            >
-              Mark as Resolved
-            </button>
-          </div>
         </div>
 
         {loadingTicket ? (
           <DetailsLoader />
         ) : (
-          <div className="space-y-4">
-            <p className="font-medium text-[16px] text-[#181818]">
+          <div className="space-y-2">
+            <p className="font-medium text-[12px] g:text-[16px] text-[#181818]">
               {formatDate(ticket?.created_at)}
             </p>
-            <h2 className="text-[22px] font-semibold text-[#181818]">
+            <h2 className="lgtext-[22px] text-[18px] font-semibold text-[#181818]">
               {ticket?.title}
             </h2>
-            <div className="flex space-x-3 items-center">
+            <div className="flex space-x-3 items-center flex-wrap">
               <p className="text-[16px] font-semibold text-[#4E4F52]">
                 Customer:{" "}
                 <span className="font-medium">
@@ -98,6 +82,23 @@ const page = () => {
         <Chat ticket={ticket} loadingTicket={loadingTicket} />
       </div>
 
+      <div className="sticky bottom-0 bg-white p-4 flex justify-between space-x-4 shadow-lg">
+        <button
+          className="flex-1 rounded-[8px] border border-[#D72638] text-[#D72638] font-medium py-2"
+          onClick={() =>
+            router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
+          }
+        >
+          Escalate Ticket
+        </button>
+        <button
+          className="flex-1 rounded-[8px] bg-[#023E8A] text-white font-medium py-2"
+          onClick={() => setShowConfirmModal(true)}
+        >
+          Mark as Resolved
+        </button>
+      </div>
+
       {showSuccessModal && (
         <SuccessModal
           title="Ticket Resolved Successfully"
@@ -116,6 +117,7 @@ const page = () => {
     </>
   );
 };
+
 
 const Chat = ({ ticket, loadingTicket }: any) => {
   const { responding, onRespondToTicket } = useRespondToTicket();
