@@ -1,9 +1,14 @@
 "use client";
 import React from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { useRouter } from "next/navigation";
 import { useGetChat } from "@/hooks/api/chat";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
+import { useWebSocketService } from "@/hooks/api/chat";
+import ChatService from "@/services/chat";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -34,6 +39,24 @@ const page = (props: Props) => {
     },
   });
   const router = useRouter();
+  const [closing, setClosing] = useState(false);
+
+  // Close chat handler
+  const handleCloseChat = async () => {
+    if (!chat?.id) return;
+    setClosing(true);
+    try {
+      await ChatService.closeChat({ id: chat.id });
+      // Optionally, show a toast or notification
+      router.push("/Dashboard/support/chats"); // Redirect after closing
+    } catch (error) {
+      // Optionally, show error toast
+      console.error(error);
+    } finally {
+      setClosing(false);
+    }
+  };
+
   return (
     <div className="space-y-[24px]">
       <div className="flex justify-between items-center">
@@ -45,10 +68,15 @@ const page = (props: Props) => {
         />
         <div className="flex space-x-6">
           <button
-            className="rounded-[8px] bg-[#023E8A] text-white font-medium p-4"
-            // onClick={() => setShowConfirmModal(true)}
+            className={`rounded-[8px] font-medium p-4 cursor-pointer ${
+              chat?.status === "CLOSED"
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-[#023E8A] text-white"
+            }`}
+            onClick={handleCloseChat}
+            disabled={closing || chat?.status === "CLOSED"}
           >
-            Close chat
+            {closing ? "Closing..." : "Close chat"}
           </button>
         </div>
       </div>
@@ -61,19 +89,19 @@ const page = (props: Props) => {
             {formatDate(chat?.created_at)}
           </p>
           <div className="flex space-x-3 items-center">
-            <p className="text-[16px] font-semibold text-[#4E4F52]">
+            <p className="lg:text-[16px] text-[12px]  font-semibold text-[#4E4F52]">
               Customer:{" "}
               <span className="font-medium">
                 {chat?.user_info.first_name} {chat?.user_info.last_name}
               </span>
             </p>
             <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
-            <p className="text-[16px] font-semibold text-[#4E4F52]">
+            <p className="lg:text-[16px] text-[12px]  font-semibold text-[#4E4F52]">
               Chat ID:{" "}
-              <span className="font-medium">{"Chat--00" + chat?.id}</span>
+              <span className="font-medium">{"Chat--" + chat?.id}</span>
             </p>
             <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
-            <p className="text-[16px] font-semibold text-[#4E4F52] capitalize">
+            <p className="lg:text-[16px] text-[12px] font-semibold text-[#4E4F52] capitalize">
               Chat Status:{" "}
               <span className="font-medium capitalize ">{chat?.status}</span>
             </p>
@@ -81,189 +109,173 @@ const page = (props: Props) => {
         </div>
       )}
 
-      {/* <Session chat={chat} loadingChat={loadingChat} /> */}
+      <Session chat={chat} loadingChat={loadingChat} />
     </div>
   );
 };
 
-// const Session = ({ chat, loadingChat }: any) => {
-//   const { responding, onRespondToTicket } = useRespondToTicket();
+const Session = ({ chat, loadingChat }: any) => {
+  const { messages: liveMessages, send } = useWebSocketService(chat?.id);
+  const [input, setInput] = useState("");
+  const lastMessageRef = useRef<HTMLDivElement | null>(null);
 
-//   // State for managing older and new messages
-//   const [messages, setMessages] = useState(ticket?.messages || []);
+  const name = `${chat?.user?.first_name || "---"} ${
+    chat?.user?.last_name || "---"
+  }`;
 
-//   // Ref for the last message
-//   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const allMessages = useMemo(() => {
+    const history = chat?.messages || [];
+    const live = liveMessages.filter(
+      (live: any) =>
+        live.type !== "session_info" &&
+        !history.some((msg: any) => msg.id === live.id)
+    );
+    return [...history, ...live];
+  }, [chat?.messages, liveMessages]);
 
-//   // Sync messages with ticket prop when ticket changes
-//   useEffect(() => {
-//     setMessages(ticket?.messages || []);
-//   }, [ticket]);
+  const groupedMessages = useMemo(() => {
+    const groups: { date: string; messages: any[] }[] = [];
 
-//   // Scroll to the last message whenever messages change
-//   useEffect(() => {
-//     if (lastMessageRef.current) {
-//       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
-//     }
-//   }, [messages]);
+    allMessages.forEach((message) => {
+      const messageDate = format(new Date(message.created_at), "yyyy-MM-dd");
+      const existingGroup = groups.find((group) => group.date === messageDate);
 
-//   const formik = useFormik({
-//     initialValues: {
-//       message: "",
-//     },
-//     validationSchema: Yup.object({
-//       message: Yup.string().required("Message is required"),
-//     }),
-//     onSubmit: (values, { resetForm }) => {
-//       onRespondToTicket({
-//         TicketId: ticket?.id,
-//         payload: { content: values.message as any },
-//         successCallback: () => {
-//           console.log("Message sent successfully");
+      if (existingGroup) {
+        existingGroup.messages.push(message);
+      } else {
+        groups.push({ date: messageDate, messages: [message] });
+      }
+    });
 
-//           // Append the new message to the state
-//           setMessages((prevMessages: any) => [
-//             ...prevMessages,
-//             {
-//               id: Date.now(), // Temporary ID for new message
-//               sender: { id: "currentUserId" }, // Replace with actual user ID
-//               content: values.message,
-//               attachment: null,
-//               timestamp: new Date().toISOString(),
-//             },
-//           ]);
+    return groups;
+  }, [allMessages]);
 
-//           resetForm(); // Clear the input field
-//         },
-//         errorCallback: (error: any) => {
-//           console.error("Error sending message", error);
-//         },
-//       });
-//     },
-//   });
+  const handleSend = () => {
+    if (input.trim()) {
+      const payload = {
+        messageId: Date.now(),
+        message: input,
+        chatId: chat?.id,
+      };
 
-//   return (
-//     <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px] flex flex-col">
-//       <div className="flex justify-center items-center space-x-4">
-//         <div className="w-[220px] h-[1px] bg-[#181818]"></div>
-//         <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818]">
-//           {ticket?.claimed_admin ? (
-//             <>
-//               Responding:{" "}
-//               {ticket.claimed_admin.first_name || ticket.claimed_admin.email} -{" "}
-//               {ticket.claim_timestamp
-//                 ? format(
-//                     new Date(ticket.claim_timestamp),
-//                     "dd/MM/yyyy | hh:mm a"
-//                   )
-//                 : "Unknown Time"}
-//             </>
-//           ) : (
-//             "No admin claimed"
-//           )}
-//         </div>
-//         <div className="w-[220px] h-[1px] bg-[#181818]"></div>
-//       </div>
-//       {loadingTicket ? (
-//         <MessageLoading />
-//       ) : (
-//         <div className="flex-1 overflow-auto p-4 space-y-2">
-//           {messages.map((mes: any, index: number) => {
-//             const isUser = ticket?.user.id === mes.sender.id;
-//             return (
-//               <div
-//                 key={mes.id}
-//                 className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-//                 ref={index === messages.length - 1 ? lastMessageRef : null}
-//               >
-//                 <div className="space-y-1 max-w-[80%]">
-//                   {/* Message Content */}
-//                   {mes.content && (
-//                     <div
-//                       className={`py-3 px-4 text-[16px] font-medium rounded-xl shadow-md ${
-//                         isUser
-//                           ? "bg-[#f0f0f0] text-[#181818] text-end "
-//                           : "bg-[#023E8A] text-white"
-//                       }`}
-//                     >
-//                       {mes.content}
-//                     </div>
-//                   )}
+      send(payload);
+      setInput("");
+    }
+  };
 
-//                   {/* Attachment */}
-//                   {mes.attachment && (
-//                     <div
-//                       className={`mt-2 ${isUser ? "text-right" : "text-left"}`}
-//                     >
-//                       <img
-//                         src={mes.attachment}
-//                         alt="Attachment"
-//                         className="w-[250px] h-auto rounded-lg shadow-lg"
-//                       />
-//                     </div>
-//                   )}
+  useEffect(() => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [allMessages]);
 
-//                   <span
-//                     className={`block text-sm font-light text-[#67696D] ${
-//                       isUser ? "text-right" : "text-left"
-//                     }`}
-//                   >
-//                     {format(new Date(mes.timestamp), "p")}
-//                   </span>
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       )}
+  return (
+    <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
+      <div className="flex justify-center items-center space-x-4 p-4">
+        <div className="w-48 h-0.5 bg-black"></div>
+        <div className="rounded-full border border-black py-2 px-4 text-black">
+          {chat?.claimed_admin ? (
+            <>
+              Responding:{" "}
+              {chat.claimed_admin.first_name || chat.claimed_admin.email}
+            </>
+          ) : (
+            "No admin claimed"
+          )}
+        </div>
+        <div className="w-48 h-0.5 bg-black"></div>
+      </div>
 
-//       <form
-//         onSubmit={formik.handleSubmit}
-//         className="sticky bottom-0 rounded-b-[24px] bg-[#fff]"
-//       >
-//         {ticket?.status == "resolved" ? (
-//           <div className="">
-//             <p className="text-center p-4  text-[14px] lg:text-[24px] font-[500] text-[#181818] ">
-//               This Ticket has been marked as resolved
-//             </p>
-//           </div>
-//         ) : (
-//           <div className="p-4 flex items-center gap-4 w-full">
-//             {loadingTicket ? (
-//               <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px] "></div>
-//             ) : (
-//               <>
-//                 <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
-//                   <img
-//                     src="/assets/icons/emoji.svg"
-//                     alt="Emoji"
-//                     className="cursor-pointer"
-//                   />
-//                   <input
-//                     type="text"
-//                     name="message"
-//                     placeholder="Type a message..."
-//                     className="flex-1 outline-none bg-transparent"
-//                     value={formik.values.message}
-//                     onChange={formik.handleChange}
-//                   />
-//                 </div>
-//                 <button
-//                   type="submit"
-//                   className="p-3 bg-[#023E8A] flex space-x-2 items-center text-white rounded-lg cursor-pointer"
-//                 >
-//                   <img src="/assets/icons/white-send.svg" alt="Send" />
-//                   <span className="text-[#fff] font-[500] text-[20px]">
-//                     Send
-//                   </span>
-//                 </button>
-//               </>
-//             )}
-//           </div>
-//         )}
-//       </form>
-//     </div>
-//   );
-// };
+      {loadingChat ? (
+        <div className="text-center text-gray-500">Loading messages...</div>
+      ) : (
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {groupedMessages.map((group, groupIndex) => (
+            <div key={groupIndex}>
+              {/* Date Separator */}
+              <div className="text-center text-sm text-gray-600 font-medium">
+                {format(new Date(group.date), "EEEE, do MMMM yyyy")}
+              </div>
+              {/* Messages */}
+              {group.messages.map((mes: any, index: any) => {
+                const isUser = chat?.user_info?.id === mes.sender_info?.id;
+                return (
+                  <div
+                    key={index}
+                    className={`flex ${
+                      isUser ? "justify-end" : "justify-start"
+                    }`}
+                    ref={
+                      groupIndex === groupedMessages.length - 1 &&
+                      index === group.messages.length - 1
+                        ? lastMessageRef
+                        : null
+                    }
+                  >
+                    <div className="space-y-1 max-w-[80%]">
+                      <div
+                        className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
+                          isUser
+                            ? "bg-gray-200 text-black"
+                            : "bg-[#023E8A] text-white"
+                        }`}
+                      >
+                        {mes.content || mes.message}
+                      </div>
+                      <span
+                        className={`block text-xs text-gray-500 ${
+                          isUser ? "text-right" : "text-left"
+                        }`}
+                      >
+                        {format(new Date(mes.created_at), "h:mm a")}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="p-4 border-t flex items-center gap-4">
+        {chat?.status === "resolved" ? (
+          <p className="text-center w-full text-gray-500">
+            This chat has been marked as resolved
+          </p>
+        ) : (
+          <>
+            <div className="bg-gray-200 flex-1 p-3 border rounded-lg flex items-center space-x-4">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 outline-none bg-transparent"
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && chat?.status !== "resolved") {
+                    handleSend();
+                  }
+                }}
+                disabled={chat?.status === "CLOSED"}
+              />
+            </div>
+            <button
+              onClick={handleSend}
+              className={`p-3 rounded-lg ${
+                chat?.status === "CLOSED"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-[#023E8A] text-white"
+              }`}
+              disabled={chat?.status === "resolved"}
+            >
+              Send
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default page;

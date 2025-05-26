@@ -38,7 +38,9 @@ const page = () => {
 
   return (
     <>
-      <div className="space-y-6 pb-[72px]"> {/* Add padding to account for sticky buttons */}
+      <div className="space-y-6 pb-[72px] min-h-[100vh] ">
+        {" "}
+        {/* Add padding to account for sticky buttons */}
         <div className="flex justify-between items-center">
           <img
             src="/assets/icons/arrow-back.svg"
@@ -46,14 +48,41 @@ const page = () => {
             className="cursor-pointer"
             onClick={router.back}
           />
-        </div>
 
+          {ticket?.status !== "resolved" && (
+            <div className="hidden lg:flex  space-x-4">
+              {ticket?.escalated !== true && (
+                <button
+                  className="p-4 rounded-[8px] border-[1px] border-[#D72638] text-[20px] font-[500] text-[#D72638] cursor-pointer "
+                  onClick={() =>
+                    router.push(
+                      `/Dashboard/support/ticket/${ticket?.id}/escalate`
+                    )
+                  }
+                >
+                  Escalate Ticket
+                </button>
+              )}
+              <button
+                className="p-4 rounded-[8px] border-[1px] bg-[#023E8A] text-[20px] font-[500] text-[#fff] cursor-pointer "
+                onClick={() => setShowConfirmModal(true)}
+              >
+                Mark as Resolved
+              </button>
+            </div>
+          )}
+        </div>
         {loadingTicket ? (
           <DetailsLoader />
         ) : (
           <div className="space-y-2">
-            <p className="font-medium text-[12px] g:text-[16px] text-[#181818]">
-              {formatDate(ticket?.created_at)}
+            <p className="font-medium text-[12px] lg:text-[16px] text-[#181818]">
+              {formatDate(ticket?.created_at)}{" "}
+              {ticket?.escalated == true && (
+                <span className="text-red-700">
+                  | This is an escalated ticket{" "}
+                </span>
+              )}
             </p>
             <h2 className="lgtext-[22px] text-[18px] font-semibold text-[#181818]">
               {ticket?.title}
@@ -78,26 +107,28 @@ const page = () => {
             </div>
           </div>
         )}
-
         <Chat ticket={ticket} loadingTicket={loadingTicket} />
       </div>
-
-      <div className="sticky bottom-0 bg-white p-4 flex justify-between space-x-4 shadow-lg">
-        <button
-          className="flex-1 rounded-[8px] border border-[#D72638] text-[#D72638] font-medium py-2"
-          onClick={() =>
-            router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
-          }
-        >
-          Escalate Ticket
-        </button>
-        <button
-          className="flex-1 rounded-[8px] bg-[#023E8A] text-white font-medium py-2"
-          onClick={() => setShowConfirmModal(true)}
-        >
-          Mark as Resolved
-        </button>
-      </div>
+      {ticket?.status !== "resolved" && (
+        <div className="  sticky lg:hidden bottom-0 bg-white p-4 flex justify-between items-end space-x-4 shadow-lg">
+          {ticket?.escalated !== true && (
+            <button
+              className="flex-1 rounded-[8px] border border-[#D72638] text-[#D72638] font-medium py-2"
+              onClick={() =>
+                router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
+              }
+            >
+              Escalate Ticket
+            </button>
+          )}
+          <button
+            className="flex-1 rounded-[8px] bg-[#023E8A] text-white font-medium py-2"
+            onClick={() => setShowConfirmModal(true)}
+          >
+            Mark as Resolved
+          </button>
+        </div>
+      )}
 
       {showSuccessModal && (
         <SuccessModal
@@ -117,7 +148,6 @@ const page = () => {
     </>
   );
 };
-
 
 const Chat = ({ ticket, loadingTicket }: any) => {
   const { responding, onRespondToTicket } = useRespondToTicket();
@@ -150,7 +180,7 @@ const Chat = ({ ticket, loadingTicket }: any) => {
     onSubmit: (values, { resetForm }) => {
       onRespondToTicket({
         TicketId: ticket?.id,
-        payload: { content: values.message   as any},
+        payload: { content: values.message as any },
         successCallback: () => {
           console.log("Message sent successfully");
 
@@ -178,12 +208,11 @@ const Chat = ({ ticket, loadingTicket }: any) => {
   return (
     <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px] flex flex-col">
       <div className="flex justify-center items-center space-x-4">
-        <div className="w-[220px] h-[1px] bg-[#181818]"></div>
-        <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818]">
+        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818] text-[12px] lg:text-[16px] ">
           {ticket?.claimed_admin ? (
             <>
-              Responding:{" "}
-              {ticket.claimed_admin.first_name || ticket.claimed_admin.email} -{" "}
+              Responding: {ticket.claimed_admin.first_name || "---"} -{" "}
               {ticket.claim_timestamp
                 ? format(
                     new Date(ticket.claim_timestamp),
@@ -195,7 +224,7 @@ const Chat = ({ ticket, loadingTicket }: any) => {
             "No admin claimed"
           )}
         </div>
-        <div className="w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className=" w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
       </div>
       {loadingTicket ? (
         <MessageLoading />
@@ -285,7 +314,12 @@ const Chat = ({ ticket, loadingTicket }: any) => {
                   type="submit"
                   className="p-3 bg-[#023E8A] flex space-x-2 items-center text-white rounded-lg cursor-pointer"
                 >
-                  <img src="/assets/icons/white-send.svg" alt="Send" />
+                  {responding ? (
+                    <div className="w-5 h-5 border-4 border-gray-100 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <img src="/assets/icons/white-send.svg" alt="Send" />
+                  )}
+
                   <span className="text-[#fff] font-[500] text-[20px]">
                     Send
                   </span>

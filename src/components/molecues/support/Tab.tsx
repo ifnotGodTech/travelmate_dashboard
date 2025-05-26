@@ -135,7 +135,7 @@ const TicketTable: React.FC = () => {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 flex justify-around py-3 px-4 shadow-lg z-50">
           {activeTab === "chat" ? (
             <button
-              onClick={() => router.push("/Dashboard/support/chat")}
+              onClick={() => router.push("/Dashboard/support/chats")}
               className="bg-[#023E8A] text-white rounded-md px-6 py-2 font-semibold w-full "
             >
               All Chat

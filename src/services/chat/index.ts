@@ -24,9 +24,18 @@ class Service {
     return axios.get(env.api.chat + "/" + id);
   }
 
+  claimChat({ id }: { id: any }) {
+    return axios.post(env.api.chat + id + "/claim/");
+  }
+
+  closeChat({ id }: { id: number }) {
+    return axios.post(env.api.chat  + id + "/close/");
+  }
+
   deleteFaq({ id }: { id: number }) {
     return axios.delete(env.api.faq + "/" + id);
   }
 }
+
 const ChatService = new Service();
 export default ChatService;

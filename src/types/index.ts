@@ -1,16 +1,16 @@
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
 export type TAppState = {
-   accessToken?: string;
-   refreshToken?: string;
-   expiresIn?: string;
-   user?: TUser
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: string;
+  user?: TUser;
 };
 
 export type TAuthContextProps = {
-   children: ReactNode;
+  children: ReactNode;
 };
 
-export type TUser ={
-   
-}
+export type TUser = {
+  user_id: string;
+};

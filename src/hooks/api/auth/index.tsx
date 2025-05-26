@@ -22,9 +22,15 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
     setLoading(true);
     try {
       const res = await Service.login({ payload });
+      const user = {
+        user_id: res.data.user_id,
+        email: res.data.email,
+        name: res.data.name,
+      };
       updateAppState({
         accessToken: res.data.access,
         refreshToken: res.data.refresh,
+        user,
       });
       showSuccessToast({
         message: res.data.message || "🚀 Login success!",

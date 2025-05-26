@@ -22,28 +22,6 @@ const getFromLocalStorage = ({
   }
 };
 
-// type ChatResponse = {
-//   id: number;
-//   user: number;
-//   user_info: {
-//     id: number;
-//     first_name: string;
-//     email: string;
-//   };
-//   title: string;
-//   status: string;
-//   created_at: string;
-//   updated_at: string;
-//   assigned_admin: number;
-//   admin_info: {
-//     id: number;
-//     first_name: string;
-//     email: string;
-//   };
-//   unread_count: string;
-//   last_message: string;
-// };
-
 type Chat = {
   id: string;
   status: string;
@@ -258,6 +236,7 @@ export const useWebSocketService = (sessionId: number) => {
       };
     }
   }, [socketUrl]);
+  // console.log(messages);
 
   const send = (message: any) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -269,3 +248,40 @@ export const useWebSocketService = (sessionId: number) => {
 
   return { messages, send };
 };
+
+export function useClaimChat() {
+  const [claiming, setClaiming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onClaiming = async ({
+    ChatId,
+    successCallback,
+  }: {
+    ChatId: string;
+    successCallback?: () => void;
+  }) => {
+    setClaiming(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await ChatService.claimChat({ id: ChatId });
+      const message = res.data?.detail || "Chat claimed successfully";
+      showSuccessToast({ message });
+
+      if (successCallback) {
+        successCallback();
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to claim at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return { claiming, onClaiming, isSuccess };
+}

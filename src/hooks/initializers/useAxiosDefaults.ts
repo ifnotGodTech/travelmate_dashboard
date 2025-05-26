@@ -65,9 +65,7 @@ function useAxiosDefaults({
 
             return axios(originalRequest);
           } catch (refreshError) {
-            window.location.href = `/auth/sign-in?redirectTo=${encodeURIComponent(
-              location.pathname
-            )}`;
+            window.location.href = `/auth/login`;
             return Promise.reject(refreshError);
           }
         } else {

@@ -8,7 +8,7 @@ import { Filter } from "@/components/molecues/support/Reuseables";
 import { TicketTabContent } from "@/components/molecues/support/Tickets";
 
 const Page = () => {
-  const router = useRouter()
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
   return (
@@ -29,6 +29,7 @@ const Page = () => {
         setSelectedOption={setSelectedOption}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        filterOption={"ticket"}
       />
       <div className="bg-[#FFFFFF] py-[16px] rounded-[8px] shadow-md">
         <TicketTabContent

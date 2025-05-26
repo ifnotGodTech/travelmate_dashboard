@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useRouter } from "next/navigation";
-import DateRangeDialog from "@/components/reuseables/DateDialog";
+import DateDialog from "@/components/reuseables/DateDialog";
 import { parseISO, addDays, format, isValid } from "date-fns";
 import { useClaimTicket } from "@/hooks/api/ticket";
 import { useResolveTicket } from "@/hooks/api/ticket";
+import { useAuthContext, useUpdateAuthContext } from "@/context/AuthContext";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 export const TableDropdown = ({
   parentWidth,
@@ -206,158 +207,198 @@ export const ViewingChatModal = ({
   ticketDetails,
   ticketLoading,
   onClose,
-}: any) => {
-  const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
+}: {
+  selectedTicket: boolean;
+  ticketDetails: any; // Replace with the correct type
+  ticketLoading: boolean;
+  onClose: () => void;
+}) => {
+  const APP_STATE = useAuthContext();
   const router = useRouter();
   const { claiming, onClaiming } = useClaimTicket();
+  const currentUser = APP_STATE?.user?.user_id || "";
 
-  const handleClaimTicket = () => {
+  const formattedDate = useMemo(
+    () => (ticketDetails ? formatCreatedAt(ticketDetails.created_at, 2) : ""),
+    [ticketDetails]
+  );
+
+  const handleClaimTicket = useCallback(() => {
+    if (!ticketDetails?.id) return;
     onClaiming({
-      TicketId: ticketDetails?.id,
-      successCallback: () => {
-        router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
-      },
+      TicketId: ticketDetails.id,
+      successCallback: () =>
+        router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`),
     });
-  };
+  }, [ticketDetails, onClaiming, router]);
+
+  const handleNavigateToResponse = useCallback(() => {
+    if (ticketDetails?.id) {
+      router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
+    }
+  }, [ticketDetails, router]);
+
+  useEffect(() => {
+    if (selectedTicket && ticketDetails?.claimed_admin?.id === currentUser) {
+      handleNavigateToResponse();
+    }
+  }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
 
   return (
     <div
-      className={`fixed inset-0 z-10 bg-black/50 ${
+      className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
         selectedTicket ? "visible opacity-100" : "invisible opacity-0"
-      } flex justify-center items-center transition-opacity duration-300`}
+      }`}
       onClick={onClose}
+      aria-hidden={!selectedTicket}
     >
       <div
-        className={`bg-white w-[90%] max-w-[600px] lg:max-w-[720px] py-3 rounded-[20px] shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
           selectedTicket ? "scale-100" : "scale-95"
-        } transition-transform duration-300`}
+        }`}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="modal-title"
       >
-        <>
-          {ticketLoading ? (
-            <div className="h-[300px] items-center flex justify-center ">
-              <div className="w-10 h-10 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : (
-            <>
-              {ticketDetails?.claimed_admin !== null ? (
-                <>
-                  <div className="border-b-[1px] w-full border-[#BCBEC2]">
-                    <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-                      Ticket Already claimed
-                    </h2>
-                  </div>
-
-                  <div className=" px-[16px] lg:px-[32px]">
-                    <p className="font-[400] text-[16px] lg:text-[20px]">
-                      This chat is currently being handled by{" "}
-                      {ticketDetails?.claimed_admin.first_name || "---"}. You
-                      can either view the ticket or claim it. Claiming the
-                      ticket will transfer responsibility to you, removing Elvis
-                      from the conversation. The customer will be notified of
-                      the change. Would you like to proceed?
-                    </p>
-                  </div>
-
-                  <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-                    <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
-                      <div className=" w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
-                        <span className="text-[#023E8A] text-[20px] font-[500] ">
-                          View Only
-                        </span>
-                      </div>
-
-                      <div className=" w-full lg:w-auto  p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer ">
-                        <span className="text-[#fff] text-[20px] font-[500] ">
-                          Yes, Proceed
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="border-b-[1px] w-full border-[#BCBEC2]">
-                    <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-                      Ticket {ticketDetails?.ticket_id}
-                    </h2>
-                  </div>
-
-                  <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
-                    <DetailRow label="Created at" value={formattedDate} />
-                    <DetailRow
-                      label="Category"
-                      value={ticketDetails?.category}
-                    />
-                    <DetailRow label="Status" value={ticketDetails?.status} />
-                    <DetailRow label="Subject" value={ticketDetails?.title} />
-                  </div>
-
-                  <div className="px-[16px] lg:px-[32px]">
-                    <DetailRow
-                      label="Description"
-                      value={ticketDetails?.description}
-                    />
-                  </div>
-
-                  <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-                    <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
-                      <div className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer onClick ">
-                        <img
-                          src="/assets/icons/MessageModal.svg"
-                          alt=""
-                          className=""
-                        />
-                        <span
-                          className="text-[#D72638] text-[20px] font-[500] "
-                          onClick={() =>
-                            router.push(
-                              `/Dashboard/support/ticket/${ticketDetails.id}/escalate`
-                            )
-                          }
-                        >
-                          Escalate Ticket
-                        </span>
-                      </div>
-
-                      <div
-                        className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer "
-                        onClick={handleClaimTicket}
-                      >
-                        {" "}
-                        {claiming ? (
-                          <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <>
-                            <img
-                              src="/assets/icons/ModalDanger.svg"
-                              alt=""
-                              className=""
-                            />
-                            <span className="text-[#fff] text-[20px] font-[500] ">
-                              "Claim Ticket"
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </>
-
+        {ticketLoading ? (
+          <div className="h-[300px] flex justify-center items-center">
+            <div className="w-10 h-10 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : ticketDetails?.claimed_admin?.id !== currentUser ? (
+          <ClaimedTicketSection
+            ticketDetails={ticketDetails}
+            claiming={claiming}
+            handleClaimTicket={handleClaimTicket}
+          />
+        ) : (
+          <UnclaimedTicketSection
+            ticketDetails={ticketDetails}
+            formattedDate={formattedDate}
+            claiming={claiming}
+            handleClaimTicket={handleClaimTicket}
+          />
+        )}
         <button
-          className="absolute top-[16px] right-[16px] text-gray-500 cursor-pointer"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 focus:outline-none"
           onClick={onClose}
+          aria-label="Close Modal"
         >
-          <img src="/assets/icons/modalClose.svg" alt="" className="w-[16px]" />
+          <img src="/assets/icons/modalClose.svg" alt="Close Modal" />
         </button>
       </div>
     </div>
   );
 };
+
+const ClaimedTicketSection = ({
+  ticketDetails,
+  claiming,
+  handleClaimTicket,
+  router,
+}: any) => (
+  <>
+    <div className="border-b-[1px] w-full border-[#BCBEC2]">
+      <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+        Ticket Already claimed
+      </h2>
+    </div>
+
+    <div className=" px-[16px] lg:px-[32px]">
+      <p className="font-[400] text-[16px] lg:text-[20px]">
+        This chat is currently being handled by{" "}
+        {ticketDetails?.claimed_admin.first_name || "---"}. You can either view
+        the ticket or claim it. Claiming the ticket will transfer responsibility
+        to you, removing {ticketDetails?.claimed_admin.first_name || "---"} from
+        the conversation. The customer will be notified of the change. Would you
+        like to proceed?
+      </p>
+    </div>
+
+    <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+      <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
+        <div className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
+          <span className="text-[#023E8A] text-[20px] font-[500]">
+            View Only
+          </span>
+        </div>
+
+        <div className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer">
+          <span
+            className="text-[#fff] text-[20px] font-[500]"
+            onClick={handleClaimTicket}
+          >
+            {claiming ? (
+              <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              "Yes, Proceed"
+            )}
+          </span>
+        </div>
+      </div>
+    </div>
+  </>
+);
+
+const UnclaimedTicketSection = ({
+  ticketDetails,
+  formattedDate,
+  handleClaimTicket,
+  claiming,
+  router,
+}: any) => (
+  <>
+    <div className="border-b-[1px] w-full border-[#BCBEC2]">
+      <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+        Ticket {ticketDetails?.ticket_id}
+      </h2>
+    </div>
+
+    <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
+      <DetailRow label="Created at" value={formattedDate} />
+      <DetailRow label="Category" value={ticketDetails?.category} />
+      <DetailRow label="Status" value={ticketDetails?.status} />
+      <DetailRow label="Subject" value={ticketDetails?.title} />
+    </div>
+
+    <div className="px-[16px] lg:px-[32px]">
+      <DetailRow label="Description" value={ticketDetails?.description} />
+    </div>
+
+    <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+      <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
+        <div
+          className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer"
+          onClick={() =>
+            router.push(
+              `/Dashboard/support/ticket/${ticketDetails?.id}/escalate`
+            )
+          }
+        >
+          <img src="/assets/icons/MessageModal.svg" alt="" />
+          <span className="text-[#D72638] text-[20px] font-[500]">
+            Escalate Ticket
+          </span>
+        </div>
+
+        <div
+          className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer"
+          onClick={handleClaimTicket}
+        >
+          {claiming ? (
+            <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <>
+              <img src="/assets/icons/ModalDanger.svg" alt="" />
+              <span className="text-[#fff] text-[20px] font-[500]">
+                Claim Ticket
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  </>
+);
 
 export const formatCreatedAt = (isoDate: string, daysToAdd: number): string => {
   try {
@@ -392,49 +433,14 @@ export const Filter = ({
   setSearchTerm,
   selectedOption,
   setSelectedOption,
-  filterOption,
   datePickerOpen,
   setDatePickerOpen,
 }: any) => {
-  const formatDateRange = () => {
-    if (dateRange.from && dateRange.to) {
-      return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
-        dateRange.to,
-        "dd/MM/yyyy"
-      )}`;
-    }
-    return "dd/mm/yyyy - dd/mm/yyyy";
-  };
-  const [dateRange, setDateRange] = useState({
-    from: undefined,
-    to: undefined,
-  });
-  let options;
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  if (filterOption === "chat") {
-    options = [
-      { label: "All", value: "" },
-      { label: "Waiting", value: "WAITING" },
-      { label: "Active", value: "ACTIVE" },
-      { label: "Closed", value: "CLOSED" },
-    ];
-  } else if (filterOption === "ticket") {
-    options = [
-      { label: "All", value: "" },
-      { label: "New", value: "new" },
-      { label: "In Progress", value: "in_progress" },
-      { label: "Resolved", value: "resolved" },
-    ];
-  } else if (filterOption === "faq") {
-    options = [
-      { label: "All", value: "" },
-      { label: "General", value: "general" },
-      { label: "Technical", value: "technical" },
-      { label: "Billing", value: "billing" },
-    ];
-  } else {
-    options = [{ label: "All", value: "" }];
-  }
+  const formatDate = () => {
+    return selectedDate ? format(selectedDate, "dd/MM/yyyy") : "dd/mm/yyyy";
+  };
 
   return (
     <div className="w-full px-4 lg:px-0">
@@ -470,20 +476,12 @@ export const Filter = ({
           />
         </div>
 
-        {/* Dropdown & Date Picker */}
+        {/* Date Picker */}
         <div
           className="
             flex items-center flex-grow min-w-[220px] max-w-full gap-3
           "
         >
-          <div className="flex-grow min-w-[140px] max-w-[250px]">
-            <FilterDropdown
-              selectedOption={selectedOption}
-              setSelectedOption={setSelectedOption}
-              options={options}
-            />
-          </div>
-
           <div
             className="
               flex flex-1 items-center bg-white border border-[#EBECED] rounded-full
@@ -499,14 +497,15 @@ export const Filter = ({
             />
             <div className="ml-2 flex flex-col lg:flex-row lg:items-center">
               <span className="text-[14px] font-light text-[#181818]">
-                Filter by Date
+                Select Date
               </span>
               <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate max-w-[110px]">
-                {dateRange.from ? formatDateRange() : "dd/mm/yyyy - dd/mm/yyyy"}
+                {formatDate()}
               </span>
             </div>
           </div>
         </div>
+
         <button
           className="
             text-[#023E8A] text-[14px] font-[400] p-3 border border-[#023E8A]
@@ -521,11 +520,12 @@ export const Filter = ({
         </button>
       </div>
 
-      <DateRangeDialog
+      {/* Date Dialog */}
+      <DateDialog
         isOpen={datePickerOpen}
         onClose={() => setDatePickerOpen(false)}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
       />
     </div>
   );

@@ -487,7 +487,7 @@ export const useGetAllEscalatedTickets = () => {
     "https://travelmate-backend-0suw.onrender.com/api/admin/tickets/escalated/";
 
   const [tickets, setTickets] = useState<any>([]);
-  // const [nextPageUrl, setNextPageUrl] = useState<string | null>(null); // Pagination disabled
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null); // Pagination disabled
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFiltersState] = useState<Record<string, any>>({});
@@ -513,7 +513,7 @@ export const useGetAllEscalatedTickets = () => {
         const endpoint = url || buildUrl();
         const response = await axios.get(endpoint);
 
-        const data: Ticket[] = response.data; // Adjusted to match direct array structure
+        const data: Ticket[] = response.data.results; // Adjusted to match direct array structure
 
         setTickets(data);
       } catch (err) {
@@ -553,16 +553,16 @@ export const useGetAllEscalatedTickets = () => {
   }, [filters, fetchTickets]);
 
   // Load next page (Disabled)
-  // const loadNext = useCallback(() => {
-  //   if (nextPageUrl) fetchTickets(nextPageUrl);
-  // }, [nextPageUrl, fetchTickets]);
+  const loadNext = useCallback(() => {
+    if (nextPageUrl) fetchTickets(nextPageUrl);
+  }, [nextPageUrl, fetchTickets]);
 
   return {
     tickets,
-    // loadNext, // Pagination disabled
+    loadNext, // Pagination disabled
     loading,
     error,
-    // nextPageUrl, // Pagination disabled
+    nextPageUrl, // Pagination disabled
     setFilters,
   };
 };

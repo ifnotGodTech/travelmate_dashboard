@@ -17,20 +17,13 @@ import { useGetAllTickets, useGetTicket } from "@/hooks/api/ticket";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const TicketTabContent: React.FC<any> = ({
-  selectedOption,
-  searchTerm,
-}) => {
+export const TicketTabContent: React.FC<any> = ({ searchTerm }) => {
   const router = useRouter();
   const [selectedTicket, setSelectedTicket] = useState(null);
-  // Keep ticketId as string or null
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  // Initialize statusFilter with selectedOption or 'all' fallback
-  const [statusFilter, setStatusFilter] = useState<string>(
-    selectedOption === "all" || !selectedOption ? "all" : selectedOption
-  );
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { tickets, loadNext, loading, error, nextPageUrl, setFilters } =
     useGetAllTickets();
@@ -46,28 +39,20 @@ export const TicketTabContent: React.FC<any> = ({
     },
   });
 
-  // Sync statusFilter and filters with selectedOption and searchTerm props
   useEffect(() => {
     const filters: any = {};
-    if (selectedOption) {
-      filters.status = selectedOption === "all" ? "" : selectedOption;
-      setStatusFilter(selectedOption === "all" ? "all" : selectedOption);
-    } else {
-      setStatusFilter("all");
-    }
+    filters.status = statusFilter === "all" ? "" : statusFilter;
     if (searchTerm) {
       filters.search = searchTerm;
     }
     setFilters(filters);
-  }, [selectedOption, searchTerm, setFilters]);
+  }, [statusFilter, searchTerm, setFilters]);
 
-  // Handle tab change triggered by user
   const handleTabChange = (value: string) => {
     setStatusFilter(value);
     setFilters({ status: value === "all" ? "" : value });
   };
 
-  // Handlers for Ticket Details Dialog
   const handleViewDetails = (ticket: any) => {
     setSelectedTicket(ticket);
     setTicketId(ticket.id);
@@ -80,7 +65,6 @@ export const TicketTabContent: React.FC<any> = ({
     setTicketId(null);
   };
 
-  // Handlers for Viewing Chat Modal
   const handleViewMessage = (ticket: any) => {
     setSelectedTicket(ticket);
     setTicketId(ticket.id);
@@ -128,106 +112,118 @@ export const TicketTabContent: React.FC<any> = ({
           {loading ? (
             <Skeleton />
           ) : (
-            <div className="lg:px-[24px] px-[4px]">
-              {/* Wrap table in scrollable container */}
-              <div className="overflow-x-auto">
-                <Table className="border-none border-collapse min-w-[600px]">
-                  <TableHeader>
-                    <TableRow className="items-center border-none hover:bg-none">
-                      <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
-                        Subject
-                      </TableCell>
-                      <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
-                        Customer
-                      </TableCell>
-                      <TableCell className="font-semibold border-none whitespace-nowrap">
-                        Created at
-                      </TableCell>
-                      <TableCell className="font-semibold border-none whitespace-nowrap">
-                        Status
-                      </TableCell>
-                      <TableCell className="font-semibold border-none whitespace-nowrap">
-                        Action
-                      </TableCell>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tickets.map((ticket, index) => (
-                      <TableRow
-                        key={`${ticket.id}-${index}`}
-                        className="items-center cursor-pointer border-none"
-                      >
-                        <TableCell className="border-none min-w-[200px] whitespace-nowrap">
-                          <div className="flex items-center space-x-4">
-                            <img
-                              src="/assets/icons/flight_cancellation.svg"
-                              alt="icon"
-                              className="w-[30px] lg:w-[40px]"
-                            />
-                            <div className="space-y-[8px]">
-                              <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
-                                {ticket.title}
-                              </h2>
-                              <p className="text-[#9B9EA4] text-[12px]">
-                                {ticket.ticket_id} • {ticket.category}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="border-none min-w-[180px] whitespace-nowrap">
-                          <div className="space-y-2">
-                            <p className="text-[#181818] text-[14px] font-[500] capitalize">
-                              {ticket.user.first_name || "---"}{" "}
-                              {ticket.user.last_name || "---"}
-                            </p>
-                            <p className="text-[#9B9EA4] text-[12px]">
-                              {ticket.user.email || "---"}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="table-cell border-none whitespace-nowrap">
-                          <div className="space-y-2">
-                            <p className="text-[#181818] text-[14px] font-[500]">
-                              {format(
-                                addDays(new Date(ticket.created_at), 2),
-                                "dd/MM/yyyy"
-                              )}
-                            </p>
-                            <p className="text-[#9B9EA4] text-[12px]">
-                              <span>{getRelativeTime(ticket.created_at)}</span>
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="border-none whitespace-nowrap">
-                          <span
-                            className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                              ticket.status === "new"
-                                ? "bg-[#CCD8E8] text-[#181818]"
-                                : ticket.status === "in_progress"
-                                ? "bg-[#EFB60880]/50  text-[#181818]"
-                                : ticket.status === "resolved"
-                                ? "bg-[#2D9C5E80]/50  text-[#181818]"
-                                : "bg-gray-100 text-gray-600" // fallback for other/unknown statuses
-                            }`}
+            <>
+              {tickets.length === 0 ? (
+                <div className="h-[40px] flex justify-center items-center">
+                  <p className="ttext-[20px] font-[500] text-[#181818]">
+                    No data found
+                  </p>
+                </div>
+              ) : (
+                <div className="lg:px-[24px] px-[4px]">
+                  {/* Wrap table in scrollable container */}
+                  <div className="overflow-x-auto">
+                    <Table className="border-none border-collapse min-w-[600px]">
+                      <TableHeader>
+                        <TableRow className="items-center border-none hover:bg-none">
+                          <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
+                            Subject
+                          </TableCell>
+                          <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
+                            Customer
+                          </TableCell>
+                          <TableCell className="font-semibold border-none whitespace-nowrap">
+                            Created at
+                          </TableCell>
+                          <TableCell className="font-semibold border-none whitespace-nowrap">
+                            Status
+                          </TableCell>
+                          <TableCell className="font-semibold border-none whitespace-nowrap">
+                            Action
+                          </TableCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tickets.map((ticket, index) => (
+                          <TableRow
+                            key={`${ticket.id}-${index}`}
+                            className="items-center cursor-pointer border-none"
                           >
-                            {ticket.status.replace("_", " ").toUpperCase()}
-                          </span>
-                        </TableCell>
-                        <TableCell className="border-none whitespace-nowrap">
-                          <TableDropdown
-                            parentWidth={180}
-                            onViewDetails={() => handleViewDetails(ticket)}
-                            onViewMessage={() => handleViewMessage(ticket)}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                            <TableCell className="border-none min-w-[200px] whitespace-nowrap">
+                              <div className="flex items-center space-x-4">
+                                <img
+                                  src="/assets/icons/flight_cancellation.svg"
+                                  alt="icon"
+                                  className="w-[30px] lg:w-[40px]"
+                                />
+                                <div className="space-y-[8px]">
+                                  <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
+                                    {ticket.title}
+                                  </h2>
+                                  <p className="text-[#9B9EA4] text-[12px]">
+                                    {ticket.ticket_id} • {ticket.category}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-none min-w-[180px] whitespace-nowrap">
+                              <div className="space-y-2">
+                                <p className="text-[#181818] text-[14px] font-[500] capitalize">
+                                  {ticket.user.first_name || "---"}{" "}
+                                  {ticket.user.last_name || "---"}
+                                </p>
+                                <p className="text-[#9B9EA4] text-[12px]">
+                                  {ticket.user.email || "---"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="table-cell border-none whitespace-nowrap">
+                              <div className="space-y-2">
+                                <p className="text-[#181818] text-[14px] font-[500]">
+                                  {format(
+                                    addDays(new Date(ticket.created_at), 2),
+                                    "dd/MM/yyyy"
+                                  )}
+                                </p>
+                                <p className="text-[#9B9EA4] text-[12px]">
+                                  <span>
+                                    {getRelativeTime(ticket.created_at)}
+                                  </span>
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-none whitespace-nowrap">
+                              <span
+                                className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
+                                  ticket.status === "new"
+                                    ? "bg-[#CCD8E8] text-[#181818]"
+                                    : ticket.status === "in_progress"
+                                    ? "bg-[#EFB60880]/50  text-[#181818]"
+                                    : ticket.status === "resolved"
+                                    ? "bg-[#2D9C5E80]/50  text-[#181818]"
+                                    : "bg-gray-100 text-gray-600" // fallback for other/unknown statuses
+                                }`}
+                              >
+                                {ticket.status.replace("_", " ").toUpperCase()}
+                              </span>
+                            </TableCell>
+                            <TableCell className="border-none whitespace-nowrap">
+                              <TableDropdown
+                                parentWidth={180}
+                                onViewDetails={() => handleViewDetails(ticket)}
+                                onViewMessage={() => handleViewMessage(ticket)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
 
-              {/* Loading Spinner at the Bottom */}
-            </div>
+                  {/* Loading Spinner at the Bottom */}
+                </div>
+              )}
+            </>
           )}
 
           {nextPageUrl && !loading && (
