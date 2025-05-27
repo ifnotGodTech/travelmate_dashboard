@@ -18,7 +18,7 @@ const DateDialog = ({ isOpen, onClose, selectedDate, setSelectedDate }: any) => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-6 rounded-lg shadow-lg w-full max-w-md">
+      <DialogContent className="p-6 rounded-lg shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-gray-800 text-center">
             Select a Date
@@ -26,7 +26,7 @@ const DateDialog = ({ isOpen, onClose, selectedDate, setSelectedDate }: any) => 
         </DialogHeader>
         <div className="flex flex-col items-center justify-between h-full mt-4">
           {/* Calendar */}
-          <div className="flex-grow w-full">
+          <div className="flex-grow ">
             <Calendar
               mode="single"
               selected={selectedDate}
