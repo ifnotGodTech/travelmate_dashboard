@@ -165,8 +165,11 @@ export const ChatDetailsDialog = ({
                     <Loading />
                   ) : (
                     <div className="sace-y-2">
-                      {chatDetails?.claim_history?.map((text: any) => (
-                        <p className="text-[14px] font-[400] text-[#343537]">
+                      {chatDetails?.claim_history?.map((text: any, i: any) => (
+                        <p
+                          key={i}
+                          className="text-[14px] font-[400] text-[#343537]"
+                        >
                           {`This chat was claimed by ${
                             text.claimed_admin_info.first_name || "---"
                           } ${" "} ${
@@ -215,17 +218,18 @@ export const ClaimedChatSection = ({
   claiming,
   handleClaimTicket,
   router,
+  onClose,
 }: any) => (
   <div
     className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
-      selectedTicket ? "visible opacity-100" : "invisible opacity-0"
+      ticketDetails ? "visible opacity-100" : "invisible opacity-0"
     }`}
     onClick={onClose}
-    aria-hidden={!selectedTicket}
+    aria-hidden={!ticketDetails}
   >
     <div
       className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
-        selectedTicket ? "scale-100" : "scale-95"
+        ticketDetails ? "scale-100" : "scale-95"
       }`}
       onClick={(e) => e.stopPropagation()}
       role="dialog"

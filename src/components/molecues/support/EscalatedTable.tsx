@@ -38,25 +38,24 @@ export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
     },
   });
 
-  // Handlers for Ticket Details Dialog
   const handleViewDetails = (ticket: any) => {
+    setIsDetailsDialogOpen(true);
+    setIsChatModalOpen(false); // Ensure chat modal is closed
     setSelectedTicket(ticket);
     setTicketId(ticket.id);
-    setIsDetailsDialogOpen(true);
+  };
+
+  const handleViewMessage = (ticket: any) => {
+    setIsChatModalOpen(true);
+    setIsDetailsDialogOpen(false); // Ensure details dialog is closed
+    setSelectedTicket(ticket);
+    setTicketId(ticket.id);
   };
 
   const handleDetailsDialogClose = () => {
     setIsDetailsDialogOpen(false);
     setSelectedTicket(null);
     setTicketId(null);
-  };
-
-  // Handlers for Viewing Chat Modal
-  const handleViewMessage = (ticket: any) => {
-    console.log("clicked");
-    setSelectedTicket(ticket);
-    setTicketId(ticket.id);
-    setIsChatModalOpen(true);
   };
 
   const handleChatModalClose = () => {
@@ -259,16 +258,17 @@ export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
         </Tabs>
       </div>
       <TicketDetailsDialog
-        open={isDetailsDialogOpen}
+        selectedTicket={isDetailsDialogOpen}
         onClose={handleDetailsDialogClose}
-        ticket={ticketDetails}
-        loading={loadingTicket}
+        ticketDetails={selectedTicket}
+        ticketLoading={loadingTicket}
       />
+
       <ViewingChatModal
-        open={isChatModalOpen}
+        selectedTicket={isChatModalOpen}
         onClose={handleChatModalClose}
-        ticket={ticketDetails}
-        loading={loadingTicket}
+        ticketDetails={selectedTicket}
+        ticketLoading={loadingTicket}
       />
     </>
   );
