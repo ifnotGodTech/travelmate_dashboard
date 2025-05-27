@@ -59,20 +59,20 @@ function useAxiosDefaults({
 
             // Update global header and original request
             axios.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-            originalRequest.headers[
-              "Authorization"
-            ] = `Bearer ${newAccessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-            return axios(originalRequest);
-          } catch (refreshError) {
+            return axios(originalRequest); // Retry the original request
+          } catch (refreshError: any) {
+            console.error(
+              "Token refresh failed:",
+              refreshError.response?.data || refreshError.message
+            );
             window.location.href = `/auth/login`;
             return Promise.reject(refreshError);
           }
         } else {
-          // Exceeded max retries or no refresh token
-          window.location.href = `/auth/login?redirectTo=${encodeURIComponent(
-            location.pathname
-          )}`;
+          console.warn("Max retries exceeded or no refresh token available.");
+          window.location.href = `/auth/login`;
         }
       }
 

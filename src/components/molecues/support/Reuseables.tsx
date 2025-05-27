@@ -431,17 +431,12 @@ export const Loading = () => {
 export const Filter = ({
   searchTerm,
   setSearchTerm,
-  selectedOption,
-  setSelectedOption,
   datePickerOpen,
   setDatePickerOpen,
+  selectedDate,
+  setSelectedDate,
 }: any) => {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-
-  const formatDate = () => {
-    return selectedDate ? format(selectedDate, "dd/MM/yyyy") : "dd/mm/yyyy";
-  };
-
+  const [inputValue, setInputValue] = useState("");
   return (
     <div className="w-full px-4 lg:px-0">
       <div
@@ -450,7 +445,6 @@ export const Filter = ({
           lg:flex-nowrap lg:space-x-12
         "
       >
-        {/* Search Bar */}
         <div
           className="
             flex items-center flex-grow min-w-[220px] max-w-full
@@ -463,61 +457,70 @@ export const Filter = ({
             alt="Search Icon"
             className="w-4 h-4 flex-shrink-0"
           />
+
           <input
             type="text"
-            className="
-              flex-grow ml-2 text-[16px] placeholder:text-[#9B9EA4] text-[#181818]
-              placeholder:font-light focus:outline-none placeholder:text-[16px] font-[400]
-              min-w-0
-            "
+            className="flex-grow ml-2 text-[16px] placeholder:text-[#9B9EA4] text-[#181818] placeholder:font-light focus:outline-none placeholder:text-[16px] font-[400] min-w-0"
             placeholder="Search by Name, Email or Ticket ID"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={inputValue}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInputValue(val);
+              if (val === "") {
+                setSearchTerm("");
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setSearchTerm(inputValue);
+              }
+            }}
           />
         </div>
 
-        {/* Date Picker */}
-        <div
-          className="
-            flex items-center flex-grow min-w-[220px] max-w-full gap-3
-          "
-        >
+        <div className="flex space-x-3">
           <div
             className="
-              flex flex-1 items-center bg-white border border-[#EBECED] rounded-full
-              py-2 px-3 cursor-pointer flex-shrink-0 min-w-[160px]
+            flex items-center  min-w-[220px] max-w-full gap-3
+          "
+          >
+            <div
+              className="
+              flex items-center bg-white border border-[#EBECED] rounded-full
+              py-3 px-5 cursor-pointer flex-shrink-0
               shadow-sm lg:shadow-none
             "
-            onClick={() => setDatePickerOpen(true)}
-          >
-            <img
-              src="/assets/icons/calendar.svg"
-              alt="Calendar Icon"
-              className="w-6 flex-shrink-0"
-            />
-            <div className="ml-2 flex flex-col lg:flex-row lg:items-center">
-              <span className="text-[14px] font-light text-[#181818]">
-                Select Date
-              </span>
-              <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate max-w-[110px]">
-                {formatDate()}
-              </span>
+              onClick={() => setDatePickerOpen(true)}
+            >
+              <img
+                src="/assets/icons/calendar.svg"
+                alt="Calendar Icon"
+                className="w-6 flex-shrink-0"
+              />
+              <div className="ml-2 flex flex-col lg:flex-row lg:items-center">
+                <span className="text-[14px] font-light text-[#181818]">
+                  Select Date
+                </span>
+                <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate max-w-[110px]">
+                  {selectedDate || "yyyy-mm-dd"}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <button
-          className="
-            text-[#023E8A] text-[14px] font-[400] p-3 border border-[#023E8A]
+          <button
+            className="
+            text-[#023E8A] text-[14px] font-[400] px-3 border border-[#023E8A]
             rounded-[8px] cursor-pointer flex-shrink-0
             whitespace-nowrap
           "
-          onClick={() => {
-            // add apply logic here
-          }}
-        >
-          Apply
-        </button>
+            onClick={() => {
+              // add apply logic here
+            }}
+          >
+            Apply
+          </button>
+        </div>
       </div>
 
       {/* Date Dialog */}

@@ -20,6 +20,7 @@ import {
 export const MessageTabContent: React.FC<any> = ({
   selectedOption,
   searchTerm,
+  date,
 }) => {
   const router = useRouter();
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
@@ -53,15 +54,15 @@ export const MessageTabContent: React.FC<any> = ({
 
   useEffect(() => {
     const filters: any = {};
-    if (selectedOption) {
-      filters.status = selectedOption === "all" ? "" : selectedOption;
-      setStatusFilter(selectedOption === "all" ? "" : selectedOption);
-    }
+    filters.status = statusFilter === "all" ? "" : statusFilter;
     if (searchTerm) {
       filters.search = searchTerm;
     }
+    if (date) {
+      filters.date = date as string;
+    }
     setFilters(filters);
-  }, [selectedOption, searchTerm, setFilters]);
+  }, [statusFilter, searchTerm, date, setFilters]);
 
   const handleViewDetails = (chat: any) => {
     setSelectedTicket(chat);
@@ -222,7 +223,9 @@ export const MessageTabContent: React.FC<any> = ({
                                 parentWidth={180}
                                 actionLabel="Open Chat"
                                 onViewDetails={() => {
-                                  router.push(`/Dashboard/support/chats/${chat.id}`);
+                                  router.push(
+                                    `/Dashboard/support/chats/${chat.id}`
+                                  );
                                 }}
                                 onViewMessage={() => handleViewDetails(chat)}
                               />

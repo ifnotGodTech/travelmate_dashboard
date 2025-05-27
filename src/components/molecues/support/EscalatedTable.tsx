@@ -17,7 +17,7 @@ import { useGetAllEscalatedTickets, useGetTicket } from "@/hooks/api/ticket";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const EscaleteTable: React.FC = () => {
+export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
   const router = useRouter();
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export const EscaleteTable: React.FC = () => {
 
   // Handlers for Viewing Chat Modal
   const handleViewMessage = (ticket: any) => {
-    console.log("clicked")
+    console.log("clicked");
     setSelectedTicket(ticket);
     setTicketId(ticket.id);
     setIsChatModalOpen(true);
@@ -65,9 +65,20 @@ export const EscaleteTable: React.FC = () => {
     setTicketId(null);
   };
 
-  // Handle Tab Change
+  useEffect(() => {
+    const filters: any = {};
+    filters.status = statusFilter === "all" ? "" : statusFilter;
+    if (searchTerm) {
+      filters.search = searchTerm;
+    }
+    if (date) {
+      filters.date = date as string;
+    }
+    setFilters(filters);
+  }, [statusFilter, searchTerm, date, setFilters]);
+
   const handleTabChange = (value: string) => {
-    setStatusFilter(value === "all" ? "" : value);
+    setStatusFilter(value);
     setFilters({ status: value === "all" ? "" : value });
   };
 

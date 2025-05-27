@@ -17,7 +17,7 @@ import { useGetAllTickets, useGetTicket } from "@/hooks/api/ticket";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const TicketTabContent: React.FC<any> = ({ searchTerm }) => {
+export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
   const router = useRouter();
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
@@ -45,8 +45,11 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm }) => {
     if (searchTerm) {
       filters.search = searchTerm;
     }
+    if (date) {
+      filters.date = date as string;
+    }
     setFilters(filters);
-  }, [statusFilter, searchTerm, setFilters]);
+  }, [statusFilter, searchTerm, date, setFilters]);
 
   const handleTabChange = (value: string) => {
     setStatusFilter(value);

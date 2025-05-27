@@ -42,7 +42,13 @@ export function useGetAllChat() {
 
   // Build URL with filters
   const buildUrl = useCallback(() => {
-    const params = new URLSearchParams(filters);
+    const params = new URLSearchParams();
+
+    // Convert filters into query parameters
+    Object.entries(filters).forEach(([key, value]) => {
+      params.append(key, String(value));
+    });
+
     return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
   }, [filters]);
 

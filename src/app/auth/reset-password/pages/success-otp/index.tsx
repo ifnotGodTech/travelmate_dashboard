@@ -22,7 +22,7 @@ const SuccessOTP = ({ handleSuccess }: ResetPasswordFormProps) => {
             <img
               src="/assets/icons/blue-success.svg"
               alt=""
-              className="lg:w-28 w-[53px] "
+              className="lg:w-28 w-28 "
             />
             <p className="text-[#181818] lg:text-2xl lg:font-semibold font-[500] text-[18px] ">
               Email Sent
@@ -32,7 +32,8 @@ const SuccessOTP = ({ handleSuccess }: ResetPasswordFormProps) => {
             </p>
             <div className="py-4 px-6 rounded-[12px] border-[1px] border-[#2D9C5E] bg-[#D5EBDF]">
               <p className=" text-[#2D9C5E] font-[400] text-[12px] lg:text-[16px] leading-[100%] text-center ">
-              Please check your inbox and follow the instructions to reset your password. The link will expire in 10 minutes.
+                Please check your inbox and follow the instructions to reset
+                your password. The link will expire in 10 minutes.
               </p>
             </div>
           </div>

@@ -11,6 +11,10 @@ const page = (props: Props) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(
+    undefined
+  );
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -22,9 +26,23 @@ const page = (props: Props) => {
           onClick={() => router.back()}
         />
       </div>
-      <Filter searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <Filter
+        selectedOption={selectedOption}
+        setSelectedOption={setSelectedOption}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filterOption={"ticket"}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        datePickerOpen={datePickerOpen}
+        setDatePickerOpen={setDatePickerOpen}
+      />
       <div className="p-4 bf-white shadow-sm rounded-[2px]">
-        <EscaleteTable searchTerm={searchTerm} />
+        <EscaleteTable
+          selectedOption={selectedOption}
+          searchTerm={searchTerm}
+          date={selectedDate}
+        />
       </div>
     </div>
   );

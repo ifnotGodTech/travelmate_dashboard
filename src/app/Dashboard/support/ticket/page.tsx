@@ -1,8 +1,6 @@
 "use client";
 import ContentWrapper from "@/components/reuseables/ContentWrapper";
 import React, { useEffect, useState } from "react";
-import Button from "@/components/reuseables/Button";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Filter } from "@/components/molecues/support/Reuseables";
 import { TicketTabContent } from "@/components/molecues/support/Tickets";
@@ -11,6 +9,10 @@ const Page = () => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(
+    undefined
+  );
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -30,11 +32,16 @@ const Page = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filterOption={"ticket"}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        datePickerOpen={datePickerOpen}
+        setDatePickerOpen={setDatePickerOpen}
       />
       <div className="bg-[#FFFFFF] py-[16px] rounded-[8px] shadow-md">
         <TicketTabContent
           selectedOption={selectedOption}
           searchTerm={searchTerm}
+          date={selectedDate}
         />
       </div>
     </div>

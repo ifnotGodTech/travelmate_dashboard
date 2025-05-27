@@ -47,9 +47,15 @@ export const useGetAllTickets = () => {
   const hasFetchedInitial = useRef(false);
   const isFetching = useRef(false); // Prevent redundant fetches
 
-  // Build URL with filters
   const buildUrl = useCallback(() => {
-    const params = new URLSearchParams(filters);
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+
     return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
   }, [filters]);
 

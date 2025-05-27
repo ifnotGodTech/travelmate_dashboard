@@ -1,3 +1,5 @@
+"use client";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,14 +7,42 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
-const DateDialog = ({ isOpen, onClose, selectedDate, setSelectedDate }: any) => {
+const DateDialog = ({
+  isOpen,
+  onClose,
+  selectedDate,
+  setSelectedDate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedDate: string | undefined;
+  setSelectedDate: (date: string | undefined) => void;
+}) => {
+  const [internalDate, setInternalDate] = useState<Date>(new Date());
+
+  // Sync internal date with selectedDate when dialog opens
+  useEffect(() => {
+    if (isOpen && selectedDate) {
+      const parsedDate = new Date(selectedDate);
+      if (!isNaN(parsedDate.getTime())) {
+        setInternalDate(parsedDate);
+      }
+    }
+  }, [isOpen, selectedDate]);
+
   const handleClear = () => {
     setSelectedDate(undefined);
     onClose();
   };
 
   const handleApply = () => {
+    if (internalDate) {
+      const formattedDate = format(internalDate, "dd-MM-yyyy");
+      setSelectedDate(formattedDate);
+      console.log("Formatted Date:", formattedDate);
+    }
     onClose();
   };
 
@@ -26,11 +56,15 @@ const DateDialog = ({ isOpen, onClose, selectedDate, setSelectedDate }: any) => 
         </DialogHeader>
         <div className="flex flex-col items-center justify-between h-full mt-4">
           {/* Calendar */}
-          <div className="flex-grow ">
+          <div className="flex-grow">
             <Calendar
               mode="single"
-              selected={selectedDate}
-              onSelect={(date: Date) => setSelectedDate(date)}
+              selected={internalDate} // Set the initial date
+              onSelect={(date: Date) => {
+                if (date) {
+                  setInternalDate(date); // Update internal date
+                }
+              }}
               className="w-full h-full"
             />
           </div>

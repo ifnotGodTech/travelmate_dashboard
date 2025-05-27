@@ -14,24 +14,10 @@ const TicketTable: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    from: undefined,
-    to: undefined,
-  });
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
 
   // Track active tab
   const [activeTab, setActiveTab] = useState("ticket");
-
-  // Format date for display
-  const formatDateRange = () => {
-    if (dateRange.from && dateRange.to) {
-      return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
-        dateRange.to,
-        "dd/MM/yyyy"
-      )}`;
-    }
-    return "dd/mm/yyyy - dd/mm/yyyy";
-  };
 
   return (
     <div className="pb-20 lg:pb-0">
@@ -103,10 +89,9 @@ const TicketTable: React.FC = () => {
             setSelectedOption={setSelectedOption}
             datePickerOpen={datePickerOpen}
             setDatePickerOpen={setDatePickerOpen}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            formatDateRange={formatDateRange}
             filterOption={activeTab}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
           />
         )}
 
@@ -115,14 +100,14 @@ const TicketTable: React.FC = () => {
             <TicketTabContent
               selectedOption={selectedOption}
               searchTerm={searchTerm}
-              dateRange={dateRange}
+              date={selectedDate}
             />
           </TabsContent>
           <TabsContent value="chat">
             <MessageTabContent
               selectedOption={selectedOption}
               searchTerm={searchTerm}
-              dateRange={dateRange}
+              date={selectedDate}
             />
           </TabsContent>
           <TabsContent value="faq">
