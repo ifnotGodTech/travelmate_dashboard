@@ -130,7 +130,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
     }),
     onSubmit: (values) => {
       const payload = {
-        escalation_roles: values.escalation_level,
+        escalation_role: values.escalation_level,
         escalation_reason: values.escalation_reason,
         escalation_note: values.escalation_note,
         escalation_response_time: values.escalation_response_time,

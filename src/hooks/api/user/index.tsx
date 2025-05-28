@@ -56,6 +56,8 @@ interface User {
   date_created: string;
   total_bookings: number;
   is_active: boolean;
+  reason: string
+  deleted_at: string
 }
 
 interface UsersResponse {
@@ -143,37 +145,85 @@ export const useGetUsers = () => {
     setIsActive,
   };
 };
+export const useGetDeletedUsers = () => {
+  const BASE_URL = "https://travelmate-backend-0suw.onrender.com/api/superuser/soft-deleted-users/";
 
-export const useUserBookings = (userId: string) => {
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [previousPageUrl, setPreviousPageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isActive, setIsActive] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      if (!userId) return; // Ensure userId is provided
-      setIsLoading(true);
+  const hasFetchedInitial = useRef(false);
+
+  const buildUrl = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    if (isActive !== null) params.append("is_active", isActive);
+
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  const fetchUsers = async (url?: string, reset = false) => {
+    try {
+      setLoading(true);
       setError(null);
-      try {
-        const response = await axios.get(
-          `https://travelmate-backend-0suw.onrender.com/api/user/bookings/`,
-          {
-            params: { user_id: userId },
-          }
-        );
-        setBookings(response.data);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong!");
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    fetchBookings();
-  }, []); // Empty dependency array ensures it runs only on mount
+      const endpoint = url || buildUrl();
+      const response = await axios.get(endpoint);
+      const data: UsersResponse = response.data;
 
-  return { bookings, isLoading, error };
+      // Replace the users list if reset === true, else append
+      setUsers(reset ? data.results : [...users, ...data.results]);
+      setNextPageUrl(data.next);
+      setPreviousPageUrl(data.previous);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch initial data once
+  useEffect(() => {
+    if (!hasFetchedInitial.current) {
+      fetchUsers(undefined, true);
+      hasFetchedInitial.current = true;
+    }
+  }, []);
+
+  // Refetch when searchTerm or isActive changes
+  useEffect(() => {
+    fetchUsers(undefined, true);
+  }, [searchTerm, isActive]);
+
+  // Load next page and replace user list
+  const loadNext = () => {
+    if (nextPageUrl) fetchUsers(nextPageUrl, true);
+  };
+
+  // Load previous page and replace user list
+  const loadPrevious = () => {
+    if (previousPageUrl) fetchUsers(previousPageUrl, true);
+  };
+
+  return {
+    users,
+    loadNext,
+    loadPrevious,
+    loading,
+    error,
+    nextPageUrl,
+    previousPageUrl,
+    setSearchTerm,
+    setIsActive,
+  };
 };
+
 
 export const useDeactivateUser = () => {
   const [deactivating, setLoading] = useState(false);

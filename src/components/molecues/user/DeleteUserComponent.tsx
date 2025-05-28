@@ -36,6 +36,7 @@ export const UserDetailsDialog = ({
   userLoading,
   onClose,
 }: any) => {
+  console.log(userDetails)
   return (
     <Dialog open={Boolean(selectedUser)} onOpenChange={onClose}>
       <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0 ">
@@ -82,7 +83,7 @@ export const UserDetailsDialog = ({
                 <p className="text-[18px] font-[400] text-[#181818] ">Status</p>
                 <span
                   className={`p-[10px] border-[1px] rounded-[12px] text-[14px] uppercase font-[400] ${
-                    userDetails.email
+                    userDetails.status
                       ? "bg-[#2D9C5E1A] text-green-700 border-[#2D9C5E]"
                       : "bg-[#D726380D] text-red-700 border-[#D72638]"
                   }`}

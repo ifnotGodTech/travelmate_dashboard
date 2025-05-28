@@ -25,7 +25,9 @@ export const MessageTabContent: React.FC<any> = ({
   const router = useRouter();
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<"details" | "claim" | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<string>(
     selectedOption || ""
   );
@@ -42,12 +44,6 @@ export const MessageTabContent: React.FC<any> = ({
   const { chat: chatDetails, loadingChat } = useGetChat({
     ChatId: ticketId as string,
     initialFetch: !!ticketId,
-    successCallback: (message) => {
-      console.log(message);
-    },
-    errorCallback: (error) => {
-      console.error(error);
-    },
   });
 
   const { claiming, onClaiming } = useClaimChat();
@@ -67,11 +63,17 @@ export const MessageTabContent: React.FC<any> = ({
   const handleViewDetails = (chat: any) => {
     setSelectedTicket(chat);
     setTicketId(chat.id);
-    setIsDetailsDialogOpen(true);
+    setActiveModal("details");
   };
 
-  const handleDetailsDialogClose = () => {
-    setIsDetailsDialogOpen(false);
+  const handleOpenClaimModal = (chat: any) => {
+    setSelectedTicket(chat);
+    setTicketId(chat.id);
+    setActiveModal("claim");
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
     setSelectedTicket(null);
     setTicketId(null);
   };
@@ -79,19 +81,6 @@ export const MessageTabContent: React.FC<any> = ({
   const handleTabChange = (value: string) => {
     setStatusFilter(value === "all" ? "" : value);
     setFilters({ status: value === "all" ? "" : value });
-  };
-
-  const handleClaimChat = (chat: any) => {
-    if (!chat.claimed_admin) {
-      onClaiming({
-        ChatId: chat.id,
-        successCallback: () => {
-          setSelectedTicket(chat);
-          setTicketId(chat.id);
-          router.push(`/Dashboard/support/chats/${chat.id}`);
-        },
-      });
-    }
   };
 
   const styling =
@@ -132,7 +121,7 @@ export const MessageTabContent: React.FC<any> = ({
             <>
               {chats.length === 0 ? (
                 <div className="h-[40px] flex justify-center items-center">
-                  <p className="ttext-[20px] font-[500] text-[#181818]">
+                  <p className="text-[20px] font-[500] text-[#181818]">
                     No data found
                   </p>
                 </div>
@@ -212,7 +201,7 @@ export const MessageTabContent: React.FC<any> = ({
                                     ? "bg-[#EFB60880]/50  text-[#181818]"
                                     : chat.status === "resolved"
                                     ? "bg-[#2D9C5E80]/50  text-[#181818]"
-                                    : "bg-gray-100 text-gray-600" // fallback for other/unknown statuses
+                                    : "bg-gray-100 text-gray-600"
                                 }`}
                               >
                                 {chat.status.replace("_", " ").toUpperCase()}
@@ -221,12 +210,7 @@ export const MessageTabContent: React.FC<any> = ({
                             <TableCell className="border-none whitespace-nowrap">
                               <ChatTableDropdown
                                 parentWidth={180}
-                                actionLabel="Open Chat"
-                                onViewDetails={() => {
-                                  router.push(
-                                    `/Dashboard/support/chats/${chat.id}`
-                                  );
-                                }}
+                                onViewDetails={() => handleOpenClaimModal(chat)}
                                 onViewMessage={() => handleViewDetails(chat)}
                               />
                             </TableCell>
@@ -236,7 +220,7 @@ export const MessageTabContent: React.FC<any> = ({
                     </Table>
                   </div>
                 </div>
-              )}{" "}
+              )}
             </>
           )}
 
@@ -253,20 +237,21 @@ export const MessageTabContent: React.FC<any> = ({
         </Tabs>
       </div>
 
-      <ChatDetailsDialog
-        selectedTicket={isDetailsDialogOpen ? selectedTicket : null}
-        chatDetails={chatDetails}
-        chatLoading={loadingChat}
-        onClose={handleDetailsDialogClose}
-      />
+      {activeModal === "details" && (
+        <ChatDetailsDialog
+          selectedTicket={selectedTicket}
+          chatDetails={chatDetails}
+          chatLoading={loadingChat}
+          onClose={closeModal}
+        />
+      )}
 
-      {isDetailsDialogOpen && chatDetails?.claimed_admin && (
+      {activeModal === "claim" && (
         <ClaimedChatSection
-          ticketDetails={chatDetails}
-          claiming={claiming}
-          handleClaimTicket={() => handleClaimChat(chatDetails)}
-          router={router}
-          onClose={handleDetailsDialogClose}
+          selectedTicket={selectedTicket}
+          chatDetails={chatDetails}
+          chatLoading={loadingChat}
+          onClose={closeModal}
         />
       )}
     </>

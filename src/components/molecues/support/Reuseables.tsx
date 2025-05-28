@@ -12,7 +12,7 @@ import DateDialog from "@/components/reuseables/DateDialog";
 import { parseISO, addDays, format, isValid } from "date-fns";
 import { useClaimTicket } from "@/hooks/api/ticket";
 import { useResolveTicket } from "@/hooks/api/ticket";
-import { useAuthContext, useUpdateAuthContext } from "@/context/AuthContext";
+import { useAuthContext } from "@/context/AuthContext";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 export const TableDropdown = ({
   parentWidth,
@@ -29,28 +29,29 @@ export const TableDropdown = ({
   ];
 
   return (
-    <div className="relative">
+    <div
+      className="relative overflow-visible"
+      style={{ maxWidth: parentWidth }}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="text-gray-500 hover:text-gray-700 cursor-pointer flex justify-center">
-            <img src="/assets/icons/tableMenu.svg" alt="Menu" />
-          </div>
+          <div className="cursor-pointer select-none px-2 py-1 text-lg">⋮</div>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent
-          className="absolute z-10 mt-2 border border-gray-300 rounded-lg bg-white shadow-lg"
+          side="bottom"
+          align="end"
+          className="z-50 max-w-[180px] shadow-lg border border-gray-200 rounded-md bg-white"
           style={{
-            minWidth: "180px",
+            // Ensure dropdown stays within parent width
             maxWidth: parentWidth - 16,
-            overflow: "hidden",
-            left: "auto",
-            right: 0,
           }}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <DropdownMenuItem
-              key={option.label}
+              key={index}
               onClick={option.action}
-              className="px-3 py-2 text-gray-700 hover:bg-gray-100"
+              className="cursor-pointer select-none"
             >
               {option.label}
             </DropdownMenuItem>
@@ -80,8 +81,8 @@ export const TicketDetailsDialog = ({
   ticketLoading,
   onClose,
 }: any) => {
-  const name = `${ticketDetails?.user.first_name || "---"} ${
-    ticketDetails?.user.last_name || "---"
+  const name = `${ticketDetails?.user?.first_name || "---"} ${
+    ticketDetails?.user?.last_name || "---"
   }`;
   const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
   return (
@@ -209,19 +210,34 @@ export const ViewingChatModal = ({
   onClose,
 }: {
   selectedTicket: boolean;
-  ticketDetails: any; // Replace with the correct type
+  ticketDetails: any | null;
   ticketLoading: boolean;
   onClose: () => void;
 }) => {
   const APP_STATE = useAuthContext();
   const router = useRouter();
   const { claiming, onClaiming } = useClaimTicket();
-  const currentUser = APP_STATE?.user?.user_id || "";
+  const currentUser = APP_STATE?.user?.user_id;
+
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const formattedDate = useMemo(
     () => (ticketDetails ? formatCreatedAt(ticketDetails.created_at, 2) : ""),
     [ticketDetails]
   );
+
+  const handleNavigateToResponse = useCallback(() => {
+    if (ticketDetails?.id) {
+      setIsRedirecting(true);
+      router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
+    }
+  }, [ticketDetails, router]);
+
+  useEffect(() => {
+    if (selectedTicket && ticketDetails?.claimed_admin?.id === currentUser) {
+      handleNavigateToResponse();
+    }
+  }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
 
   const handleClaimTicket = useCallback(() => {
     if (!ticketDetails?.id) return;
@@ -232,17 +248,9 @@ export const ViewingChatModal = ({
     });
   }, [ticketDetails, onClaiming, router]);
 
-  const handleNavigateToResponse = useCallback(() => {
-    if (ticketDetails?.id) {
-      router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
-    }
-  }, [ticketDetails, router]);
-
-  useEffect(() => {
-    if (selectedTicket && ticketDetails?.claimed_admin?.id === currentUser) {
-      handleNavigateToResponse();
-    }
-  }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
+  const isTicketClaimed = ticketDetails?.claimed_admin !== null;
+  const isClaimedByCurrentUser =
+    ticketDetails?.claimed_admin?.id === currentUser;
 
   return (
     <div
@@ -260,31 +268,50 @@ export const ViewingChatModal = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {ticketLoading ? (
-          <div className="h-[300px] flex justify-center items-center">
-            <div className="w-10 h-10 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+        {/* Spinner overlay during redirect */}
+        {isRedirecting && (
+          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px] ">
+            <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        ) : ticketDetails?.claimed_admin?.id !== currentUser ? (
-          <ClaimedTicketSection
-            ticketDetails={ticketDetails}
-            claiming={claiming}
-            handleClaimTicket={handleClaimTicket}
-          />
-        ) : (
-          <UnclaimedTicketSection
-            ticketDetails={ticketDetails}
-            formattedDate={formattedDate}
-            claiming={claiming}
-            handleClaimTicket={handleClaimTicket}
-          />
         )}
-        <button
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 focus:outline-none"
-          onClick={onClose}
-          aria-label="Close Modal"
-        >
-          <img src="/assets/icons/modalClose.svg" alt="Close Modal" />
-        </button>
+
+        {!isRedirecting && (
+          <>
+            {ticketLoading ? (
+              <div className="h-[300px] flex justify-center items-center">
+                <div className="w-10 h-10 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : !isTicketClaimed ? (
+              <UnclaimedTicketSection
+                ticketDetails={ticketDetails!}
+                formattedDate={formattedDate}
+                claiming={claiming}
+                handleClaimTicket={handleClaimTicket}
+              />
+            ) : isClaimedByCurrentUser ? (
+              <UnclaimedTicketSection
+                ticketDetails={ticketDetails!}
+                formattedDate={formattedDate}
+                claiming={claiming}
+                handleClaimTicket={handleClaimTicket}
+              />
+            ) : (
+              <ClaimedTicketSection
+                ticketDetails={ticketDetails!}
+                claiming={claiming}
+                handleClaimTicket={handleClaimTicket}
+              />
+            )}
+
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 focus:outline-none"
+              onClick={onClose}
+              aria-label="Close Modal"
+            >
+              <img src="/assets/icons/modalClose.svg" alt="Close Modal" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -306,11 +333,11 @@ const ClaimedTicketSection = ({
     <div className=" px-[16px] lg:px-[32px]">
       <p className="font-[400] text-[16px] lg:text-[20px]">
         This chat is currently being handled by{" "}
-        {ticketDetails?.claimed_admin.first_name || "---"}. You can either view
+        {ticketDetails?.claimed_admin?.first_name || "---"}. You can either view
         the ticket or claim it. Claiming the ticket will transfer responsibility
-        to you, removing {ticketDetails?.claimed_admin.first_name || "---"} from
-        the conversation. The customer will be notified of the change. Would you
-        like to proceed?
+        to you, removing {ticketDetails?.claimed_admin?.first_name || "---"}{" "}
+        from the conversation. The customer will be notified of the change.
+        Would you like to proceed?
       </p>
     </div>
 
@@ -344,61 +371,69 @@ const UnclaimedTicketSection = ({
   formattedDate,
   handleClaimTicket,
   claiming,
-  router,
-}: any) => (
-  <>
-    <div className="border-b-[1px] w-full border-[#BCBEC2]">
-      <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-        Ticket {ticketDetails?.ticket_id}
-      </h2>
-    </div>
+}: {
+  ticketDetails: any;
+  formattedDate: string;
+  handleClaimTicket: () => void;
+  claiming: boolean;
+}) => {
+  const router = useRouter();
 
-    <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
-      <DetailRow label="Created at" value={formattedDate} />
-      <DetailRow label="Category" value={ticketDetails?.category} />
-      <DetailRow label="Status" value={ticketDetails?.status} />
-      <DetailRow label="Subject" value={ticketDetails?.title} />
-    </div>
+  return (
+    <>
+      <div className="border-b-[1px] w-full border-[#BCBEC2]">
+        <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+          Ticket {ticketDetails?.ticket_id}
+        </h2>
+      </div>
 
-    <div className="px-[16px] lg:px-[32px]">
-      <DetailRow label="Description" value={ticketDetails?.description} />
-    </div>
+      <div className="px-[16px] lg:px-[32px] grid grid-cols-3 gap-6">
+        <DetailRow label="Created at" value={formattedDate} />
+        <DetailRow label="Category" value={ticketDetails?.category} />
+        <DetailRow label="Status" value={ticketDetails?.status} />
+        <DetailRow label="Subject" value={ticketDetails?.title} />
+      </div>
 
-    <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-      <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
-        <div
-          className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer"
-          onClick={() =>
-            router.push(
-              `/Dashboard/support/ticket/${ticketDetails?.id}/escalate`
-            )
-          }
-        >
-          <img src="/assets/icons/MessageModal.svg" alt="" />
-          <span className="text-[#D72638] text-[20px] font-[500]">
-            Escalate Ticket
-          </span>
-        </div>
+      <div className="px-[16px] lg:px-[32px]">
+        <DetailRow label="Description" value={ticketDetails?.description} />
+      </div>
 
-        <div
-          className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer"
-          onClick={handleClaimTicket}
-        >
-          {claiming ? (
-            <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <>
-              <img src="/assets/icons/ModalDanger.svg" alt="" />
-              <span className="text-[#fff] text-[20px] font-[500]">
-                Claim Ticket
-              </span>
-            </>
-          )}
+      <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+        <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
+          <div
+            className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer"
+            onClick={() =>
+              router.push(
+                `/Dashboard/support/ticket/${ticketDetails?.id}/escalate`
+              )
+            }
+          >
+            <img src="/assets/icons/MessageModal.svg" alt="" />
+            <span className="text-[#D72638] text-[20px] font-[500]">
+              Escalate Ticket
+            </span>
+          </div>
+
+          <div
+            className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer"
+            onClick={handleClaimTicket}
+          >
+            {claiming ? (
+              <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <img src="/assets/icons/ModalDanger.svg" alt="" />
+                <span className="text-[#fff] text-[20px] font-[500]">
+                  Claim Ticket
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 export const formatCreatedAt = (isoDate: string, daysToAdd: number): string => {
   try {

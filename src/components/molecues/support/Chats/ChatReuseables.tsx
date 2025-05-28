@@ -1,53 +1,55 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { formatCreatedAt } from "../Reuseables";
+import { Loading } from "../Reuseables";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/context/AuthContext";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { formatCreatedAt } from "../Reuseables";
-import { Loading } from "../Reuseables";
+} from "@/components/ui/dropdown-menu"; // Adjust import paths
 
 export const ChatTableDropdown = ({
   parentWidth,
   onViewDetails,
   onViewMessage,
-  actionLabel = "Open Chat",
 }: {
   parentWidth: number;
   onViewDetails?: () => void;
   onViewMessage?: () => void;
-  actionLabel?: string;
 }) => {
   const options = [
-    { label: actionLabel, action: onViewDetails },
+    { label: "View Details", action: onViewDetails },
     { label: "View Chat Details", action: onViewMessage },
   ];
 
   return (
-    <div className="relative">
+    <div
+      className="relative overflow-visible"
+      style={{ maxWidth: parentWidth }}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="text-gray-500 hover:text-gray-700 cursor-pointer flex justify-start">
-            <img src="/assets/icons/tableMenu.svg" alt="Menu" />
-          </div>
+          <div className="cursor-pointer select-none px-2 py-1 text-lg">⋮</div>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent
-          className="absolute z-10 mt-2 border border-gray-300 rounded-lg bg-white shadow-lg"
+          side="bottom"
+          align="end"
+          className="z-50 max-w-[180px] shadow-lg border border-gray-200 rounded-md bg-white"
           style={{
-            minWidth: "180px",
+            // Ensure dropdown stays within parent width
             maxWidth: parentWidth - 16,
-            overflow: "hidden",
-            left: "auto",
-            right: 0,
           }}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <DropdownMenuItem
-              key={option.label}
+              key={index}
               onClick={option.action}
-              className="px-3 py-2 text-gray-700 hover:bg-gray-100"
+              className="cursor-pointer select-none"
             >
               {option.label}
             </DropdownMenuItem>
@@ -125,7 +127,7 @@ export const ChatDetailsDialog = ({
                     />
                     <DetailRow
                       label="Closure Type"
-                      value={formatCreatedAt(chatDetails?.closed_at, 2)}
+                      value={chatDetails?.closure_type}
                     />
                   </>
                 )}{" "}
@@ -193,10 +195,7 @@ export const ChatDetailsDialog = ({
                 <Loading />
               ) : (
                 <>
-                  <DetailRow
-                    label="Customer’s Email"
-                    value={chatDetails?.title}
-                  />
+                  <DetailRow label="Title" value={chatDetails?.title} />
                 </>
               )}
             </div>
@@ -214,59 +213,94 @@ export const ChatDetailsDialog = ({
 };
 
 export const ClaimedChatSection = ({
-  ticketDetails,
+  chatDetails,
   claiming,
-  handleClaimTicket,
-  router,
+  handleClaimTicket: externalHandleClaimTicket,
   onClose,
-}: any) => (
-  <div
-    className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
-      ticketDetails ? "visible opacity-100" : "invisible opacity-0"
-    }`}
-    onClick={onClose}
-    aria-hidden={!ticketDetails}
-  >
+}: any) => {
+  const APP_STATE = useAuthContext();
+  const router = useRouter();
+  // const { onClaiming } = useClaimTicket();
+  const currentUser = APP_STATE?.user?.user_id || "";
+
+  const formattedDate = useMemo(
+    () => (chatDetails ? formatCreatedAt(chatDetails.created_at, 2) : ""),
+    [chatDetails]
+  );
+
+  const handleClaimTicket = useCallback(() => {
+    // if (!chatDetails?.id) return;
+    // onClaiming({
+    //   TicketId: chatDetails.id,
+    //   successCallback: () =>
+    //     router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
+    // });
+  }, [chatDetails, router]);
+
+  const handleNavigateToResponse = useCallback(() => {
+    if (chatDetails?.id) {
+      router.push(`/Dashboard/support/chats/${chatDetails.id}/`);
+    }
+  }, [chatDetails, router]);
+
+  useEffect(() => {
+    if (chatDetails?.claimed_admin?.id === currentUser) {
+      handleNavigateToResponse();
+    }
+  }, [chatDetails, currentUser, handleNavigateToResponse]);
+
+  return (
     <div
-      className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
-        ticketDetails ? "scale-100" : "scale-95"
+      className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
+        chatDetails ? "visible opacity-100" : "invisible opacity-0"
       }`}
-      onClick={(e) => e.stopPropagation()}
-      role="dialog"
-      aria-labelledby="modal-title"
+      onClick={onClose}
+      aria-hidden={!chatDetails}
     >
-      <>
+      <div
+        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
+          chatDetails ? "scale-100" : "scale-95"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="modal-title"
+      >
         <div className="border-b-[1px] w-full border-[#BCBEC2]">
           <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-            Ticket Already claimed
+            Ticket Already Claimed
           </h2>
         </div>
 
-        <div className=" px-[16px] lg:px-[32px]">
+        <div className="px-[16px] lg:px-[32px]">
           <p className="font-[400] text-[16px] lg:text-[20px]">
             This chat is currently being handled by{" "}
-            {ticketDetails?.claimed_admin.first_name || "---"}. You can either
+            {chatDetails?.claimed_admin?.first_name || "---"}. You can either
             view the ticket or claim it. Claiming the ticket will transfer
             responsibility to you, removing{" "}
-            {ticketDetails?.claimed_admin.first_name || "---"} from the
+            {chatDetails?.claimed_admin?.first_name || "---"} from the
             conversation. The customer will be notified of the change. Would you
             like to proceed?
           </p>
         </div>
 
         <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-          <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
-            <div className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
+          <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
+            <div
+              className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer"
+              onClick={() =>
+                router.push(`/Dashboard/support/chats/${chatDetails.id}/`)
+              }
+            >
               <span className="text-[#023E8A] text-[20px] font-[500]">
                 View Only
               </span>
             </div>
 
-            <div className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer">
-              <span
-                className="text-[#fff] text-[20px] font-[500]"
-                onClick={handleClaimTicket}
-              >
+            <div
+              className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+              onClick={handleClaimTicket}
+            >
+              <span className="text-[#fff] text-[20px] font-[500]">
                 {claiming ? (
                   <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
                 ) : (
@@ -276,7 +310,7 @@ export const ClaimedChatSection = ({
             </div>
           </div>
         </div>
-      </>
+      </div>
     </div>
-  </div>
-);
+  );
+};

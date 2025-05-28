@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 
 export const AllContent: React.FC = () => {
   const router = useRouter();
-  const { loading, data, nextPage, loadMore } = useGetAllTicket({});
+  const { loading, data, nextPage, loadMore } = useGetAllTicket();
 
   return (
     <div className="space-y-[32px]">
