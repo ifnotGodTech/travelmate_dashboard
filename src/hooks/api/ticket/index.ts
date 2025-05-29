@@ -428,7 +428,7 @@ export function useClaimTicket() {
 
     try {
       const res = await TicketService.claimTicket({ TicketId });
-      const message = res.data?.detail || "Ticket response sent successfully";
+      const message = res.data?.detail || "Ticket claimed successfully";
       showSuccessToast({ message });
 
       if (successCallback) {

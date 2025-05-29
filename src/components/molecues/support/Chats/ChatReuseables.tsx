@@ -4,6 +4,7 @@ import { formatCreatedAt } from "../Reuseables";
 import { Loading } from "../Reuseables";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthContext";
+import { useClaimChat } from "@/hooks/api/chat";
 
 import {
   DropdownMenu,
@@ -214,13 +215,12 @@ export const ChatDetailsDialog = ({
 
 export const ClaimedChatSection = ({
   chatDetails,
-  claiming,
   handleClaimTicket: externalHandleClaimTicket,
   onClose,
 }: any) => {
   const APP_STATE = useAuthContext();
   const router = useRouter();
-  // const { onClaiming } = useClaimTicket();
+  const { onClaiming, claiming } = useClaimChat();
   const currentUser = APP_STATE?.user?.user_id || "";
 
   const formattedDate = useMemo(
@@ -229,12 +229,12 @@ export const ClaimedChatSection = ({
   );
 
   const handleClaimTicket = useCallback(() => {
-    // if (!chatDetails?.id) return;
-    // onClaiming({
-    //   TicketId: chatDetails.id,
-    //   successCallback: () =>
-    //     router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
-    // });
+    if (!chatDetails?.id) return;
+    onClaiming({
+      ChatId: chatDetails.id,
+      successCallback: () =>
+        router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
+    });
   }, [chatDetails, router]);
 
   const handleNavigateToResponse = useCallback(() => {
