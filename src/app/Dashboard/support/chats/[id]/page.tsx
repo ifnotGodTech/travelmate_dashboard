@@ -32,7 +32,6 @@ const page = (props: Props) => {
   const currentUser = APP_STATE?.user?.user_id || "";
   const { id } = useParams<{ id: string }>();
 
-  id;
   const { chat, loadingChat } = useGetChat({
     ChatId: id as string,
     initialFetch: !!id,
@@ -43,7 +42,14 @@ const page = (props: Props) => {
       console.error(error);
     },
   });
-  const isAdmin = currentUser === chat?.claimed_by_info?.id;
+
+  const isAdmin =
+    currentUser === chat?.claimed_by_info?.id ||
+    currentUser === chat?.assigned_admin_info?.id;
+  const isButtonDisabled =
+    chat?.status === "CLOSED" ||
+    (!isAdmin && chat?.assigned_admin_info !== null);
+
   const router = useRouter();
   const [closing, setClosing] = useState(false);
 
@@ -75,12 +81,12 @@ const page = (props: Props) => {
         <div className="flex space-x-6">
           <button
             className={`rounded-[8px] font-medium p-4 cursor-pointer ${
-              chat?.status === "CLOSED" || !isAdmin
+              isButtonDisabled
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-[#023E8A] text-white"
             }`}
             onClick={handleCloseChat}
-            disabled={closing || chat?.status === "CLOSED"}
+            disabled={closing || isButtonDisabled}
           >
             {closing ? "Closing..." : "Close chat"}
           </button>
@@ -115,7 +121,7 @@ const page = (props: Props) => {
         </div>
       )}
 
-      <Session chat={chat} loadingChat={loadingChat} isAdmin={isAdmin} />
+      <Session chat={chat} loadingChat={loadingChat} isAdmin={isButtonDisabled} />
     </div>
   );
 };
@@ -164,11 +170,11 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [allMessages, systemErrorMessage]); // also scroll on systemErrorMessage change
+  }, [allMessages, systemErrorMessage]);
 
-  // Disable input/send if chat closed or system error exists
+  // Disable input/send if chat closed, system error exists, or user is not an admin
   const isInputDisabled =
-    chat?.status === "CLOSED" || systemErrorMessage !== null;
+    chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
 
   return (
     <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
@@ -248,21 +254,21 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                 placeholder="Type a message..."
                 className="flex-1 outline-none bg-transparent"
                 onKeyPress={(e) => {
-                  if (e.key === "Enter" && chat?.status !== "resolved") {
+                  if (e.key === "Enter" && !isInputDisabled) {
                     handleSend();
                   }
                 }}
-                disabled={isInputDisabled}
+                disabled={isAdmin}
               />
             </div>
             <button
               onClick={handleSend}
               className={`p-3 rounded-lg ${
-                isInputDisabled || !isAdmin
+                isAdmin
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-[#023E8A] text-white"
               }`}
-              disabled={isInputDisabled}
+              disabled={isAdmin}
             >
               Send
             </button>
