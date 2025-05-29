@@ -26,6 +26,8 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
         user_id: res.data.user_id,
         email: res.data.email,
         name: res.data.name,
+        isSuperuser: res.data.is_superuser,
+        isAdmin: res.data.is_admin,
       };
       updateAppState({
         accessToken: res.data.access,

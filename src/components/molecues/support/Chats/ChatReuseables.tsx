@@ -244,7 +244,17 @@ export const ClaimedChatSection = ({
   }, [chatDetails, router]);
 
   useEffect(() => {
-    if (chatDetails?.claimed_admin?.id === currentUser) {
+    if (
+      chatDetails?.claimed_admin?.id === currentUser ||
+      chatDetails?.assigned_admin_info?.id === currentUser
+    ) {
+      handleNavigateToResponse();
+    } else if (
+      chatDetails?.status === "WAITING" &&
+      !chatDetails?.assigned_admin
+    ) {
+      handleNavigateToResponse();
+    } else if (chatDetails?.status === "CLOSED") {
       handleNavigateToResponse();
     }
   }, [chatDetails, currentUser, handleNavigateToResponse]);
