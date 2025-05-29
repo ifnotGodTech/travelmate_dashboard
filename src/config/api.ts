@@ -20,7 +20,8 @@ const api = () => {
     dashboardactivities: BASE_URL_LINK + "/api/admin/dashboard/activities",
     dashboardrevenue: BASE_URL_LINK + "/api/admin/dashboard/revenue/",
     dashboardmessages: BASE_URL_LINK + "/api/admin/dashboard/messages",
-    superadmin: BASE_URL_LINK + '/api/superadmin/'
+    superadmin: BASE_URL_LINK + '/api/superadmin/',
+    overall: BASE_URL_LINK + '/api/admin/reports/summary/'
 
   };
 };

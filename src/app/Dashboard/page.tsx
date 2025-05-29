@@ -9,7 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-// import { ChartData } from "@/components/data";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -34,6 +33,7 @@ const page = () => {
   const [users, setUsers] = useState<UsersProps[]>([]);
   const [selectedOption, setSelectedOption] = useState("This week");
   const [chartData, setChartData] = useState<BookingsProps[]>([]);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
