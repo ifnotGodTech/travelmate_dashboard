@@ -21,6 +21,9 @@ import { useState } from "react";
 import axios from "axios";
 import env from "@/config/env";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import {
+  showErrorToast,
+} from "@/utils/toasters";
 
 const page = () => {
   const [activity, setActivity] = useState<ActivityProps[]>([]);
@@ -48,10 +51,10 @@ const page = () => {
       setBookings(bookings.data);
       setRevenue(revenue.data);
       setUsers(user.data.results);
-      // setChartData(bookings.data);
-      console.log(bookings.data);
-    } catch (error) {
-      console.log(error);
+      console.log(revenue.data);
+      console.log(user.data);
+    } catch (error: any) {
+      showErrorToast({ message: error.response?.data || error.message });
       throw new Error("Error fetching users");
     } finally {
       setLoading(false);
@@ -62,30 +65,30 @@ const page = () => {
     fetchDashboardData();
   }, []);
 
-  const generateWeeklyChartData=(bookings: BookingsProps[])=>{
+  const generateWeeklyChartData = (bookings: BookingsProps[]) => {
     const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  // Initialize a structure for each weekday with zero values
-  const weeklyData = weekDays.map((day) => ({
-    day,
-    flight: 0,
-    hotel: 0,
-    car: 0,
-    total_amount: 0,
-  }));
+    // Initialize a structure for each weekday with zero values
+    const weeklyData = weekDays.map((day) => ({
+      day,
+      flight: 0,
+      hotel: 0,
+      car: 0,
+      total_amount: 0,
+    }));
 
-  // Sum up total_amounts per booking type per day
-  bookings.forEach((item) => {
-    const date = new Date(item.created_at);
-    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
+    // Sum up total_amounts per booking type per day
+    bookings.forEach((item) => {
+      const date = new Date(item.created_at);
+      const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
 
-    const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
-    if (target && item.total_amount) {
-      target[item.booking_type] += item.total_amount;
-    }
-  });
-  return weeklyData
-  }
-  
+      const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
+      if (target && item.total_amount) {
+        target[item.booking_type] += item.total_amount;
+      }
+    });
+    return weeklyData;
+  };
+
   const filteredData = useMemo(() => {
     const now = new Date();
     return bookings.filter((item) => {
@@ -105,8 +108,11 @@ const page = () => {
       return true;
     });
   }, [bookings, selectedOption]);
- 
-  const weeklyData = useMemo(() => generateWeeklyChartData(filteredData), [filteredData])
+
+  const weeklyData = useMemo(
+    () => generateWeeklyChartData(filteredData),
+    [filteredData]
+  );
 
   return (
     <div className="space-y-10 py-4 lg:py-0">
@@ -279,8 +285,7 @@ const DataGrid = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-10">
-        <QuickActions />
-        <div className="grid grid-rows-2 gap-6 h-[652px]">
+        <div className="grid grid-rows-2 gap-6 h-[45rem]">
           <Chart chartData={chartData} weeklyData={weeklyData} />
           <Activity activity={activity} loading={loading} />
         </div>
@@ -291,29 +296,6 @@ const DataGrid = ({
     </div>
   );
 };
-
-const QuickActions = () => (
-  <div className="space-y-2">
-    <h1 className="text-xl font-semibold">Quick Action</h1>
-    <div className="flex gap-4 overflow-x-auto flex-nowrap scrollbar-hidden">
-      {[
-        { name: "Daily Update", icon: "/assets/icons/quick-add.svg" },
-        { name: "Manage Listings", icon: "/assets/icons/quick-manage.svg" },
-        { name: "Share points", icon: "/assets/icons/quick-share.svg" },
-      ].map((text) => (
-        <div
-          className="flex items-center space-x-3 bg-[#CCD8E8] rounded-xl p-4 cursor-pointer shrink-0"
-          key={text.name}
-        >
-          <img src={text.icon} alt="" className="w-5" />
-          <span className="text-base font-medium text-[#181818]">
-            {text.name}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 const Legend = () => {
   return (
@@ -345,10 +327,13 @@ const Chart = ({
   weeklyData,
 }: {
   chartData: BookingsProps[];
-  weeklyData: any;
+  weeklyData: any[];
 }) => {
   const router = useRouter();
-
+  let NGNNaira = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "NGN",
+  });
   return (
     <div className="bg-white lg:px-6 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
@@ -370,9 +355,9 @@ const Chart = ({
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" className="text-xs"/>
+            <XAxis dataKey="day" className="text-xs" />
             <YAxis
-            className="text-[8px]"
+              className="text-[8px]"
               tickFormatter={(value) =>
                 new Intl.NumberFormat("en-NG", {
                   style: "currency",
@@ -430,7 +415,7 @@ const Chat = ({
     return hour >= 12 ? "PM" : "AM";
   };
   return (
-    <div className="bg-[#fff] lg:h-full h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
+    <div className="bg-[#fff] h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
       <div className="space-y-6">
         <div className="flex justify-between items-center lg:px-[20px] ">
           <h3 className="font-[500] text-[18px] text-[#181818] leading-[100%]">
@@ -526,32 +511,38 @@ const Activity = ({
           </div>
         </div>
         <div className="space-y-4">
+          {activity.length === 0 && (
+            <p className="text-center mt-auto">No recent activities</p>
+          )}
+
           {loading ? (
             <Loading />
           ) : (
             activity.map((act, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
+                className="flex md:justify-center justify-between lg:gap-24 gap-16 w-full items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3 px-2"
                 onClick={() => router.push("/Dashboard/user/profile")}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 lg:w-[200px] w-full">
                   <img
                     src="/assets/images/profile-image.svg"
                     alt=""
-                    className="w-10"
+                    className="lg:w-10 w-6"
                   />
-                  <p className="text-base font-medium text-[#181818]">
+                  <p className="lg:text-base text-sm font-medium text-[#181818]">
                     {act.user_full_name}
                   </p>
                 </div>
-                <p className="text-sm text-[#181818]">{act.booking_type}</p>
-                <div className="flex items-center space-x-2">
+                <p className="lg:text-sm text-xs text-[#181818]">
+                  {act.booking_type}
+                </p>
+                <div className="flex items-center ml-auto space-x-2">
                   <div className="text-right">
-                    <p className="text-sm text-[#181818]">
+                    <p className="lg:text-sm text-xs text-[#181818]">
                       {NGNNaira.format(act.amount)}
                     </p>
-                    <p className="text-sm text-[#9B9EA4]">
+                    <p className="lg:text-sm text-xs text-[#9B9EA4]">
                       {new Date(act.date).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",

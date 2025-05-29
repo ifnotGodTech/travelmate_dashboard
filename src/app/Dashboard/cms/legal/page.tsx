@@ -10,6 +10,7 @@ import SuccessModal from "@/components/ui/LegalSuccessModal";
 import Link from "next/link";
 import axios from "axios";
 import env from "@/config/env";
+import Loading from "../../admin/loading";
 
 const page = () => {
   return (
@@ -217,6 +218,15 @@ const ContentTab = () => {
     }
   };
 
+  const deletePartners = async (id: number) => {
+    try {
+      await axios.delete(`${env.api.partnercategories}/${id}/`);
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting partners:", error);
+      setError("Failed to delete partners. Please try again.");
+    }
+  };
   const handleEditClick = (): void => {
     setIsEditing(!isEditing);
     if (isEditing) {
@@ -292,7 +302,6 @@ const ContentTab = () => {
         </div>
 
         <Tabs
-          defaultValue="about"
           className="w-full space-y-8"
           value={activeTab}
           onValueChange={(value: string) => setActiveTab(value)}
@@ -323,31 +332,7 @@ const ContentTab = () => {
               <span className="hidden lg:block ">Our Trusted</span> Partners
             </TabsTrigger>
           </TabsList>
-          {isLoading && (
-            <div className="text-center flex items-center justify-center gap-3">
-              <p>Loading...</p>
-              <svg
-                className="animate-spin -ml-1 mr-2 h-4 w-4 text-black"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            </div>
-          )}
+          {isLoading && <Loading />}
 
           {error && (
             <div className="text-center text-red-500">
@@ -388,6 +373,7 @@ const ContentTab = () => {
               onContentChange={(value) =>
                 handleContentPartnerChange("partnerCategory", value)
               }
+              onDeletePartner={(partnerId) => deletePartners(partnerId)}
             />
           </TabsContent>
         </Tabs>

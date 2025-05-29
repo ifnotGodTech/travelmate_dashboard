@@ -7,8 +7,9 @@ interface Role {
   id: string;
   name: string;
   description: string;
-  assignedUsers: number;
+  assigned_users: any[];
   person: string; // Optional property for the person's name
+  created_by: string;
 }
 interface RoleAssignmentProps {
   roles: Role[]; // Array of roles to display
@@ -45,28 +46,29 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
               {role.description}
             </p>
           </div>
-          <div className="space-y-2">
-            <p className="font-medium">Assigned Users ({role.assignedUsers})</p>
-            {Array(role.assignedUsers)
-              .fill(null)
-              .map((_, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center py-2 border-b"
+          {role.assigned_users.map((assigned, i) => (
+            <div className="space-y-2" key={i}>
+              <p className="font-medium">
+                {assigned.name}
+              </p>
+
+              <div
+                key={i}
+                className="flex justify-between items-center py-2 border-b"
+              >
+                <span>{assigned.email || ""}</span>
+                <Button
+                  variant="link"
+                  className="text-red-600 hover:text-red-800 p-0"
                 >
-                  <span>{role.person || ""}</span>
-                  <Button
-                    variant="link"
-                    className="text-red-600 hover:text-red-800 p-0"
-                  >
-                    {role.name !== "Super Admin" && "Remove"}
-                  </Button>
-                </div>
-              ))}
-          </div>
+                  {role.name !== "Super Admin" && "Remove"}
+                </Button>
+              </div>
+            </div>
+          ))}
           <Button
             className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
-            onClick={() =>route.push('/Dashboard/admin/manage-user')}
+            onClick={() => route.push("/Dashboard/admin/manage-user")}
           >
             Manage Users
           </Button>

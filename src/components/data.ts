@@ -370,7 +370,7 @@ export const navItems = [
   {
     icon: "/assets/icons/side-report.svg",
     label: "Report & Analytics",
-    href: "/reports",
+    href: "/Dashboard/reports",
     iconActive: "/assets/icons/a-sidebar-report.svg",
   },
   {

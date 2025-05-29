@@ -14,7 +14,7 @@ const Sidebar: React.FC = () => {
     { icon: BookOpen, label: "Bookings", href: "/bookings" },
     { icon: FileText, label: "CMS", href: "/cms" },
     { icon: HelpCircle, label: "Customer Support", href: "/support" },
-    { icon: Settings, label: "Report & Analytics", href: "/reports" },
+    { icon: Settings, label: "Report & Analytics", href: "/Dashboard/reports" },
     { icon: Settings, label: "Admin Roles", href: "/Dashboard/admin" },
   ]
 

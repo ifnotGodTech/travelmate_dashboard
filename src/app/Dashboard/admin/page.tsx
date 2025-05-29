@@ -18,13 +18,25 @@ import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
 import axios from "axios";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
+import { showErrorToast, showSuccessToast } from "@/utils/toasters";
+import Loading from "./loading";
+import { permission } from "process";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuContent,
+} from "@/components/ui/dropdown-menu";
+import { previousDay } from "date-fns";
 interface Role {
   id: string;
   name: string;
   description: string;
-  assignedUsers: number;
+  assigned_users: any[];
   permissions: string[];
-  person: string; // Optional property for the person's name
+  // person: string;
+  is_superuser: boolean;
+  created_by: string;
 }
 type Permissions = {
   group: string;
@@ -33,16 +45,21 @@ type Permissions = {
 
 const AdminRolesPage: React.FC = () => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isManageUsersOpen, setIsManageUsersOpen] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [activeTab, setActiveTab] = useState("role-management");
   const [adminDetails, setAdminDetails] = useState<Role[]>([]);
-  const {accessToken} = useAuthContext()
+  const { accessToken } = useAuthContext();
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [availablePermissions, setAvailablePermissions] = useState<
     Permissions[]
   >([]);
+
   const [roleDetails, setRoleDetails] = useState<{
     name: string;
     description: string;
@@ -62,61 +79,146 @@ const AdminRolesPage: React.FC = () => {
     email: "",
     role: "",
   });
-  //FETCH ADMIN ROLES AND DESCEIPTIONS
-  const getSuperAdminDetails = async () => {
+  // FETCH PERMISSIONS TO CREATE NEW ROLE
+  const fetchPermissions = async () => {
     try {
-      const superAdminRes = await axios.get(`${env.api.superadmin}superadmins/`);
-      setAdminDetails(superAdminRes.data.results);
-      console.log(superAdminRes.data.results)
-    } catch (error) {
-      console.log("Error fetching details", error);
-      throw new Error("Error Fetching the superadmin details");
+      setIsLoading(true);
+      const response = await axios.get(`${env.api.superadmin}permissions/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken || ""}`,
+        },
+      });
+      setAvailablePermissions(
+        Array.isArray(response.data) ? response.data : []
+      );
+      console.log("Permissions:", response.data);
+    } catch (error: any) {
+      console.error(
+        "Error fetching permissions:",
+        error.response?.data || error.message
+      );
+      setAvailablePermissions([]); // Ensure array on error
+      showErrorToast({ message:  error.response?.data || error.message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  //FETCH PERMISSIONS TO CREATE NEW ROLE
-  const fetchPermissions = async () => {
+  // FETCH ALL ROLES
+  const fetchAllRoles = async () => {
     try {
-      const response = await axios.get(`${env.api.superadmin}permissions/`);
-      setAvailablePermissions(response.data);
-    } catch (error) {
-      console.log("Cannot fetch permissions", error);
+      setIsLoading(true);
+      const response = await axios.get(`${env.api.superadmin}roles/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken || ""}`,
+          "Content-Type": "application/json",
+        },
+      });
+      setAdminDetails(
+        Array.isArray(response.data.results) ? response.data.results : []
+      );
+      console.log(
+        "Roles:",
+        Array.isArray(response.data.results) ? response.data.results : []
+      );
+    } catch (error: any) {
+      console.error(
+        "Error fetching roles:",
+        error.response?.data || error.message
+      );
+      showErrorToast({ message: "Failed to fetch roles" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  //EDIR ADMIN ROLES AND PERMISSIONS
+  const UpdateRole = async (roleId: string, updatedRole: Role) => {
+    try {
+      const response = await axios.patch(
+        `${env.api.superadmin}roles/${roleId}/`,
+        updatedRole,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setAdminDetails((prev) =>
+        prev.map((role) => (role.id === roleId ? response.data : role))
+      );
+      showSuccessToast({
+        message: "Role updated successfully",
+      });
+    } catch (error: any) {
+      console.error(
+        "Error updating role:",
+        error.response?.data || error.message
+      );
+      showErrorToast({ message: "Failed to update role" });
     }
   };
   //CREATE NEW ROLE OR SAVE
   const saveRole = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!roleDetails.name) {
-      alert("Role name is required");
+
+    if (
+      !roleDetails.name ||
+      roleDetails.name.trim() === "" ||
+      !roleDetails.description ||
+      !roleDetails.permissions.length
+    ) {
+      showErrorToast({
+        message: "Fill in complete details and assign permissions to role",
+      });
       return;
     }
-    try {
-      const response = await axios.post(
-        `${env.api.superadmin}roles/`,
-        {
-          name: roleDetails.name,
-          description: roleDetails.description,
-          permission_ids: roleDetails.permissions.map(Number),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken || ""}`, // Include token
-            "Content-Type": "application/json",
+
+    if (isEditing && editingRoleId) {
+      await UpdateRole(editingRoleId, {
+        id: editingRoleId,
+        name: roleDetails.name,
+        description: roleDetails.description,
+        permissions: roleDetails.permissions,
+        assigned_users: [],
+        // person: "",
+        is_superuser: false,
+        created_by: "",
+      });
+    } else {
+      try {
+        const response = await axios.post(
+          `${env.api.superadmin}roles/`,
+          {
+            name: roleDetails.name,
+            description: roleDetails.description,
+            permission_ids: roleDetails.permissions.map(Number),
           },
-        }
-      );
-      setAdminDetails((prev) => [...prev, response.data]);
-      console.log(roleDetails);
-    } catch (err) {
-      console.log("Error Creating new Role", err);
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        setAdminDetails((prev) => [...prev, response.data]);
+        showSuccessToast({
+          message: response.data.message,
+          description: response.data.description,
+        });
+      } catch (err) {
+        console.log("Error Creating new Role", err);
+        showErrorToast({ message: "An error occurred" });
+      }
     }
-    setRoleDetails({ name: "", description: "", permissions: [] }); // Reset form
+
+    setRoleDetails({ name: "", description: "", permissions: [] });
     setIsCreateRoleOpen(false);
+    setIsEditing(false);
+    setEditingRoleId(null);
   };
 
   useEffect(() => {
-    getSuperAdminDetails();
     fetchPermissions();
+    fetchAllRoles();
   }, []);
 
   // Handle role details input changes
@@ -137,6 +239,17 @@ const AdminRolesPage: React.FC = () => {
         : prev.permissions.filter((permId) => permId !== id),
     }));
   };
+  //EDIT ADMIN ROLES
+  const handleEditRole = (role: Role) => {
+    setRoleDetails({
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions.map((permission) => String(permission)),
+    });
+    setEditingRoleId(role.id);
+    setIsEditing(true);
+    setIsCreateRoleOpen(true);
+  };
 
   // Add new member
   const addMember = (e: React.FormEvent<HTMLFormElement>) => {
@@ -149,7 +262,7 @@ const AdminRolesPage: React.FC = () => {
     setAdminDetails((prev) =>
       prev.map((role) =>
         role.name === newMember.role
-          ? { ...role, assignedUsers: role.assignedUsers + 1 }
+          ? { ...role, assigned_users: role.assigned_users }
           : role
       )
     );
@@ -157,6 +270,7 @@ const AdminRolesPage: React.FC = () => {
     setIsAddMemberOpen(false);
     setShowConfirmModal(true);
   };
+
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
@@ -191,9 +305,10 @@ const AdminRolesPage: React.FC = () => {
 
             <TabsContent value="role-management" className="space-y-4">
               <RoleManagement
-                onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
                 roles={adminDetails}
                 onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
+                isLoading={isLoading}
+                onStartEdit={handleEditRole}
               />
             </TabsContent>
 
@@ -208,14 +323,27 @@ const AdminRolesPage: React.FC = () => {
           </Tabs>
         </div>
         {/* Create Role Dialog */}
-        <Dialog open={isCreateRoleOpen} onOpenChange={setIsCreateRoleOpen}>
+        <Dialog
+          open={isCreateRoleOpen}
+          onOpenChange={(open) => {
+            setIsCreateRoleOpen(open);
+            if (!open) {
+              setIsEditing(false);
+              setRoleDetails({ name: "", description: "", permissions: [] });
+            }
+          }}
+        >
           <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>Create New Role</DialogTitle>
             </DialogHeader>
-            <form onSubmit={saveRole} className="space-y-6">
+            <form
+              onSubmit={
+                  saveRole
+              }
+            >
               <div className="space-y-4">
-                <div>
+                <div className="pt-4">
                   <label className="text-sm font-medium">Role Name</label>
                   <Input
                     name="name"
@@ -223,7 +351,7 @@ const AdminRolesPage: React.FC = () => {
                     onChange={handleChangeRoleDetails}
                   />
                 </div>
-                <div>
+                <div className="pt-4">
                   <label className="text-sm font-medium">Description</label>
                   <Input
                     name="description"
@@ -232,7 +360,8 @@ const AdminRolesPage: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-6 pt-4">
+                {isLoading && <Loading />}
                 {availablePermissions.map(({ group, permissions }) => (
                   <div key={group} className="space-y-4">
                     <h4 className="font-medium">{group}</h4>
@@ -270,7 +399,7 @@ const AdminRolesPage: React.FC = () => {
                   type="submit"
                   className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer"
                 >
-                  SAVE ROLE
+                  {isEditing ? "UPDATE ROLE" : "SAVE ROLE"}
                 </Button>
               </div>
             </form>
@@ -308,13 +437,41 @@ const AdminRolesPage: React.FC = () => {
               </div>
               <div className="flex flex-col gap-3">
                 <label htmlFor="role">Role</label>
-                <Input
-                  type="text"
-                  placeholder="Enter Role"
-                  value={newMember.role}
-                  name="role"
-                  onChange={handleNewInvite}
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent items-center cursor-pointer">
+                      <span className="text-sm">
+                        {selectedOption || "Select User"}
+                      </span>
+                      <img
+                        src="/assets/icons/arrow-down.svg"
+                        alt=""
+                        className="w-3 h-3 ml-auto"
+                      />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)] cursor-pointer"
+                  >
+                    {adminDetails.map((user, index) => (
+                      <DropdownMenuItem
+                        key={index}
+                        className="w-full text-center px-4 py-2 hover:bg-gray-200"
+                        onClick={() => {
+                          setSelectedOption(user.name);
+                          setNewMember((prev) => ({
+                            ...prev,
+                            // name: user.n,
+                            role: user.name,
+                          }));
+                        }}
+                      >
+                        {user.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="flex justify-end gap-4">
                 <Button

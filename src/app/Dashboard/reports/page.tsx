@@ -8,13 +8,6 @@ import {
   Users,
   BookOpen,
   DollarSign,
-  LayoutDashboard,
-  BookMarked,
-  Database,
-  HeadphonesIcon,
-  PieChart,
-  Settings,
-  LogOut,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -81,57 +74,9 @@ export default function ReportsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-card px-4 py-6">
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-primary">TravelMate</h2>
-        </div>
-
-        <nav className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Users className="mr-2 h-4 w-4" />
-            Users
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <BookMarked className="mr-2 h-4 w-4" />
-            Bookings
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Database className="mr-2 h-4 w-4" />
-            CMS
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <HeadphonesIcon className="mr-2 h-4 w-4" />
-            Customer Support
-          </Button>
-          <Button variant="ghost" className="w-full justify-start bg-accent">
-            <PieChart className="mr-2 h-4 w-4" />
-            Report & Analytics
-          </Button>
-          <Button variant="ghost" className="w-full justify-start">
-            <Settings className="mr-2 h-4 w-4" />
-            Admin Roles
-          </Button>
-        </nav>
-
-        <div className="mt-auto pt-4">
-          <Button variant="ghost" className="w-full justify-start text-destructive">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log Out
-          </Button>
-        </div>
-      </aside>
-
       {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-semibold">Reports and Analytics</h1>
-
-          <div className="flex items-center gap-4">
+      <main className="flex-1">
+          <div className="flex justify-between w-full items-center gap-4 pb-8">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -146,22 +91,11 @@ export default function ReportsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="flex items-center gap-2">
-              <Avatar>
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback>AD</AvatarFallback>
-              </Avatar>
-              <span className="font-medium">Admin</span>
-              <ChevronDown className="h-4 w-4" />
-            </div>
-
             <Button className="bg-orange-500 hover:bg-orange-600">
               <Download className="mr-2 h-4 w-4" />
-              Export All Data
+             <p className="hidden lg:block">Export All Data</p>
             </Button>
           </div>
-        </div>
-
         {/* Metric Cards */}
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card className="bg-green-50">
