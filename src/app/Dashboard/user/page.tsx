@@ -2,14 +2,13 @@
 import { useState } from "react";
 import React from "react";
 import DateRangeDialog from "@/components/reuseables/DateDialog";
-import { useGetUsers, useExportCSV, useGetUser } from "@/hooks/api/user";
+import { useExportCSV } from "@/hooks/api/user";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 import { UsersTable } from "@/components/molecues/user/RegisterUserTable";
 import { DeletedUsersTable } from "@/components/molecues/user/DeletedUsers";
+
 const page = () => {
   return (
     <div className="space-y-[24px]">
@@ -21,14 +20,14 @@ const page = () => {
 const Filter = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
-  const { exporting, onExportCSV, isSuccess } = useExportCSV();
+  const { onExportCSV } = useExportCSV();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [dateRange, setDateRange] = useState({
     from: undefined,
     to: undefined,
   });
+  const [activeTab, setActiveTab] = useState("registerUser"); // Active tab state
 
-  // Format date for display
   const formatDateRange = () => {
     if (dateRange.from && dateRange.to) {
       return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
@@ -54,18 +53,22 @@ const Filter = () => {
     <div className="space-y-[24px] w-full">
       <div className="flex justify-between items-center w-full">
         <div className="w-full">
-          <Tabs defaultValue="registerUser" className="space-y-[20px] w-full ">
+          <Tabs
+            defaultValue="registerUser"
+            className="space-y-[20px] w-full"
+            onValueChange={(value) => setActiveTab(value)} // Update active tab state
+          >
             <div className="flex lg:justify-between space-x-[5px] ">
               <TabsList className="bg-[#fff] lg:shadow-none shadow-sm rounded-[10px] flex justify-between items-center p-2 h-[44px] lg:h-[53px]">
                 <TabsTrigger
                   value="registerUser"
-                  className="p-[10px] rounded-[4px] text-[#181818] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center text-[12px] lg:text-[14px] font-[500] "
+                  className="p-[10px] rounded-[4px] text-[#181818] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center text-[12px] lg:text-[14px] font-[500]"
                 >
                   Registered Accounts
                 </TabsTrigger>
                 <TabsTrigger
                   value="deletedUser"
-                  className="p-[10px] rounded-[8px] text-[#181818] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center text-[12px] lg:text-[14px] font-[500] "
+                  className="p-[10px] rounded-[8px] text-[#181818] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center text-[12px] lg:text-[14px] font-[500]"
                 >
                   Deleted Accounts
                 </TabsTrigger>
@@ -80,14 +83,13 @@ const Filter = () => {
                   alt=""
                   className="w-[10px] lg:w-auto"
                 />
-                <span className="font-[600] text-[10px] lg:text-[16px] text-[#fff] ">
+                <span className="font-[600] text-[10px] lg:text-[16px] text-[#fff]">
                   Export as CSV file
                 </span>
               </div>
             </div>
 
-            <div className="flex space-y-[12px] lg:space-y-0 lg:space-x-4 justify-between flex-col lg:flex-row  items-center">
-              {/* Search Bar */}
+            <div className="flex space-y-[12px] lg:space-y-0 lg:space-x-4 justify-between flex-col lg:flex-row items-center">
               <div className="lg:min-w-[375px] w-full lg:py-4 py-[10px] px-[12px] lg:px-6 flex items-center border border-[#ACAEB3] rounded-full space-x-2">
                 <img
                   src="/assets/icons/search.svg"
@@ -103,17 +105,18 @@ const Filter = () => {
                 />
               </div>
 
-              <div className="flex justify-between items-center space-x-3 w-full ">
-                <FilterDropdown
-                  selectedOption={selectedOption}
-                  setSelectedOption={setSelectedOption}
-                  options={[
-                    { label: "Active", value: "true" },
-                    { label: "Deactivated", value: "false" },
-                  ]}
-                />
+              <div className="flex justify-between items-center space-x-3 w-full">
+                {activeTab === "registerUser" && (
+                  <FilterDropdown
+                    selectedOption={selectedOption}
+                    setSelectedOption={setSelectedOption}
+                    options={[
+                      { label: "Active", value: "true" },
+                      { label: "Deactivated", value: "false" },
+                    ]}
+                  />
+                )}
 
-                {/* Date Filter - Now Clickable */}
                 <div
                   className="flex items-center lg:py-4 py-[10px] px-[12px] lg:px-6 bg-white border lg:shadow-none shadow-sm border-[#EBECED] rounded-full space-x-2 cursor-pointer"
                   onClick={() => setDatePickerOpen(true)}
@@ -123,11 +126,11 @@ const Filter = () => {
                     alt="Calendar Icon"
                     className="w-6"
                   />
-                  <div className="lg:flex items-center space-x-1 ">
+                  <div className="lg:flex items-center space-x-1">
                     <span className="text-[14px] font-light text-[#181818]">
                       Filter by Date
                     </span>
-                    <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:block ">
+                    <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:block">
                       :{" "}
                       {dateRange.from
                         ? formatDateRange()
@@ -136,11 +139,12 @@ const Filter = () => {
                   </div>
                 </div>
 
-                <div className=" text-[#023E8A] text-[14px] font-[400] p-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer ">
+                <div className="text-[#023E8A] text-[14px] font-[400] p-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer">
                   Apply
                 </div>
               </div>
             </div>
+
             <div className="w-full">
               <TabsContent value="registerUser">
                 <UsersTable
@@ -150,14 +154,17 @@ const Filter = () => {
                 />
               </TabsContent>
               <TabsContent value="deletedUser">
-                <DeletedUsersTable />
+                <DeletedUsersTable
+                  searchTerm={searchTerm}
+                  selectedOption={selectedOption}
+                  dateRange={dateRange}
+                />
               </TabsContent>
             </div>
           </Tabs>
         </div>
       </div>
 
-      {/* Date Range Picker Modal */}
       <DateRangeDialog
         isOpen={datePickerOpen}
         onClose={() => setDatePickerOpen(false)}

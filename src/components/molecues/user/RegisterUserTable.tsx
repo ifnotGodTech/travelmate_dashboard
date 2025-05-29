@@ -93,71 +93,96 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
             {loading ? (
               <LoadingUser />
             ) : (
-              <Table className="w-full min-w-[800px]">
-                <TableHeader className="bg-gray-100">
-                  <TableRow>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
-                      User ID
-                    </TableHead>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
-                      Name
-                    </TableHead>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
-                      Email Address
-                    </TableHead>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
-                      Registration Date
-                    </TableHead>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
-                      Status
-                    </TableHead>
-                    <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-center">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow
-                      key={user.id}
-                      className="bg-white hover:bg-gray-50 transition duration-200 cursor-pointer"
-                    >
-                      <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
-                        {user.id}
-                      </TableCell>
-                      <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
-                        {`${user.first_name || "---"} ${
-                          user.last_name || "---"
-                        }`}
-                      </TableCell>
-                      <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
-                        {user.email}
-                      </TableCell>
-                      <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
-                        {format(new Date(user.date_created), "MM/dd/yyyy")}
-                      </TableCell>
-                      <TableCell className="py-6 px-6 text-sm">
-                        <span
-                          className={`p-[10px] border-[1px] rounded-[12px] text-[14px] font-[400] ${
-                            user.is_active
-                              ? "bg-[#2D9C5E1A] text-green-700 border-[#2D9C5E]"
-                              : "bg-[#D726380D] text-red-700 border-[#D72638]"
-                          }`}
-                        >
-                          {user.is_active ? "Active" : "Deactivated"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-6 px-6 text-center">
-                        <UserDropdown
-                          parentWidth={180}
-                          onViewDetails={() => handleViewDetails(user)}
-                          onDeactivate={() => handleDeactivateUser(user)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <>
+                {users.length === 0 ? (
+                  <div className="h-[80px] flex justify-center items-center">
+                    <p className="ttext-[20px] font-[500] text-[#181818]">
+                      No data found
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {error ? (
+                      <div className="h-[80px] flex justify-center items-center">
+                        <p className="ttext-[20px] font-[500] text-[#181818]">
+                          We cannot Fetch users at the moment please try again.
+                        </p>
+                      </div>
+                    ) : (
+                      <Table className="w-full min-w-[800px]">
+                        <TableHeader className="bg-gray-100">
+                          <TableRow>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                              User ID
+                            </TableHead>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                              Name
+                            </TableHead>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                              Email Address
+                            </TableHead>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                              Registration Date
+                            </TableHead>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                              Status
+                            </TableHead>
+                            <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-center">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((user) => (
+                            <TableRow
+                              key={user.id}
+                              className="bg-white hover:bg-gray-50 transition duration-200 cursor-pointer"
+                            >
+                              <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
+                                {user.id}
+                              </TableCell>
+                              <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
+                                {`${user.first_name || "---"} ${
+                                  user.last_name || "---"
+                                }`}
+                              </TableCell>
+                              <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
+                                {user.email}
+                              </TableCell>
+                              <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818]">
+                                {format(
+                                  new Date(user.date_created),
+                                  "MM/dd/yyyy"
+                                )}
+                              </TableCell>
+                              <TableCell className="py-6 px-6 text-sm">
+                                <span
+                                  className={`p-[10px] border-[1px] rounded-[12px] text-[14px] font-[400] ${
+                                    user.is_active
+                                      ? "bg-[#2D9C5E1A] text-green-700 border-[#2D9C5E]"
+                                      : "bg-[#D726380D] text-red-700 border-[#D72638]"
+                                  }`}
+                                >
+                                  {user.is_active ? "Active" : "Deactivated"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-6 px-6 text-center">
+                                <UserDropdown
+                                  parentWidth={180}
+                                  onViewDetails={() => handleViewDetails(user)}
+                                  onDeactivate={() =>
+                                    handleDeactivateUser(user)
+                                  }
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -186,7 +211,13 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
         </div>
       </div>
 
-      {error && <p className="text-center text-red-500">{String(error)}</p>}
+      {/* {error && (
+        <div className="h-[80px] flex justify-center items-center">
+          <p className="ttext-[20px] font-[500] text-[#181818]">
+            We cannot Fetch users at the moment please try again.
+          </p>
+        </div>
+      )} */}
 
       <UserDetailsDialog
         selectedUser={selectedUser}

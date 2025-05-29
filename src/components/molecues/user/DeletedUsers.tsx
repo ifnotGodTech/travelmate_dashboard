@@ -1,15 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  UserDetailsDialog,
   UserDeactivationDialog,
   UserDropdown,
+  UserDetailsDialog,
   LoadingUser,
 } from "@/components/molecues/user/DeleteUserComponent";
 
-import { useGetUsers, useExportCSV, useGetUser } from "@/hooks/api/user";
-import Button from "@/components/reuseables/Button";
-import { useRouter } from "next/navigation";
+import { useGetDeletedUsers, useGetUser } from "@/hooks/api/user";
 import {
   Table,
   TableBody,
@@ -20,15 +18,24 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 
-export const DeletedUsersTable = () => {
-  const router = useRouter();
-  const { users = [], loadMore, loading, error, nextPageUrl } = useGetUsers();
+export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
+  const {
+    users,
+    loadNext,
+    loadPrevious,
+    loading,
+    error,
+    setSearchTerm,
+    setIsActive,
+    nextPageUrl,
+    previousPageUrl,
+  } = useGetDeletedUsers();
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState(null);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
-  const [checkedRows, setCheckedRows] = useState<string[]>([]);
-  const [isAllSelected, setIsAllSelected] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
   const { data: userDetails, loading: userLoading } = useGetUser({
     UserId: userId as string,
@@ -41,22 +48,10 @@ export const DeletedUsersTable = () => {
     },
   });
 
-  const handleCheckboxChange = (userId: string) => {
-    setCheckedRows((prevCheckedRows) =>
-      prevCheckedRows.includes(userId)
-        ? prevCheckedRows.filter((id) => id !== userId)
-        : [...prevCheckedRows, userId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      setCheckedRows([]); // Deselect all rows
-    } else {
-      // setCheckedRows(users.map((user) => user.id));
-    }
-    setIsAllSelected(!isAllSelected);
-  };
+  useEffect(() => {
+    setSearchTerm(searchTerm || "");
+    setIsActive(selectedOption || null);
+  }, [searchTerm, selectedOption, setSearchTerm, setIsActive]);
 
   const handleViewDetails = (user: any) => {
     setSelectedUser(user);
@@ -75,8 +70,9 @@ export const DeletedUsersTable = () => {
     }
   };
 
-  const cancelDeactivation = () => {
-    setDeactivatingUser(null);
+  const confirmBulkDeletion = () => {
+    console.log("Deleting users with IDs:", selectedUserIds);
+    setSelectedUserIds([]);
     setIsDeactivateDialogOpen(false);
   };
 
@@ -85,107 +81,139 @@ export const DeletedUsersTable = () => {
     setUserId(null);
   };
 
+  const cancelDeactivation = () => {
+    setDeactivatingUser(null);
+    setIsDeactivateDialogOpen(false);
+  };
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
   return (
-    <div className="bg-white rounded-[20px]  border border-gray-300 w-full overflow-hidden">
-      <div className="max-w-[95vw] lg:max-w-full overflow-x-auto">
-        <div className="inline-block min-w-full align-middle">
-          <Table className="w-full min-w-[800px]">
-            <TableHeader className="bg-gray-100">
-              <TableRow>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
-                    checked={isAllSelected}
-                    onChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
-                  User ID
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-2/12">
-                  Name
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-2/12">
-                  Email Address
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
-                  Registration Date
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
-                  Deletion Date
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-2/12">
-                  Deletion Reason
-                </TableHead>
-                <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-center w-1/12">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow
-                  key={user.id}
-                  className="hover:bg-gray-50 transition duration-200 cursor-pointer"
-                >
-                  <TableCell className="py-6 pr-6 text-center w-1/12">
+    <div className="">
+      {selectedUserIds.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <button
+            className="bg-red-500 text-white py-2 px-4 rounded-lg"
+            onClick={() => setIsDeactivateDialogOpen(true)}
+          >
+            Delete Selected Users
+          </button>
+        </div>
+      )}
+      <div className="bg-white rounded-[20px] border border-gray-300 w-full overflow-hidden">
+        <div className="max-w-[95vw] lg:max-w-full overflow-x-auto">
+          <div className="inline-block min-w-full align-middle">
+            <Table className="w-full min-w-[800px]">
+              <TableHeader className="bg-gray-100">
+                <TableRow>
+                  <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
                     <input
                       type="checkbox"
                       className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
-                      // checked={checkedRows.includes(user.id)}
-                      // onChange={() => handleCheckboxChange(user.id)}
+                      onChange={(e) =>
+                        setSelectedUserIds(
+                          e.target.checked ? users.map((user) => user.id) : []
+                        )
+                      }
+                      checked={selectedUserIds.length === users.length}
                     />
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-1/12 min-h-[60px]">
-                    {user.id}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-2/12 min-h-[60px]">
-                    {`${user.first_name || "---"} ${user.last_name || "---"}`}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-2/12 min-h-[60px]">
-                    {user.email}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-1/12 min-h-[60px]">
-                    {format(new Date(user.date_created), "MM/dd/yyyy")}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-1/12 min-h-[60px]">
-                    {user.date_created
-                      ? format(new Date(user.date_created), "MM/dd/yyyy")
-                      : "---"}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-[14px] font-[400] text-[#181818] w-1/12 min-h-[60px]">
-                    {user?.date_created || "---"}
-                  </TableCell>
-                  <TableCell className="py-6 px-6 text-center w-1/12 min-h-[60px]">
-                    <UserDropdown
-                      parentWidth={180}
-                      onViewDetails={() => handleViewDetails(user)}
-                      onDeactivate={() => handleDeactivateUser(user)}
-                    />
-                  </TableCell>
+                  </TableHead>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email Address</TableHead>
+                  <TableHead>Registration Date</TableHead>
+                  <TableHead>Deletion Date</TableHead>
+                  <TableHead>Deletion Reason</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow
+                    key={user.id}
+                    className="hover:bg-gray-50 transition duration-200 cursor-pointer"
+                  >
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
+                        checked={selectedUserIds.includes(user.id)}
+                        onChange={() => toggleSelectUser(user.id)}
+                      />
+                    </TableCell>
+                    <TableCell>{user.id}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      {user?.date_created || "---"}
+                    </TableCell>
+                    <TableCell>
+                      {user.deleted_at
+                        ? format(new Date(user.deleted_at), "MM/dd/yyyy")
+                        : "---"}
+                    </TableCell>
+                    <TableCell>{user?.reason || "---"}</TableCell>
+                    <TableCell>
+                      <UserDropdown
+                        onViewDetails={() => handleViewDetails(user)}
+                        onDeactivate={() => handleDeactivateUser(user)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
+        {loading && <LoadingUser />}
+        {error && (
+          <div className="h-[80px] flex justify-center items-center">
+            <p>We cannot Fetch users at the moment, please try again.</p>
+          </div>
+        )}
+        {isDeactivateDialogOpen && (
+          <UserDeactivationDialog
+            isOpen={isDeactivateDialogOpen}
+            deactivatingUser={deactivatingUser || selectedUserIds}
+            onConfirm={
+              deactivatingUser ? confirmDeactivation : confirmBulkDeletion
+            }
+            onCancel={cancelDeactivation}
+          />
+        )}
+        {selectedUser && (
+          <UserDetailsDialog
+            selectedUser={selectedUser}
+            userDetails={userDetails}
+            userLoading={userLoading}
+            onClose={handleDialogClose}
+          />
+        )}
       </div>
-      {loading && <LoadingUser />}
-      {error && <p className="text-center text-red-500">{String(error)}</p>}
-
-      <UserDetailsDialog
-        selectedUser={selectedUser}
-        userDetails={userDetails}
-        userLoading={userLoading}
-        onClose={handleDialogClose}
-      />
-
-      <UserDeactivationDialog
-        deactivatingUser={deactivatingUser}
-        isOpen={isDeactivateDialogOpen}
-        onConfirm={confirmDeactivation}
-        onCancel={cancelDeactivation}
-      />
+      <div className="flex justify-end mt-4 space-x-4">
+        <button
+          className={`py-2 px-4 border rounded-lg ${
+            previousPageUrl ? "border-blue-500" : "border-gray-300 cursor-not-allowed"
+          }`}
+          onClick={previousPageUrl ? loadPrevious : undefined}
+        >
+          Previous
+        </button>
+        <button
+          className={`py-2 px-4 border rounded-lg ${
+            nextPageUrl ? "border-blue-500" : "border-gray-300 cursor-not-allowed"
+          }`}
+          onClick={nextPageUrl ? loadNext : undefined}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

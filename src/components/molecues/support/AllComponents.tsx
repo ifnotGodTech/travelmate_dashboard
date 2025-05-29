@@ -9,13 +9,11 @@ import {
 import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import Button from "@/components/reuseables/Button";
-import { useGetAllTicket } from "@/hooks/api/ticket";
-import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import { useRouter } from "next/navigation";
 
 export const AllContent: React.FC = () => {
   const router = useRouter();
-  const { loading, data, nextPage, loadMore } = useGetAllTicket({});
+  const { loading, data, nextPage, loadMore } = useGetAllTicket();
 
   return (
     <div className="space-y-[32px]">

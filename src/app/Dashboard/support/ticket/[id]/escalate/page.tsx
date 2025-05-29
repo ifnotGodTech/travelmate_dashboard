@@ -6,6 +6,10 @@ import { useFormik } from "formik";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import * as Yup from "yup";
 import {
+  DetailRow,
+  formatCreatedAt,
+} from "@/components/molecues/support/Reuseables";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -13,19 +17,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Button from "@/components/reuseables/Button";
 import { useParams } from "next/navigation";
+import { useGetAllEscalationLevel } from "@/hooks/api/roles";
 import {
   useGetTicket,
-  useGetAllEscalationLevel,
   useGetAllEscalationReasons,
   useEscalateTicket,
 } from "@/hooks/api/ticket";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 const page = () => {
   const [showModal, setShowModal] = useState(false);
   const { id }: { id: string } = useParams();
 
-  const { data, loading } = useGetTicket({
+  const { ticket, loadingTicket } = useGetTicket({
     TicketId: id as string,
     initalFetch: true,
     successCallback: (message) => {
@@ -36,7 +41,7 @@ const page = () => {
     },
   });
 
-  if (loading) {
+  if (loadingTicket) {
     return <LoadingState />;
   }
 
@@ -44,9 +49,9 @@ const page = () => {
     <>
       <div>
         <ContentWrapper>
-          <div className="bg-[#fff] lg:rounded-[20px]">
+          <div className="bg-[#fff] shadow-md lg:rounded-[20px]">
             <EscalateDetails
-              data={data}
+              data={ticket}
               showModal={showModal}
               setShowModal={setShowModal}
             />
@@ -67,7 +72,7 @@ const page = () => {
 
 const EscalateDetails = ({ data, showModal, setShowModal }: any) => {
   return (
-    <div className="p-[40px] space-y-[40px]">
+    <div className="p-[40px] space-y-[24px]">
       <div>
         <h3 className="font-[500] lg:text-[16px] text-[14px] text-[#181818]">
           {data?.created_at
@@ -83,7 +88,7 @@ const EscalateDetails = ({ data, showModal, setShowModal }: any) => {
           Escalate Issue #{data?.ticket_id}
         </h1>
       </div>
-      <Warning />
+      <TicketDetails ticket={data} />
       <CustomerInfo user={data?.user} />
       <Selections
         id={data?.id}
@@ -104,6 +109,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
   const handleDropdownSelect = (option: any) => {
     setSelectedEmail(option?.email || "");
   };
+  const router = useRouter();
 
   const formik = useFormik({
     initialValues: {
@@ -124,7 +130,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
     }),
     onSubmit: (values) => {
       const payload = {
-        escalation_level: values.escalation_level,
+        escalation_role: values.escalation_level,
         escalation_reason: values.escalation_reason,
         escalation_note: values.escalation_note,
         escalation_response_time: values.escalation_response_time,
@@ -135,7 +141,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
         payload,
         successCallback: () => {
           setShowModal(true);
-          console.log("Ticket escalated successfully");
+          router.push("/Dashboard/support/ticket/escalates");
         },
       });
     },
@@ -151,11 +157,11 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
         <div className="space-y-10">
           <div className="space-y-6">
             <h1 className="text-[16px] font-[500] text-[#181818]">
-              Escalation Level:
+              Department:
             </h1>
             <Dropdown
               options={Leveldata?.results || []}
-              placeholder="Select Escalation Level"
+              placeholder="Select Department"
               onSelect={(option) => {
                 formik.setFieldValue("escalation_level", option.id);
                 handleDropdownSelect(option); // Ensure the option is passed to update the email
@@ -167,19 +173,6 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
                   {formik.errors.escalation_level}
                 </p>
               )}
-          </div>
-
-          <div className="space-y-6">
-            <h1 className="text-[16px] font-[500] text-[#181818]">
-              Escalation Level Email:
-            </h1>
-            <input
-              type="text"
-              value={selectedEmail}
-              readOnly
-              className="w-full p-4 rounded-full border-[#9b9ea4] border-[1px] bg-transparent text-[16px] font-[400]"
-              placeholder="Select an escalation level first"
-            />
           </div>
 
           <div className="space-y-6">
@@ -209,7 +202,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
             <textarea
               name="escalation_note"
               maxLength={200}
-              placeholder="Provide additional information"
+              placeholder="Please provide additional information on what has been attempted so far"
               className="w-full p-4 rounded-[8px] bg-[#f5f5f5] placeholder:text-[#9b9ea4] text-[16px] font-[400]"
               value={formik.values.escalation_note}
               onChange={formik.handleChange}
@@ -366,7 +359,7 @@ const MiniDropdown = ({
 };
 
 const CustomerInfo = ({ user }: any) => {
-  const { email, first_name, last_name } = user || {};
+  const { email, first_name, last_name, mobile_number } = user || {};
   return (
     <div className="space-y-6">
       <h4 className="font-[500] text-[20px] text-[#181818]">
@@ -405,7 +398,7 @@ const CustomerInfo = ({ user }: any) => {
           </div>
           <div className="w-1/2">
             <p className="font-inter font-[500] text-[15px] break-all">
-              {"+2349064349985"}
+              {mobile_number || "N/A"}
             </p>
           </div>
         </div>
@@ -426,22 +419,25 @@ const CustomerInfo = ({ user }: any) => {
   );
 };
 
-const Warning = () => {
+const TicketDetails = ({ ticket }: any) => {
+  const formattedDate = formatCreatedAt(ticket?.created_at, 2);
   return (
-    <div className="py-[24px]">
-      <div className="py-4 px-6 bg-[#FFE2D2] rounded-[12px] gap-x-[16px] border-[#FF6F1E] border-[1px] flex items-start ">
-        <div className="">
-          <img src="/assets/icons/dark-warning.svg" alt="" />
-        </div>
-        <div className="flex-1 lg:space-y-[16px] space-y-[8px]">
-          <h2 className="font-[500] lg:text-[20px] text-[14px] text-[#181818]">
-            You are about to escalate this issue
-          </h2>
-          <p className="font-[400] lg:text-[16px] text-[10px] text-[#67696d]">
-            Escalation will notify management and prioritize this ticket for
-            immediate attention. Please provide additional details to help
-            resolve this issue quickly.
-          </p>
+    <div className="">
+      <div className="space-y-6">
+        <h4 className="font-[500] text-[20px] text-[#181818]">
+          Customer Information
+        </h4>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-3 gap-6">
+            <DetailRow label="Created at" value={formattedDate} />
+            <DetailRow label="Ticket ID" value={ticket?.ticket_id} />
+            <DetailRow label="Category" value={ticket?.category} />
+            <DetailRow label="Created at" value={formattedDate} />
+          </div>
+
+          <DetailRow label="Subject" value={ticket?.title} />
+          <DetailRow label="Description" value={ticket?.description} />
         </div>
       </div>
     </div>

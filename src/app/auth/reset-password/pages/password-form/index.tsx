@@ -96,7 +96,7 @@ export const ResetComponent = ({
             <img
               src="/assets/images/company-logo.svg"
               alt=""
-              className="lg:w-28 w-[53px] "
+              className="lg:w-28 w-28 "
             />
             <p className="text-[#181818] lg:text-2xl lg:font-semibold font-[500] text-[18px] ">
               Reset Password

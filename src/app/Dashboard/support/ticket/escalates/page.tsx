@@ -1,11 +1,13 @@
 "use client";
-import ContentWrapper from "@/components/reuseables/ContentWrapper";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Filter } from "@/components/molecues/support/Reuseables";
-import { TicketTabContent } from "@/components/molecues/support/Tickets";
+import { EscaleteTable } from "@/components/molecues/support/EscalatedTable";
+import React from "react";
+import { useRouter } from "next/navigation";
 
-const Page = () => {
+type Props = {};
+
+const page = (props: Props) => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
@@ -13,19 +15,17 @@ const Page = () => {
     undefined
   );
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-[20px] font-[600] text-[#181818]">Tickets</h2>
-
-        <div
-          className="bg-[#023E8A] rounded-[8px] p-4 text-[20px] font-[500] cursor-pointer text-[#fff]"
-          onClick={() => router.push("/Dashboard/support/ticket/escalates")}
-        >
-          All Escalated tickets
-        </div>
+      <div className="">
+        <img
+          src="/assets/icons/arrow-back.svg"
+          alt=""
+          className="cursor-pointer"
+          onClick={() => router.back()}
+        />
       </div>
-
       <Filter
         selectedOption={selectedOption}
         setSelectedOption={setSelectedOption}
@@ -37,8 +37,8 @@ const Page = () => {
         datePickerOpen={datePickerOpen}
         setDatePickerOpen={setDatePickerOpen}
       />
-      <div className="bg-[#FFFFFF] py-[16px] rounded-[8px] shadow-md">
-        <TicketTabContent
+      <div className="p-4 bf-white shadow-sm rounded-[2px]">
+        <EscaleteTable
           selectedOption={selectedOption}
           searchTerm={searchTerm}
           date={selectedDate}
@@ -48,4 +48,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default page;

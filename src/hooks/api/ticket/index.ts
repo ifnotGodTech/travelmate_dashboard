@@ -47,9 +47,15 @@ export const useGetAllTickets = () => {
   const hasFetchedInitial = useRef(false);
   const isFetching = useRef(false); // Prevent redundant fetches
 
-  // Build URL with filters
   const buildUrl = useCallback(() => {
-    const params = new URLSearchParams(filters);
+    const params = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+
     return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
   }, [filters]);
 
@@ -405,3 +411,164 @@ export function useGetAllTicketStats({
     fetchTicketsStats,
   };
 }
+
+export function useClaimTicket() {
+  const [claiming, setClaiming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onClaiming = async ({
+    TicketId,
+    successCallback,
+  }: {
+    TicketId: string;
+    successCallback?: () => void;
+  }) => {
+    setClaiming(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await TicketService.claimTicket({ TicketId });
+      const message = res.data?.detail || "Ticket response sent successfully";
+      showSuccessToast({ message });
+
+      if (successCallback) {
+        successCallback();
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to claim at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return { claiming, onClaiming, isSuccess };
+}
+
+export const useResolveTicket = () => {
+  const [resolving, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onResolveTicket = async ({
+    TicketId,
+    successCallback,
+  }: {
+    TicketId: string;
+    successCallback?: () => void;
+  }) => {
+    setLoading(true);
+    setIsSuccess(false);
+    try {
+      const res = await TicketService.resolveTicket(TicketId);
+      const message = res.data.detail || "Ticket response sent sucessfully";
+
+      showSuccessToast({ message });
+
+      try {
+        successCallback?.();
+      } catch (callbackError) {
+        console.error("Error in successCallback:", callbackError);
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to ticket at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { resolving, onResolveTicket, isSuccess };
+};
+
+export const useGetAllEscalatedTickets = () => {
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/admin/tickets/escalated/";
+
+  const [tickets, setTickets] = useState<any>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null); // Pagination disabled
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFiltersState] = useState<Record<string, any>>({});
+  const hasFetchedInitial = useRef(false);
+  const isFetching = useRef(false); // Prevent redundant fetches
+
+  // Build URL with filters
+  const buildUrl = useCallback(() => {
+    const params = new URLSearchParams(filters);
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  }, [filters]);
+
+  // Fetch tickets function (memoized)
+  const fetchTickets = useCallback(
+    async (url?: string) => {
+      if (isFetching.current) return; // Prevent redundant fetching
+      isFetching.current = true;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const endpoint = url || buildUrl();
+        const response = await axios.get(endpoint);
+
+        const data: Ticket[] = response.data.results; // Adjusted to match direct array structure
+
+        setTickets(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred."
+        );
+      } finally {
+        setLoading(false);
+        isFetching.current = false;
+      }
+    },
+    [buildUrl]
+  );
+
+  // Set filters with deep comparison to prevent redundant updates
+  const setFilters = (newFilters: Record<string, any>) => {
+    setFiltersState((prevFilters) => {
+      const prevString = JSON.stringify(prevFilters);
+      const newString = JSON.stringify(newFilters);
+      return prevString === newString ? prevFilters : newFilters;
+    });
+  };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    if (!hasFetchedInitial.current) {
+      fetchTickets();
+      hasFetchedInitial.current = true;
+    }
+  }, [fetchTickets]);
+
+  // Fetch tickets when filters change
+  useEffect(() => {
+    if (hasFetchedInitial.current) {
+      fetchTickets();
+    }
+  }, [filters, fetchTickets]);
+
+  // Load next page (Disabled)
+  const loadNext = useCallback(() => {
+    if (nextPageUrl) fetchTickets(nextPageUrl);
+  }, [nextPageUrl, fetchTickets]);
+
+  return {
+    tickets,
+    loadNext, // Pagination disabled
+    loading,
+    error,
+    nextPageUrl, // Pagination disabled
+    setFilters,
+  };
+};

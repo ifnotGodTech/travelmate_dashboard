@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import useWebSocket from "react-use-websocket";
 import ChatService from "@/services/chat";
+import axios from "axios";
+
 const getFromLocalStorage = ({
   key,
   cb = () => null,
@@ -20,72 +22,144 @@ const getFromLocalStorage = ({
   }
 };
 
-type ChatResponse = {
-  id: number;
-  user: number;
-  user_info: {
-    id: number;
-    first_name: string;
-    email: string;
-  };
-  title: string;
+type Chat = {
+  id: string;
   status: string;
-  created_at: string;
-  updated_at: string;
-  assigned_admin: number;
-  admin_info: {
-    id: number;
-    first_name: string;
-    email: string;
-  };
-  unread_count: string;
-  last_message: string;
+  [key: string]: any;
 };
 
-export function useGetAllChat({
-  initalFetch = true,
+export function useGetAllChat() {
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/admin/chats/";
+
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFiltersState] = useState<Record<string, any>>({});
+  const hasFetchedInitial = useRef(false);
+  const isFetching = useRef(false); // Prevent redundant fetches
+
+  // Build URL with filters
+  const buildUrl = useCallback(() => {
+    const params = new URLSearchParams();
+
+    // Convert filters into query parameters
+    Object.entries(filters).forEach(([key, value]) => {
+      params.append(key, String(value));
+    });
+
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  }, [filters]);
+
+  // Fetch chats function (memoized)
+  const fetchChats = useCallback(
+    async (url?: string) => {
+      if (isFetching.current) return; // Prevent redundant fetching
+      isFetching.current = true;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const endpoint = url || buildUrl();
+        const response = await axios.get(endpoint);
+        const data: { results: Chat[]; next: string | null } = response.data;
+
+        setChats((prevChats) =>
+          url ? [...prevChats, ...data.results] : data.results
+        );
+        setNextPageUrl(data.next);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred."
+        );
+      } finally {
+        setLoading(false);
+        isFetching.current = false;
+      }
+    },
+    [buildUrl]
+  );
+
+  // Set filters with deep comparison to prevent redundant updates
+  const setFilters = (newFilters: Record<string, any>) => {
+    setFiltersState((prevFilters) => {
+      const prevString = JSON.stringify(prevFilters);
+      const newString = JSON.stringify(newFilters);
+      return prevString === newString ? prevFilters : newFilters;
+    });
+  };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    if (!hasFetchedInitial.current) {
+      fetchChats();
+      hasFetchedInitial.current = true;
+    }
+  }, [fetchChats]);
+
+  // Fetch chats when filters change
+  useEffect(() => {
+    if (hasFetchedInitial.current) {
+      fetchChats();
+    }
+  }, [filters, fetchChats]);
+
+  // Load next page
+  const loadNext = useCallback(() => {
+    if (nextPageUrl) fetchChats(nextPageUrl);
+  }, [nextPageUrl, fetchChats]);
+
+  return {
+    chats,
+    loadNext,
+    loading,
+    error,
+    nextPageUrl,
+    setFilters,
+  };
+}
+
+export function useGetChat({
+  ChatId,
+  initialFetch = true,
   successCallback,
   errorCallback,
 }: {
-  initalFetch?: boolean;
+  ChatId?: string;
+  initialFetch?: boolean;
   successCallback?: (message: string) => void;
   errorCallback?: (props: { message?: string; description?: string }) => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>([]);
-  const [nextPage, setNextPage] = useState<string | null>(null); // Track next page URL
-  const hasFetched = useRef(false); // Prevent multiple API calls
+  const [loadingChat, setLoading] = useState(false);
+  const [chat, setChat] = useState<any | null>(null);
 
-  const fetchTickets = async (url?: string) => {
+  const fetchChat = async () => {
+    if (!ChatId) return;
+
     setLoading(true);
     try {
-      const res = await ChatService.getAllChats(url);
-      setData((prev: any) => [...prev, ...res.data.results]);
-      setNextPage(res.data.next);
-      if (successCallback) successCallback("Tickets fetched successfully.");
+      const res = await ChatService.getChat({ id: ChatId });
+      setChat(res.data);
+      if (successCallback) successCallback("Chat fetched successfully.");
     } catch (error: any) {
-      if (errorCallback)
+      if (errorCallback) {
         errorCallback({
-          message: "An error occurred while fetching tickets",
-          description: error?.message || "Unknown error",
+          message: "An error occurred while fetching the chat.",
+          description: error?.message || "Unknown error.",
         });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMore = () => {
-    if (nextPage) fetchTickets(nextPage);
-  };
-
   useEffect(() => {
-    if (initalFetch && !hasFetched.current) {
-      hasFetched.current = true; // Mark as fetched
-      fetchTickets();
-    }
-  }, [initalFetch]);
+    if (initialFetch) fetchChat();
+  }, [initialFetch, ChatId]);
 
-  return { loading, data, nextPage, loadMore };
+  return { loadingChat, chat };
 }
 
 export const useGetChatMessages = () => {
@@ -109,8 +183,6 @@ export const useGetChatMessages = () => {
 
   return { loadingMessage, messages, onFetchMessages };
 };
-
-
 
 export const useWebSocketService = (sessionId: number) => {
   const [messages, setMessages] = useState<any[]>([]);
@@ -170,6 +242,7 @@ export const useWebSocketService = (sessionId: number) => {
       };
     }
   }, [socketUrl]);
+  // console.log(messages);
 
   const send = (message: any) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -181,3 +254,40 @@ export const useWebSocketService = (sessionId: number) => {
 
   return { messages, send };
 };
+
+export function useClaimChat() {
+  const [claiming, setClaiming] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onClaiming = async ({
+    ChatId,
+    successCallback,
+  }: {
+    ChatId: string;
+    successCallback?: () => void;
+  }) => {
+    setClaiming(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await ChatService.claimChat({ id: ChatId });
+      const message = res.data?.detail || "Chat claimed successfully";
+      showSuccessToast({ message });
+
+      if (successCallback) {
+        successCallback();
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Unable to respond to claim at the moment!";
+      showErrorToast({ message: errorMessage });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return { claiming, onClaiming, isSuccess };
+}

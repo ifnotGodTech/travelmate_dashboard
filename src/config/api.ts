@@ -10,7 +10,7 @@ const api = () => {
     messae: BASE_URL_LINK + "/api/admin/tickets/",
     escalation: BASE_URL_LINK + "/api/admin/escalation-levels",
     admin: BASE_URL_LINK + "/api/admin",
-    chat: BASE_URL_LINK + "/api/admin/chats",
+    chat: BASE_URL_LINK + "/api/admin/chats/",
     users: BASE_URL_LINK + "/api/superuser/",
     privacypolicy: BASE_URL_LINK + "/api/admin/privacy-policy",
     termsofuse: BASE_URL_LINK + "/api/admin/terms-of-use",

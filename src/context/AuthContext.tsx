@@ -39,7 +39,7 @@ export function useUpdateAuthContext() {
 }
 
 const InitializeAxiosDefaults = () => {
-  const { accessToken = "", refreshToken = "" } = useAuthContext();
+  const { accessToken = "", refreshToken = "", } = useAuthContext();
 
   useAxiosDefaults({ accessToken, refreshToken });
   return null;
