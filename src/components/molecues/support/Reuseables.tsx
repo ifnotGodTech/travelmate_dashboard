@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, act } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useRouter } from "next/navigation";
-import DateDialog from "@/components/reuseables/DateDialog";
+import DateDialog, { DatePairDialog } from "@/components/reuseables/DateDialog";
 import { parseISO, addDays, format, isValid } from "date-fns";
 import { useClaimTicket } from "@/hooks/api/ticket";
 import { useResolveTicket } from "@/hooks/api/ticket";
@@ -321,50 +321,53 @@ const ClaimedTicketSection = ({
   ticketDetails,
   claiming,
   handleClaimTicket,
-  router,
-}: any) => (
-  <>
-    <div className="border-b-[1px] w-full border-[#BCBEC2]">
-      <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-        Ticket Already claimed
-      </h2>
-    </div>
+}: any) => {
+  const router = useRouter();
+  return (
+    <>
+      <div className="border-b-[1px] w-full border-[#BCBEC2]">
+        <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+          Ticket Already claimed
+        </h2>
+      </div>
 
-    <div className=" px-[16px] lg:px-[32px]">
-      <p className="font-[400] text-[16px] lg:text-[20px]">
-        This chat is currently being handled by{" "}
-        {ticketDetails?.claimed_admin?.first_name || "---"}. You can either view
-        the ticket or claim it. Claiming the ticket will transfer responsibility
-        to you, removing {ticketDetails?.claimed_admin?.first_name || "---"}{" "}
-        from the conversation. The customer will be notified of the change.
-        Would you like to proceed?
-      </p>
-    </div>
+      <div className=" px-[16px] lg:px-[32px]">
+        <p className="font-[400] text-[16px] lg:text-[20px]">
+          This chat is currently being handled by{" "}
+          {ticketDetails?.claimed_admin?.first_name || "---"}. You can either
+          view the ticket or claim it. Claiming the ticket will transfer
+          responsibility to you, removing{" "}
+          {ticketDetails?.claimed_admin?.first_name || "---"} from the
+          conversation. The customer will be notified of the change. Would you
+          like to proceed?
+        </p>
+      </div>
 
-    <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-      <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
-        <div className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
-          <span className="text-[#023E8A] text-[20px] font-[500]">
-            View Only
-          </span>
-        </div>
+      <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+        <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
+          <div className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
+            <span className="text-[#023E8A] text-[20px] font-[500]" onClick={() => router.push(`/Dashboard/support/ticket/${ticketDetails?.id}/respond`)}>
+              View Only
+            </span>
+          </div>
 
-        <div className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer">
-          <span
-            className="text-[#fff] text-[20px] font-[500]"
-            onClick={handleClaimTicket}
-          >
-            {claiming ? (
-              <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              "Yes, Proceed"
-            )}
-          </span>
+          <div className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer">
+            <span
+              className="text-[#fff] text-[20px] font-[500]"
+              onClick={handleClaimTicket}
+            >
+              {claiming ? (
+                <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                "Yes, Proceed"
+              )}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 const UnclaimedTicketSection = ({
   ticketDetails,
@@ -470,8 +473,27 @@ export const Filter = ({
   setDatePickerOpen,
   selectedDate,
   setSelectedDate,
+  selectedStartDate,
+  setSelectedStartDate,
+  selectedEndDate,
+  setSelectedEndDate,
+  activeTab,
 }: any) => {
   const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    setSearchTerm("");
+    setInputValue("");
+  }, [activeTab]);
+
+  const handleApply = () => {
+    if (activeTab === "chat") {
+      console.log("Applying range:", selectedStartDate, selectedEndDate);
+    } else {
+      console.log("Applying single date:", selectedDate);
+    }
+  };
+
   return (
     <div className="w-full px-4 lg:px-0">
       <div
@@ -537,7 +559,11 @@ export const Filter = ({
                   Select Date
                 </span>
                 <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate max-w-[110px]">
-                  {selectedDate || "yyyy-mm-dd"}
+                  {activeTab === "chat"
+                    ? `${selectedStartDate || "yyyy-mm-dd"} to ${
+                        selectedEndDate || "yyyy-mm-dd"
+                      }`
+                    : selectedDate || "yyyy-mm-dd"}
                 </span>
               </div>
             </div>
@@ -549,22 +575,30 @@ export const Filter = ({
             rounded-[8px] cursor-pointer flex-shrink-0
             whitespace-nowrap
           "
-            onClick={() => {
-              // add apply logic here
-            }}
+            onClick={handleApply}
           >
             Apply
           </button>
         </div>
       </div>
 
-      {/* Date Dialog */}
-      <DateDialog
-        isOpen={datePickerOpen}
-        onClose={() => setDatePickerOpen(false)}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-      />
+      {activeTab === "chat" ? (
+        <DatePairDialog
+          isOpen={datePickerOpen}
+          onClose={() => setDatePickerOpen(false)}
+          selectedStartDate={selectedStartDate}
+          setSelectedStartDate={setSelectedStartDate}
+          selectedEndDate={selectedEndDate}
+          setSelectedEndDate={setSelectedEndDate}
+        />
+      ) : (
+        <DateDialog
+          isOpen={datePickerOpen}
+          onClose={() => setDatePickerOpen(false)}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+        />
+      )}
     </div>
   );
 };

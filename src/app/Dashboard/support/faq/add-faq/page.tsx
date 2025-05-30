@@ -11,6 +11,7 @@ import * as Yup from "yup";
 import Button from "@/components/reuseables/Button";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useAddFaq } from "@/hooks/api/faq";
+import { useRouter } from "next/navigation";
 
 const validationSchema = Yup.object({
   category: Yup.string().required("Category is required"),
@@ -26,8 +27,16 @@ const initialValues = {
 };
 
 const Page = () => {
+  const router = useRouter();
   return (
     <div className="lg:bg-transparent">
+      <button
+        onClick={() => router.back()}
+        className="inline-flex items-center mb-4 "
+        aria-label="Go back"
+      >
+        <img src="/assets/icons/arrow-back.svg" alt="Go back" className="" />
+      </button>
       <AddComponent />
     </div>
   );
@@ -35,7 +44,7 @@ const Page = () => {
 
 const AddComponent = () => {
   const { isSuccess, loading, onAddFaq } = useAddFaq();
-  const [showModal, setShowModal] = useState(false); 
+  const [showModal, setShowModal] = useState(false);
 
   const handleSubmit = async (values: typeof initialValues) => {
     await onAddFaq({
@@ -68,8 +77,9 @@ const AddComponent = () => {
                   <Dropdown
                     options={[
                       { id: 1, label: "Flights" },
-                      { id: 3, label: "Car Rentals" },
-                      { id: 2, label: "Account" },
+                      { id: 4, label: "Car Rentals" },
+                      { id: 3, label: "Account" },
+                      { id: 2, label: "Stays" },
                     ]}
                     placeholder="Select category"
                     onSelect={(value) =>

@@ -46,7 +46,9 @@ export function useGetAllChat() {
 
     // Convert filters into query parameters
     Object.entries(filters).forEach(([key, value]) => {
-      params.append(key, String(value));
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
     });
 
     return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
