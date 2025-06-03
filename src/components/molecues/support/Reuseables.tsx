@@ -213,6 +213,10 @@ export const ViewingChatModal = ({
   const currentUser = APP_STATE?.user?.user_id;
 
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [notAuthorized, setNotAuthorized] = useState(false);
+
+  const { loading, data } = useMyRoles({ modalVisible: selectedTicket });
+  const canViewMessage = data?.name === "Support & Tickets";
 
   const formattedDate = useMemo(
     () => (ticketDetails ? formatCreatedAt(ticketDetails.created_at, 2) : ""),
@@ -236,14 +240,34 @@ export const ViewingChatModal = ({
     }
   }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
 
+  useEffect(() => {
+    if (!selectedTicket) {
+      setNotAuthorized(false);
+    }
+  }, [selectedTicket]);
+
   const handleClaimTicket = useCallback(() => {
     if (!ticketDetails?.id) return;
+
+    if (!canViewMessage) {
+      setNotAuthorized(true);
+      return;
+    }
+
     onClaiming({
       TicketId: ticketDetails.id,
       successCallback: () =>
         router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`),
     });
-  }, [ticketDetails, onClaiming, router]);
+  }, [ticketDetails, onClaiming, router, canViewMessage]);
+
+  const handleEscalateTicket = useCallback(() => {
+    if (!canViewMessage) {
+      setNotAuthorized(true);
+      return;
+    }
+    router.push(`/Dashboard/support/ticket/${ticketDetails?.id}/escalate`);
+  }, [canViewMessage, router, ticketDetails]);
 
   const isTicketClaimed = ticketDetails?.claimed_admin !== null;
   const isClaimedByCurrentUser =
@@ -266,12 +290,14 @@ export const ViewingChatModal = ({
         aria-labelledby="modal-title"
       >
         {isRedirecting && (
-          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px] ">
+          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px]">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
-        {!isRedirecting && (
+        {notAuthorized && <NotAuthorizedModal ticketDetails={ticketDetails!} />}
+
+        {!isRedirecting && !notAuthorized && (
           <>
             {ticketLoading ? (
               <div className="h-[300px] flex justify-center items-center">
@@ -283,6 +309,7 @@ export const ViewingChatModal = ({
                 formattedDate={formattedDate}
                 claiming={claiming}
                 handleClaimTicket={handleClaimTicket}
+                handleEscalateTicket={handleEscalateTicket}
               />
             ) : isClaimedByCurrentUser ? (
               <UnclaimedTicketSection
@@ -290,6 +317,7 @@ export const ViewingChatModal = ({
                 formattedDate={formattedDate}
                 claiming={claiming}
                 handleClaimTicket={handleClaimTicket}
+                handleEscalateTicket={handleEscalateTicket}
               />
             ) : (
               <ClaimedTicketSection
@@ -376,15 +404,15 @@ const UnclaimedTicketSection = ({
   ticketDetails,
   formattedDate,
   handleClaimTicket,
+  handleEscalateTicket,
   claiming,
 }: {
   ticketDetails: any;
   formattedDate: string;
   handleClaimTicket: () => void;
+  handleEscalateTicket: () => void;
   claiming: boolean;
 }) => {
-  const router = useRouter();
-
   return (
     <>
       <div className="border-b-[1px] w-full border-[#BCBEC2]">
@@ -408,11 +436,7 @@ const UnclaimedTicketSection = ({
         <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
           <div
             className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer"
-            onClick={() =>
-              router.push(
-                `/Dashboard/support/ticket/${ticketDetails?.id}/escalate`
-              )
-            }
+            onClick={handleEscalateTicket}
           >
             <img src="/assets/icons/MessageModal.svg" alt="" />
             <span className="text-[#D72638] text-[20px] font-[500]">
@@ -700,6 +724,34 @@ interface EscalatedTicketChatModalProps {
   ticketLoading: boolean;
   onClose: () => void;
 }
+
+const NotAuthorizedModal = ({ ticketDetails }: any) => {
+  const router = useRouter();
+  return (
+    <div className="text-center p-6 flex flex-col space-y-4 items-center justify-center min-h-[400px]">
+      <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
+      <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
+        You cannot view this message.
+      </h1>
+      <p className="mt-4 text-gray-600">
+        You don't belong to the department the ticket was escalated to.
+      </p>
+
+      <div
+        className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+        onClick={() =>
+          router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`)
+        }
+      >
+        <>
+          <span className="text-[#fff] text-[20px] font-[500]">
+            View Chat Only
+          </span>
+        </>
+      </div>
+    </div>
+  );
+};
 
 export const EscalatedTicketChatModal: React.FC<
   EscalatedTicketChatModalProps
