@@ -5,7 +5,8 @@ import { Loading } from "../Reuseables";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthContext";
 import { useClaimChat } from "@/hooks/api/chat";
-
+import { AlertTriangle } from "lucide-react";
+import { useMyRoles } from "@/hooks/api/roles";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -222,6 +223,10 @@ export const ClaimedChatSection = ({
   const router = useRouter();
   const { onClaiming, claiming } = useClaimChat();
   const currentUser = APP_STATE?.user?.user_id || "";
+  const { loading, data } = useMyRoles({ modalVisible: !!chatDetails });
+  const canViewMessage = data?.name === "Support & Tickets";
+
+  const [notAuthorized, setNotAuthorized] = useState(false);
 
   const formattedDate = useMemo(
     () => (chatDetails ? formatCreatedAt(chatDetails.created_at, 2) : ""),
@@ -230,12 +235,16 @@ export const ClaimedChatSection = ({
 
   const handleClaimTicket = useCallback(() => {
     if (!chatDetails?.id) return;
+    if (!canViewMessage) {
+      setNotAuthorized(true);
+      return;
+    }
     onClaiming({
       ChatId: chatDetails.id,
       successCallback: () =>
         router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
     });
-  }, [chatDetails, router]);
+  }, [chatDetails, router, onClaiming, canViewMessage]);
 
   const handleNavigateToResponse = useCallback(() => {
     if (chatDetails?.id) {
@@ -259,6 +268,12 @@ export const ClaimedChatSection = ({
     }
   }, [chatDetails, currentUser, handleNavigateToResponse]);
 
+  useEffect(() => {
+    if (!chatDetails) {
+      setNotAuthorized(false);
+    }
+  }, [chatDetails]);
+
   return (
     <div
       className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
@@ -275,51 +290,85 @@ export const ClaimedChatSection = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
-        <div className="border-b-[1px] w-full border-[#BCBEC2]">
-          <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-            Ticket Already Claimed
-          </h2>
-        </div>
+        {notAuthorized && <NotAuthorizedModal ticketDetails={chatDetails} />}
 
-        <div className="px-[16px] lg:px-[32px]">
-          <p className="font-[400] text-[16px] lg:text-[20px]">
-            This chat is currently being handled by{" "}
-            {chatDetails?.claimed_admin?.first_name || "---"}. You can either
-            view the ticket or claim it. Claiming the ticket will transfer
-            responsibility to you, removing{" "}
-            {chatDetails?.claimed_admin?.first_name || "---"} from the
-            conversation. The customer will be notified of the change. Would you
-            like to proceed?
-          </p>
-        </div>
-
-        <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-          <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
-            <div
-              className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer"
-              onClick={() =>
-                router.push(`/Dashboard/support/chats/${chatDetails.id}/`)
-              }
-            >
-              <span className="text-[#023E8A] text-[20px] font-[500]">
-                View Only
-              </span>
+        {!notAuthorized && (
+          <>
+            <div className="border-b-[1px] w-full border-[#BCBEC2]">
+              <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+                Ticket Already Claimed
+              </h2>
             </div>
 
-            <div
-              className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
-              onClick={handleClaimTicket}
-            >
-              <span className="text-[#fff] text-[20px] font-[500]">
-                {claiming ? (
-                  <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  "Yes, Proceed"
-                )}
-              </span>
+            <div className="px-[16px] lg:px-[32px]">
+              <p className="font-[400] text-[16px] lg:text-[20px]">
+                This chat is currently being handled by{" "}
+                {chatDetails?.claimed_admin?.first_name || "---"}. You can
+                either view the ticket or claim it. Claiming the ticket will
+                transfer responsibility to you, removing{" "}
+                {chatDetails?.claimed_admin?.first_name || "---"} from the
+                conversation. The customer will be notified of the change. Would
+                you like to proceed?
+              </p>
             </div>
-          </div>
-        </div>
+
+            <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+              <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
+                <div
+                  className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer"
+                  onClick={() =>
+                    router.push(`/Dashboard/support/chats/${chatDetails.id}/`)
+                  }
+                >
+                  <span className="text-[#023E8A] text-[20px] font-[500]">
+                    View Only
+                  </span>
+                </div>
+
+                <div
+                  className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+                  onClick={handleClaimTicket}
+                >
+                  <span className="text-[#fff] text-[20px] font-[500]">
+                    {claiming ? (
+                      <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      "Yes, Proceed"
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const NotAuthorizedModal = ({ ticketDetails }: any) => {
+  const router = useRouter();
+  return (
+    <div className="text-center p-6 flex flex-col space-y-4 items-center justify-center min-h-[400px]">
+      <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
+      <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
+        You cannot view this message.
+      </h1>
+      <p className="mt-4 text-gray-600">
+        You don't belong to the department the ticket was escalated to.
+      </p>
+
+      <div
+        className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+        onClick={() =>
+          router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`)
+        }
+      >
+        <>
+          <span className="text-[#fff] text-[20px] font-[500]">
+            View Chat Only
+          </span>
+        </>
       </div>
     </div>
   );
