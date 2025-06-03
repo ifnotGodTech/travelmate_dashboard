@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ConfirmResolution } from "@/components/molecues/support/Reuseables";
 import * as Yup from "yup";
+import { useAuthContext } from "@/context/AuthContext";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -24,6 +25,8 @@ const formatDate = (isoDate: any) => {
 };
 
 const page = () => {
+  const APP_STATE = useAuthContext();
+  const currentUser = APP_STATE?.user?.user_id;
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { id } = useParams<{ id: string }>();
@@ -35,6 +38,8 @@ const page = () => {
     successCallback: (message) => console.log(message),
     errorCallback: (error) => console.error(error),
   });
+
+  const isAdmin = currentUser === ticket?.claimed_admin?.id;
 
   return (
     <>
@@ -50,22 +55,34 @@ const page = () => {
           />
 
           {ticket?.status !== "resolved" && (
-            <div className="hidden lg:flex  space-x-4">
-              {ticket?.escalated !== true && (
+            <div className="hidden lg:flex space-x-4">
+              {!ticket?.escalated && (
                 <button
-                  className="p-4 rounded-[8px] border-[1px] border-[#D72638] text-[20px] font-[500] text-[#D72638] cursor-pointer "
+                  className={`flex-1 rounded-[8px] border font-medium py-2 ${
+                    isAdmin
+                      ? "border-[#D72638] text-[#D72638]"
+                      : "border-gray-500 text-gray-700 cursor-not-allowed"
+                  }`}
                   onClick={() =>
                     router.push(
                       `/Dashboard/support/ticket/${ticket?.id}/escalate`
                     )
                   }
+                  disabled={!isAdmin}
+                  aria-disabled={isAdmin}
+                  title={isAdmin ? "Admins only" : "Escalate this ticket"}
                 >
                   Escalate Ticket
                 </button>
               )}
               <button
-                className="p-4 rounded-[8px] border-[1px] bg-[#023E8A] text-[20px] font-[500] text-[#fff] cursor-pointer "
+                className={`flex-1 rounded-[8px] text-white font-medium px-4 py-2 w-full ${
+                  isAdmin ? "bg-[#023E8A]" : "bg-gray-500 cursor-not-allowed"
+                }`}
                 onClick={() => setShowConfirmModal(true)}
+                disabled={!isAdmin}
+                aria-disabled={!isAdmin}
+                title={isAdmin ? "Admins only" : "Mark ticket as resolved"}
               >
                 Mark as Resolved
               </button>
@@ -107,23 +124,31 @@ const page = () => {
             </div>
           </div>
         )}
-        <Chat ticket={ticket} loadingTicket={loadingTicket} />
+        <Chat ticket={ticket} loadingTicket={loadingTicket} isAdmin={isAdmin} />
       </div>
       {ticket?.status !== "resolved" && (
         <div className="  sticky lg:hidden bottom-0 bg-white p-4 flex justify-between items-end space-x-4 shadow-lg">
           {ticket?.escalated !== true && (
             <button
-              className="flex-1 rounded-[8px] border border-[#D72638] text-[#D72638] font-medium py-2"
+              className={`flex-1 rounded-[8px] border  font-medium py-2 ${
+                !isAdmin
+                  ? "border-gray-500 text-gray-700 cursor-not-allowed "
+                  : "border-[#D72638] text-[#D72638]  "
+              } `}
               onClick={() =>
                 router.push(`/Dashboard/support/ticket/${ticket?.id}/escalate`)
               }
+              disabled={!isAdmin}
             >
               Escalate Ticket
             </button>
           )}
           <button
-            className="flex-1 rounded-[8px] bg-[#023E8A] text-white font-medium py-2"
+            className={`flex-1 rounded-[8px]  text-white font-medium py-2 ${
+              !isAdmin ? "bg-gray-600 cursor-not-allowed" : "bg-[#023E8A]"
+            } `}
             onClick={() => setShowConfirmModal(true)}
+            disabled={!isAdmin}
           >
             Mark as Resolved
           </button>
@@ -149,7 +174,7 @@ const page = () => {
   );
 };
 
-const Chat = ({ ticket, loadingTicket }: any) => {
+const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
   const { responding, onRespondToTicket } = useRespondToTicket();
 
   // State for managing older and new messages
@@ -157,6 +182,9 @@ const Chat = ({ ticket, loadingTicket }: any) => {
 
   // Ref for the last message
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+
+  // Modal state for image attachments
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
   // Sync messages with ticket prop when ticket changes
   useEffect(() => {
@@ -180,12 +208,12 @@ const Chat = ({ ticket, loadingTicket }: any) => {
     onSubmit: (values, { resetForm }) => {
       onRespondToTicket({
         TicketId: ticket?.id,
-        payload: { content: values.message as any },
+        payload: { content: values.message },
         successCallback: () => {
           console.log("Message sent successfully");
 
           // Append the new message to the state
-          setMessages((prevMessages: any) => [
+          setMessages((prevMessages) => [
             ...prevMessages,
             {
               id: Date.now(), // Temporary ID for new message
@@ -224,8 +252,9 @@ const Chat = ({ ticket, loadingTicket }: any) => {
             "No admin claimed"
           )}
         </div>
-        <div className=" w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
       </div>
+
       {loadingTicket ? (
         <MessageLoading />
       ) : (
@@ -238,15 +267,16 @@ const Chat = ({ ticket, loadingTicket }: any) => {
                 className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 ref={index === messages.length - 1 ? lastMessageRef : null}
               >
-                <div className="space-y-1 max-w-[80%]">
+                <div className="space-y-2 max-w-[80%]">
                   {/* Message Content */}
                   {mes.content && (
                     <div
                       className={`py-3 px-4 text-[16px] font-medium rounded-xl shadow-md ${
                         isUser
-                          ? "bg-[#f0f0f0] text-[#181818] text-end "
-                          : "bg-[#023E8A] text-white"
+                          ? "bg-[#f0f0f0] text-[#181818] text-end"
+                          : "bg-[#023E8A] text-white "
                       }`}
+                      style={{ maxWidth: "fit-content" }}
                     >
                       {mes.content}
                     </div>
@@ -256,11 +286,13 @@ const Chat = ({ ticket, loadingTicket }: any) => {
                   {mes.attachment && (
                     <div
                       className={`mt-2 ${isUser ? "text-right" : "text-left"}`}
+                      style={{ maxWidth: "100%" }}
                     >
                       <img
                         src={mes.attachment}
                         alt="Attachment"
-                        className="w-[250px] h-auto rounded-lg shadow-lg"
+                        className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
+                        onClick={() => setModalImage(mes.attachment)}
                       />
                     </div>
                   )}
@@ -308,11 +340,17 @@ const Chat = ({ ticket, loadingTicket }: any) => {
                     className="flex-1 outline-none bg-transparent"
                     value={formik.values.message}
                     onChange={formik.handleChange}
+                    disabled={!isAdmin}
                   />
                 </div>
                 <button
                   type="submit"
-                  className="p-3 bg-[#023E8A] flex space-x-2 items-center text-white rounded-lg cursor-pointer"
+                  disabled={!isAdmin}
+                  className={`p-3 bg-[#023E8A] flex space-x-2 rounded-[8px] items-center ${
+                    !isAdmin
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#023E8A] text-white"
+                  }`}
                 >
                   {responding ? (
                     <div className="w-5 h-5 border-4 border-gray-100 border-t-transparent rounded-full animate-spin"></div>
@@ -329,6 +367,17 @@ const Chat = ({ ticket, loadingTicket }: any) => {
           </div>
         )}
       </form>
+
+      {/* Modal for Image */}
+      {modalImage && (
+        <Modal onClose={() => setModalImage(null)}>
+          <img
+            src={modalImage}
+            alt="Modal Attachment"
+            className="w-full h-auto max-w-[800px] max-h-[90vh] rounded-lg mx-auto"
+          />
+        </Modal>
+      )}
     </div>
   );
 };

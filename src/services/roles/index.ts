@@ -5,6 +5,9 @@ class Service {
   getRoles() {
     return axios.get(env.api.superadmin + "roles/");
   }
+  getMyRole() {
+    return axios.get(env.api.roles + "roles/");
+  }
 }
 
 const RolesService = new Service();

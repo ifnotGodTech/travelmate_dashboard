@@ -43,7 +43,7 @@ class Service {
   }
 
   getEscalationLevel() {
-    return axios.get(env.api.escalation + "/");
+    return axios.get(env.api.superadmin + "/roles/admin-list/");
   }
   createEscalationLevel({ payload }: { payload: TEscalationPayload }) {
     return axios.post(env.api.escalation + "/", payload);

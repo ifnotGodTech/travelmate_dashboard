@@ -16,6 +16,10 @@ import {
 import { useGetAllEscalatedTickets, useGetTicket } from "@/hooks/api/ticket";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  EscalatedTicketChatModal,
+  EscalatedTicketDetailsDialog,
+} from "./Reuseables";
 
 export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
   const router = useRouter();
@@ -257,14 +261,14 @@ export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
           )}
         </Tabs>
       </div>
-      <TicketDetailsDialog
+      <EscalatedTicketDetailsDialog
         selectedTicket={isDetailsDialogOpen}
         onClose={handleDetailsDialogClose}
         ticketDetails={selectedTicket}
         ticketLoading={loadingTicket}
       />
 
-      <ViewingChatModal
+      <EscalatedTicketChatModal
         selectedTicket={isChatModalOpen}
         onClose={handleChatModalClose}
         ticketDetails={selectedTicket}

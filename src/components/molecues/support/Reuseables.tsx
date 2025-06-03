@@ -13,9 +13,10 @@ import { parseISO, addDays, format, isValid } from "date-fns";
 import { useClaimTicket } from "@/hooks/api/ticket";
 import { useResolveTicket } from "@/hooks/api/ticket";
 import { useAuthContext } from "@/context/AuthContext";
+import { useMyRoles } from "@/hooks/api/roles";
+import { AlertTriangle } from "lucide-react";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 export const TableDropdown = ({
-  parentWidth,
   onViewDetails,
   onViewMessage,
 }: {
@@ -29,10 +30,7 @@ export const TableDropdown = ({
   ];
 
   return (
-    <div
-      className="relative overflow-visible"
-      style={{ maxWidth: parentWidth }}
-    >
+    <div className="relative overflow-visible">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div className="cursor-pointer select-none px-2 py-1 text-lg">⋮</div>
@@ -42,10 +40,6 @@ export const TableDropdown = ({
           side="bottom"
           align="end"
           className="z-50 max-w-[180px] shadow-lg border border-gray-200 rounded-md bg-white"
-          style={{
-            // Ensure dropdown stays within parent width
-            maxWidth: parentWidth - 16,
-          }}
         >
           {options.map((option, index) => (
             <DropdownMenuItem
@@ -346,7 +340,14 @@ const ClaimedTicketSection = ({
       <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
         <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col  lg:flex-row  items-center justify-end space-y-2 lg:space-y-0 ">
           <div className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer">
-            <span className="text-[#023E8A] text-[20px] font-[500]" onClick={() => router.push(`/Dashboard/support/ticket/${ticketDetails?.id}/respond`)}>
+            <span
+              className="text-[#023E8A] text-[20px] font-[500]"
+              onClick={() =>
+                router.push(
+                  `/Dashboard/support/ticket/${ticketDetails?.id}/respond`
+                )
+              }
+            >
               View Only
             </span>
           </div>
@@ -679,6 +680,256 @@ export const ConfirmResolution = ({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+interface TicketDetails {
+  id: string;
+  escalation_role?: {
+    name: string;
+  };
+}
+
+interface EscalatedTicketChatModalProps {
+  selectedTicket: boolean;
+  ticketDetails: TicketDetails | null;
+  ticketLoading: boolean;
+  onClose: () => void;
+}
+
+export const EscalatedTicketChatModal: React.FC<
+  EscalatedTicketChatModalProps
+> = ({ selectedTicket, ticketDetails, ticketLoading, onClose }) => {
+  const router = useRouter();
+  const { loading, data } = useMyRoles({ modalVisible: selectedTicket });
+
+  const canViewMessage = data?.name === ticketDetails?.escalation_role?.name;
+
+  const handleNavigateToResponse = useCallback(() => {
+    if (ticketDetails?.id) {
+      router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`);
+    }
+  }, [ticketDetails, router]);
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
+        selectedTicket ? "visible opacity-100" : "invisible opacity-0"
+      }`}
+      onClick={onClose}
+      aria-hidden={!selectedTicket}
+    >
+      <div
+        className={`relative bg-white w-[90%] max-w-[720px] min-h-[400px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
+          selectedTicket ? "scale-100" : "scale-95"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+        {loading || ticketLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl z-50">
+            <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : canViewMessage ? (
+          <div>
+            <h2 id="modal-title" className="text-lg font-semibold">
+              Ticket Details
+            </h2>
+            {/* Add ticket details content here */}
+            <button
+              onClick={handleNavigateToResponse}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              Respond
+            </button>
+          </div>
+        ) : (
+          <div
+            id="modal-description"
+            className="text-center flex items-center justify-center min-h-[400px] space-y-4"
+          >
+            <div className="">
+              <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
+              <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
+                You cannot view this message.
+              </h1>
+              <p className="mt-4 text-gray-600">
+                You don't belong to the deartment the ticket was escalated to.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <button
+        className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 focus:outline-none"
+        onClick={onClose}
+        aria-label="Close Modal"
+      >
+        <img src="/assets/icons/modalClose.svg" alt="Close Modal" />
+      </button>
+    </div>
+  );
+};
+
+export const EscalatedTicketDetailsDialog = ({
+  selectedTicket,
+  ticketDetails,
+  ticketLoading,
+  onClose,
+}: any) => {
+  const name = `${ticketDetails?.user?.first_name || "---"} ${
+    ticketDetails?.user?.last_name || "---"
+  }`;
+  const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
+  return (
+    <div
+      className={`fixed inset-0 z-100 bg-black/50 ${
+        selectedTicket ? "visible opacity-100" : "invisible opacity-0"
+      } flex justify-end lg:items-center items-end transition-opacity duration-300`}
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white w-full max-w-[600px] lg:max-w-[720px] py-3 rounded-t-[20px] lg:rounded-t-[0px] lg:rounded-l-[20px] h-[90vh] overflow-y-auto shadow-lg transform border-[1px] border-[#9B9EA4] space-y-6 ${
+          selectedTicket ? "scale-100" : "scale-95"
+        } transition-transform duration-300`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b-[1px] w-full border-[#BCBEC2]">
+          <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+            Ticket Details
+          </h2>
+        </div>
+        <div className="space-y-6">
+          <div className="px-[16px] lg:px-[32px] space-y-6">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Ticket Information
+            </h2>
+            {ticketLoading ? (
+              <Loading />
+            ) : (
+              <div className="grid grid-cols-3 gap-6">
+                <DetailRow label="Ticket ID" value={ticketDetails?.ticket_id} />
+                <DetailRow label="Category" value={ticketDetails?.category} />
+                <DetailRow label="Status" value={ticketDetails?.status} />
+                <DetailRow label="Created at" value={formattedDate} />
+              </div>
+            )}
+          </div>
+          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="px-[16px] lg:px-[32px] space-y-3">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Escalation Details
+            </h2>
+            <div className="space-y-4">
+              {ticketLoading ? (
+                <Loading />
+              ) : (
+                <>
+                  <div className="flex space-x-2">
+                    <p className="">Escalated by :</p>
+                    <span className="">
+                      {ticketDetails?.escalation_by?.first_name || "---"}
+                    </span>
+                  </div>
+                  <div className="flex space-x-4">
+                    <p className="">Escalated to :</p>
+                    <span className="">
+                      {ticketDetails?.escalation_role.name}
+                    </span>
+                  </div>
+                  <div className="flex space-x-4">
+                    <p className="">Escalation Reason :</p>
+                    <span className="">{ticketDetails?.escalation_reason}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="px-[16px] lg:px-[32px] space-y-3">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Customer Information
+            </h2>
+            <div className="space-y-4">
+              {ticketLoading ? (
+                <Loading />
+              ) : (
+                <>
+                  <DetailRow label="Customer’s Name" value={name} />
+                  <DetailRow
+                    label="Customer’s Email"
+                    value={ticketDetails?.user.email}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {ticketDetails?.claim_history?.length !== 0 && (
+            <>
+              <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+              <div className="px-[16px] lg:px-[32px] space-y-3">
+                <h2 className="text-[18px] font-[500] text-[#18181]">
+                  Claim History
+                </h2>
+                <div className="space-y-4">
+                  {ticketLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="sace-y-2">
+                      {ticketDetails?.claim_history?.map(
+                        (text: any, i: any) => (
+                          <p
+                            className="text-[14px] font-[400] text-[#343537]"
+                            key={i}
+                          >
+                            {`This chat was claimed by ${
+                              text.claimed_admin.first_name || "---"
+                            } ${" "} ${
+                              text.claimed_admin.lastt_name || "---"
+                            } - ${formatCreatedAt(text?.timestamp, 2)}  `}{" "}
+                          </p>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="px-[16px] lg:px-[32px] space-y-3">
+            <h2 className="text-[18px] font-[500] text-[#18181]">
+              Issue Description
+            </h2>
+            <div className="space-y-4">
+              {ticketLoading ? (
+                <Loading />
+              ) : (
+                <>
+                  <p className="">Hello</p>
+                  <DetailRow label="Subject" value={ticketDetails?.title} />
+                  <DetailRow
+                    label="Description"
+                    value={ticketDetails?.description}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          className="absolute top-[16px] right-[16px] text-gray-500 cursor-pointer"
+          onClick={onClose}
+        >
+          <img src="/assets/icons/modalClose.svg" alt="" className="w-[20px]" />
+        </button>
       </div>
     </div>
   );

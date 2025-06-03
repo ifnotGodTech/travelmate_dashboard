@@ -140,7 +140,7 @@ export function useGetTicket({
   errorCallback?: (props: { message?: string; description?: string }) => void;
 }) {
   const [loadingTicket, setLoading] = useState(false);
-  const [ticket, setData] = useState<Ticket | null>(null);
+  const [ticket, setData] = useState<any>(null);
 
   const fetchTicket = async () => {
     if (!TicketId) return;

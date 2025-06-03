@@ -258,17 +258,17 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                     handleSend();
                   }
                 }}
-                disabled={isAdmin}
+                disabled={!isAdmin}
               />
             </div>
             <button
               onClick={handleSend}
               className={`p-3 rounded-lg ${
-                isAdmin
+                !isAdmin
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-[#023E8A] text-white"
               }`}
-              disabled={isAdmin}
+              disabled={!isAdmin}
             >
               Send
             </button>
