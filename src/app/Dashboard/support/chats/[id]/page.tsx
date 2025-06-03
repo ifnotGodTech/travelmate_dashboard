@@ -121,7 +121,11 @@ const page = (props: Props) => {
         </div>
       )}
 
-      <Session chat={chat} loadingChat={loadingChat} isAdmin={isButtonDisabled} />
+      <Session
+        chat={chat}
+        loadingChat={loadingChat}
+        isAdmin={isButtonDisabled}
+      />
     </div>
   );
 };
@@ -147,7 +151,7 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     const live = liveMessages.filter(
       (live: any) =>
         live.type !== "session_info" &&
-        live.type !== "error" && // exclude error messages here
+        live.type !== "error" &&
         !history.some((msg: any) => msg.id === live.id)
     );
     return [...history, ...live];
@@ -172,7 +176,6 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     }
   }, [allMessages, systemErrorMessage]);
 
-  // Disable input/send if chat closed, system error exists, or user is not an admin
   const isInputDisabled =
     chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
 
@@ -206,15 +209,44 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                 ref={index === allMessages.length - 1 ? lastMessageRef : null}
               >
                 <div className="space-y-1 max-w-[80%]">
-                  <div
-                    className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
-                      isUser
-                        ? "bg-gray-200 text-black"
-                        : "bg-[#023E8A] text-white"
-                    }`}
-                  >
-                    {mes.content || mes.message}
-                  </div>
+                  {/* Message or Content */}
+                  {mes.content || mes.message ? (
+                    <div
+                      className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
+                        isUser
+                          ? "bg-gray-200 text-black"
+                          : "bg-[#023E8A] text-white"
+                      }`}
+                    >
+                      {mes.content || mes.message}
+                    </div>
+                  ) : null}
+
+                  {/* Attachment */}
+                  {mes.attachment && (
+                    <div className="mt-2">
+                      {mes.attachment.type === "image" ? (
+                        <img
+                          src={mes.attachment.url}
+                          alt="Attachment"
+                          className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
+                          onClick={() =>
+                            window.open(mes.attachment.url, "_blank")
+                          }
+                        />
+                      ) : mes.attachment.type === "pdf" ? (
+                        <a
+                          href={mes.attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline"
+                        >
+                          View PDF
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+
                   <span
                     className={`block text-xs text-gray-500 ${
                       isUser ? "text-right" : "text-left"

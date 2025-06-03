@@ -196,7 +196,6 @@ export const TicketDetailsDialog = ({
     </div>
   );
 };
-
 export const ViewingChatModal = ({
   selectedTicket,
   ticketDetails,
@@ -228,7 +227,11 @@ export const ViewingChatModal = ({
   }, [ticketDetails, router]);
 
   useEffect(() => {
-    if (selectedTicket && ticketDetails?.claimed_admin?.id === currentUser) {
+    if (
+      selectedTicket &&
+      (ticketDetails?.claimed_admin?.id === currentUser ||
+        ticketDetails?.status === "resolved")
+    ) {
       handleNavigateToResponse();
     }
   }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
@@ -262,7 +265,6 @@ export const ViewingChatModal = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {/* Spinner overlay during redirect */}
         {isRedirecting && (
           <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px] ">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
@@ -713,6 +715,12 @@ export const EscalatedTicketChatModal: React.FC<
     }
   }, [ticketDetails, router]);
 
+  useEffect(() => {
+    if (selectedTicket && canViewMessage) {
+      handleNavigateToResponse();
+    }
+  }, [selectedTicket, canViewMessage, handleNavigateToResponse]);
+
   return (
     <div
       className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
@@ -734,20 +742,7 @@ export const EscalatedTicketChatModal: React.FC<
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl z-50">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        ) : canViewMessage ? (
-          <div>
-            <h2 id="modal-title" className="text-lg font-semibold">
-              Ticket Details
-            </h2>
-            {/* Add ticket details content here */}
-            <button
-              onClick={handleNavigateToResponse}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-            >
-              Respond
-            </button>
-          </div>
-        ) : (
+        ) : !canViewMessage ? (
           <div
             id="modal-description"
             className="text-center flex items-center justify-center min-h-[400px] space-y-4"
@@ -758,11 +753,11 @@ export const EscalatedTicketChatModal: React.FC<
                 You cannot view this message.
               </h1>
               <p className="mt-4 text-gray-600">
-                You don't belong to the deartment the ticket was escalated to.
+                You don't belong to the department the ticket was escalated to.
               </p>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       <button
