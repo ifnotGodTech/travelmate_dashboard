@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
 import React from "react";
-import DateRangeDialog from "@/components/reuseables/DateDialog";
+import DateRangeDialog, {
+  DatePairDialog,
+} from "@/components/reuseables/DateDialog";
 import { useExportCSV } from "@/hooks/api/user";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -22,20 +24,28 @@ const Filter = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const { onExportCSV } = useExportCSV();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    from: undefined,
-    to: undefined,
-  });
-  const [activeTab, setActiveTab] = useState("registerUser"); // Active tab state
+  const [activeTab, setActiveTab] = useState("registerUser");
 
+  // Date states
+  const [selectedStartDate, setSelectedStartDate] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | undefined>(
+    undefined
+  );
+
+  // Helper to format date range display string
   const formatDateRange = () => {
-    if (dateRange.from && dateRange.to) {
-      return `${format(dateRange.from, "dd/MM/yyyy")} - ${format(
-        dateRange.to,
-        "dd/MM/yyyy"
-      )}`;
+    if (selectedStartDate && selectedEndDate) {
+      return `${selectedStartDate} - ${selectedEndDate}`;
     }
-    return "dd/mm/yyyy - dd/mm/yyyy";
+    return "YYYY-MM-DD - YYYYY-MM-DD";
+  };
+
+  // Build dateRange object for tables
+  const dateRange = {
+    from: selectedStartDate,
+    to: selectedEndDate,
   };
 
   const handleExport = () => {
@@ -56,7 +66,7 @@ const Filter = () => {
           <Tabs
             defaultValue="registerUser"
             className="space-y-[20px] w-full"
-            onValueChange={(value) => setActiveTab(value)} // Update active tab state
+            onValueChange={(value) => setActiveTab(value)}
           >
             <div className="flex lg:justify-between space-x-[5px] ">
               <TabsList className="bg-[#fff] lg:shadow-none shadow-sm rounded-[10px] flex justify-between items-center p-2 h-[44px] lg:h-[53px]">
@@ -131,10 +141,7 @@ const Filter = () => {
                       Filter by Date
                     </span>
                     <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:block">
-                      :{" "}
-                      {dateRange.from
-                        ? formatDateRange()
-                        : "dd/mm/yyyy - dd/mm/yyyy"}
+                      : {formatDateRange()}
                     </span>
                   </div>
                 </div>
@@ -149,8 +156,9 @@ const Filter = () => {
               <TabsContent value="registerUser">
                 <UsersTable
                   searchTerm={searchTerm}
+                  selectedStartDate={selectedStartDate}
+                  selectedEndDate={selectedEndDate}
                   selectedOption={selectedOption}
-                  dateRange={dateRange}
                 />
               </TabsContent>
               <TabsContent value="deletedUser">
@@ -165,11 +173,13 @@ const Filter = () => {
         </div>
       </div>
 
-      <DateRangeDialog
+      <DatePairDialog
         isOpen={datePickerOpen}
         onClose={() => setDatePickerOpen(false)}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
+        selectedStartDate={selectedStartDate}
+        setSelectedStartDate={setSelectedStartDate}
+        selectedEndDate={selectedEndDate}
+        setSelectedEndDate={setSelectedEndDate}
       />
     </div>
   );

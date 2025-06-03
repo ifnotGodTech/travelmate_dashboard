@@ -1,11 +1,7 @@
 "use client";
 import { useState } from "react";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { useGetUser, useDeactivateUser } from "@/hooks/api/user";
 import {
@@ -53,7 +49,7 @@ export const UserDetailsDialog = ({
             <LoadingUser />
           ) : userDetails ? (
             <div className="space-y-[28px]">
-              <DetailRow label="USERID" value={userDetails.id}/>
+              <DetailRow label="USERID" value={userDetails.id} />
               <DetailRow
                 label="Name"
                 value={`${userDetails.first_name} ${userDetails.last_name}`}
@@ -274,15 +270,22 @@ const MiniDropdown = ({
 export const UserDropdown = ({
   parentWidth,
   onViewDetails,
+  onActivate,
   onDeactivate,
+  status,
 }: {
   parentWidth: number;
   onViewDetails: () => void;
+  onActivate: () => void;
   onDeactivate: () => void;
+  status: boolean;
 }) => {
   const options = [
     { label: "View Details", action: onViewDetails },
-    { label: "Deactivate Account", action: onDeactivate },
+    {
+      label: status ? "Deactivate Account" : "Activate Account",
+      action: status ? onDeactivate : onActivate,
+    },
   ];
 
   return (
@@ -327,5 +330,113 @@ export const LoadingUser = () => {
       <div className="bg-gray-300 rounded-[12px] animate-pulse h-[50px] w-ful"></div>
       <div className="bg-gray-300 rounded-[12px] animate-pulse h-[50px] w-ful"></div>
     </div>
+  );
+};
+
+export const UserActivationDialog = ({
+  reactivatingUser,
+  isOpen,
+  onConfirm,
+  onCancel,
+}: {
+  reactivatingUser: any;
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => {
+  const [reason, setReason] = useState<string | null>(null);
+  const [additionalNote, setAdditionalNote] = useState<string>("");
+
+  const handleReactivate = () => {
+    if (reactivatingUser) {
+      console.log("Reactivating user with:", {
+        reason,
+        additionalNote,
+        userId: reactivatingUser.id,
+      });
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={onCancel}>
+        <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
+          <DialogTitle></DialogTitle>
+          <div className="px-[32px] py-[8px]">
+            <h2 className="font-[600] text-[28px] text-[#181818]">
+              Reactivate User Account
+            </h2>
+          </div>
+          <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+          <div className="py-[19px] px-[32px] space-y-[16px]">
+            <div className="space-y-4">
+              <p className="text-[20px] font-[500] text-[#181818]">
+                Reactivation Reason
+              </p>
+
+              <MiniDropdown
+                options={[
+                  { id: "1", label: "User appeal approved" },
+                  { id: "2", label: "Administrative error" },
+                  { id: "3", label: "Payment issues resolved" },
+                  { id: "4", label: "Policy update compliance" },
+                  { id: "5", label: "Other" },
+                ]}
+                placeholder="Select"
+                onSelect={(option) => setReason(option?.label || null)}
+              />
+            </div>
+            <div className="space-y-3 w-full">
+              <p className="text-[20px] font-[500] text-[#181818]">
+                Additional Details
+              </p>
+
+              <textarea
+                rows={6}
+                className="py-[16px] w-full px-[12px] rounded-[8px] border-[#818489] border-[1px] font-[400] text-[16px] text-[#181818] placeholder:font-[400] placeholder:text-[16px] placeholder:text-[#818489]"
+                placeholder="Provide additional details for the reactivation..."
+                value={additionalNote}
+                onChange={(e) => setAdditionalNote(e.target.value)}
+              ></textarea>
+            </div>
+
+            <div className="bg-[#F5F5F5] rounded-[12px] p-4 flex space-x-[10px] items-start">
+              <img src="/assets/icons/info.svg" alt="Info icon" />
+              <span className="lg:text-[18px] text-[12px] font-[400] text-[#181818]">
+                The reactivation reason and additional details will be sent to
+                the user's email to inform them about their account
+                reactivation.
+              </span>
+            </div>
+
+            <div className="flex justify-end gap-4 w-full">
+              <div
+                className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
+                onClick={onCancel}
+              >
+                Cancel
+              </div>
+              <div
+                className={`bg-[#023E8A] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
+                  !reason ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                }`}
+                onClick={handleReactivate}
+              >
+                HELLO
+                {/* {reactivating ? "Reactivating User..." : "Confirm Reactivation"} */}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* {showModal && (
+        <SuccessModal
+          title="User Reactivated Successfully"
+          description={`User ${reactivatingUser?.email} has been successfully reactivated.`}
+          onClose={() => setShowModal(false)}
+        />
+      )} */}
+    </>
   );
 };

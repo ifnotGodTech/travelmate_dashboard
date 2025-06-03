@@ -17,14 +17,18 @@ class Service {
     return axios.get(env.api.users + UserId + "/");
   }
 
-  deactivateUser({
-    userId,
-    payload,
-  }: {
-    userId?: string;
-    payload: TDeactivatePayload;
-  }) {
-    return axios.patch(env.api.users + userId + "/deactivate/", payload);
+  deactivateUser({ userId, data }: { userId?: string; data: any }) {
+    return axios.patch(env.api.users + userId + "/deactivate/", data);
+  }
+
+  deleteUser({ userId }: { userId?: string }) {
+    return axios.delete(env.api.users + userId + "/");
+  }
+
+  bulkDeleteUser({ userIds }: { userIds: number[] }) {
+    return axios.delete(env.api.users + "bulk-delete/", {
+      data: { user_ids: userIds },
+    });
   }
 
   exportCSV() {
