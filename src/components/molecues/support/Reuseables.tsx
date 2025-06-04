@@ -596,7 +596,7 @@ export const Filter = ({
             </div>
           </div>
 
-          <button
+          {/* <button
             className="
             text-[#023E8A] text-[14px] font-[400] px-3 border border-[#023E8A]
             rounded-[8px] cursor-pointer flex-shrink-0
@@ -605,7 +605,7 @@ export const Filter = ({
             onClick={handleApply}
           >
             Apply
-          </button>
+          </button> */}
         </div>
       </div>
 
