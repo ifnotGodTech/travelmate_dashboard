@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import * as Yup from "yup";
 import Button from "@/components/reuseables/Button";
 import { useField, Formik, Form } from "formik";
@@ -8,8 +8,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import env from "@/config/env";
 import { showErrorToast } from "@/utils/toasters";
+import Loading from "../Dashboard/admin/loading";
 
-const page = () => <LoginComponent />;
+const page = () => (
+  <Suspense
+    fallback={
+      <div>
+        <Loading />
+      </div>
+    }
+  >
+    <LoginComponent />
+  </Suspense>
+);
 
 const validationSchema = Yup.object().shape({
   password1: Yup.string()
@@ -24,57 +35,58 @@ const validationSchema = Yup.object().shape({
     .oneOf([Yup.ref("password1")], "Passwords must match"),
 });
 
-
 const LoginComponent = () => {
   const router = useRouter();
   const searchParamas = useSearchParams();
-const token = searchParamas.get("token");
-const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
-const [email, setEmail] = useState<string | null>(null);
+  const token = searchParamas.get("token");
+  const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-  const validateInvitation = async () => {
-    try {
-      const response = await axios.get(`${env.api.admin}/invitations/validate/`);
-      console.log(response)
-      setEmail(response.data.email)
-    } catch (error: any) {
-      console.log(error);
-      showErrorToast({ message: error?.response?.data?.message });
-      setIsValidToken(false)
-    }
-  };
-  
+    const validateInvitation = async () => {
+      try {
+        const response = await axios.get(
+          `${env.api.admin}/invitations/validate/`
+        );
+        console.log(response);
+        setEmail(response.data.email);
+      } catch (error: any) {
+        console.log(error);
+        showErrorToast({ message: error?.response?.data?.message });
+        setIsValidToken(false);
+      }
+    };
+
     if (token) {
       validateInvitation();
     } else {
       showErrorToast({ message: "Missing invitation token" });
       setIsValidToken(false);
     }
-}, [token]);
+  }, [token]);
 
-
-const handleSubmit = async (values: {
-  password1: string;
-  password2: string;
-}) => {
-  try {
-    setLoading(true);
-    await axios.post(`${env.api.admin}/invitations/accept/`, {
-      email,
-      token,
-      password: values.password1,
-    });
-    router.push("/Dashboard");
-  } catch (error: any) {
-    showErrorToast({ message: error?.response?.data?.message || "Something went wrong" });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const handleSubmit = async (values: {
+    password1: string;
+    password2: string;
+  }) => {
+    try {
+      setLoading(true);
+      await axios.post(`${env.api.admin}/invitations/accept/`, {
+        email,
+        token,
+        password: values.password1,
+      });
+      router.push("/Dashboard");
+    } catch (error: any) {
+      showErrorToast({
+        message: error?.response?.data?.message || "Something went wrong",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
