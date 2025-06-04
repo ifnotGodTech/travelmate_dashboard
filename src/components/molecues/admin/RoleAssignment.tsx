@@ -1,79 +1,159 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
 import { FC } from "react";
 import { useRouter } from "next/navigation";
+import Loading from "@/app/Dashboard/admin/loading";
+import axios from "axios";
+import { showErrorToast } from "@/utils/toasters";
+import env from "@/config/env";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useAuthContext } from "@/context/AuthContext";
+
 interface Role {
   id: string;
   name: string;
   description: string;
   assigned_users: any[];
-  person: string; // Optional property for the person's name
+  current_permission_group_slugs: string[];
+  // person: string;
+  is_superuser: boolean;
   created_by: string;
 }
 interface RoleAssignmentProps {
   roles: Role[]; // Array of roles to display
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
-  onManageUsersOpen: (roleId: string) => void;
   onAddMemberOpen: () => void;
+  isLoading?: boolean;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
   onAddMemberOpen,
   roles,
-  onManageUsersOpen,
+  isLoading,
 }) => {
+  const { accessToken } = useAuthContext();
+  const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
   const route = useRouter();
+
+  const ManageUsers = (roleId: string) => {
+    const role = roles.find((r) => r.id === roleId);
+    if (!role) return;
+    const isSuperAdmin = role.name === "Super Admin" || role.is_superuser;
+    route.push(
+      isSuperAdmin
+        ? `/Dashboard/admin/manage-super-admin/${roleId}/`
+        : `/Dashboard/admin/manage-user/${roleId}/`
+    );
+  };
+
+  const handleRemoveUser = async (roleId: string) => {
+    const emailsToRemove = roles
+      .filter((role) => String(role.id) === String(roleId))
+      .flatMap((role) => role.assigned_users.map((user) => user.email.trim()));
+    try {
+      await axios.post(
+        `${env.api.superadmin}roles/${roleId}/remove/`,
+        { email: emailsToRemove.join(",") },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setShowSuccessRemoveModal(true);
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Failed to remove users.",
+      });
+    }
+  };
+
   return (
     <>
-      <div className="flex justify-between items-center md:gap-32 gap-6">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
-        </div>
-        <Button
-          className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
-          onClick={onAddMemberOpen}
-        >
-          <Plus className="md:mr-2 mr-0 h-4 w-4" />
-          <span className="hidden md:block">Invite New Member</span>
-        </Button>
-      </div>
-      {roles.map((role, index) => (
-        <div key={index} className="space-y-4">
-          <div>
-            <h3 className="text-lg font-medium">{role.name}</h3>
-            <p className="text-muted-foreground text-sm pt-2">
-              {role.description}
-            </p>
+      <div className="p-4 lg:p-0">
+        <div className="flex justify-between items-center md:gap-32 gap-6">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
           </div>
-          {role.assigned_users.map((assigned, i) => (
-            <div className="space-y-2" key={i}>
-              <p className="font-medium">
-                {assigned.name}
-              </p>
-
-              <div
-                key={i}
-                className="flex justify-between items-center py-2 border-b"
-              >
-                <span>{assigned.email || ""}</span>
-                <Button
-                  variant="link"
-                  className="text-red-600 hover:text-red-800 p-0"
-                >
-                  {role.name !== "Super Admin" && "Remove"}
-                </Button>
-              </div>
-            </div>
-          ))}
           <Button
-            className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
-            onClick={() => route.push("/Dashboard/admin/manage-user")}
+            className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
+            onClick={onAddMemberOpen}
           >
-            Manage Users
+            <Plus className="md:mr-2 mr-0 h-4 w-4" />
+            <span className="hidden md:block">Invite New Member</span>
           </Button>
         </div>
-      ))}
+        {isLoading ? (
+          <Loading />
+        ) : (
+          roles.map((role, index) => (
+            <div key={index} className="space-y-4 pt-5">
+              <div>
+                <h3 className="text-lg font-medium">{role.name || ""}</h3>
+                <p className="text-muted-foreground text-sm pt-2 py-3">
+                  {role.description || ""}
+                </p>
+                <p className="pt-2 text-[16px]">
+                  Assigned users ({role.assigned_users.length})
+                </p>
+              </div>
+              {role.assigned_users.map((assigned, i) => (
+                <div
+                  className="space-y-2 flex justify-between w-full items-center"
+                  key={i}
+                >
+                  <p className="font-medium">{assigned.name || ""}</p>
+
+                  {role.name !== "Super Admin" && (
+                    <Button
+                      variant="link"
+                      className="text-red-600 hover:text-red-800 p-0"
+                      onClick={() => handleRemoveUser(role.id)} //
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
+                onClick={() => ManageUsers(role.id)}
+              >
+                Manage Users
+              </Button>
+            </div>
+          ))
+        )}
+        <Dialog
+          open={showSuccessRemoveModal}
+          onOpenChange={setShowSuccessRemoveModal}
+        >
+          <DialogContent className="w-full lg:max-w-sm max-w-sm p-8">
+            <div className="flex flex-col items-center">
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-xl font-[500] text-[#181818]"></DialogTitle>
+              </DialogHeader>
+              <img
+                src="/assets/icons/blue-success.svg"
+                alt="Success"
+                className="w-20 h-20 my-6"
+              />
+              <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
+                Users Removed Successfully
+              </DialogDescription>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </>
   );
 };

@@ -11,6 +11,7 @@ interface Role {
   name: string;
   description: string;
   assigned_users: any[]; // Array of assigned users, can be empty
+  current_permission_group_slugs: string[]; // Optional property for the person's name
   is_superuser: boolean;
   created_by: string;
 
@@ -20,7 +21,6 @@ interface RoleManagementProps {
   // searchValue: string; // Controlled search input value
   // onSearchChange: (value: string) => void; // Callback for search input changes
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
-  editRole: (roleId: string, updatedRole: Role) => void;
   isLoading: boolean; 
  onStartEdit: (role: Role) => void;
 }
@@ -46,7 +46,7 @@ const RoleManagement: FC<RoleManagementProps> = ({
 
   // console.log
   return (
-    <>
+    <div className="p-3 lg:p-0 ">
       <div className="flex justify-between items-center md:gap-32 gap-6">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -62,7 +62,7 @@ const RoleManagement: FC<RoleManagementProps> = ({
           </Button>
         </div>
       </div>
-      <div className="border rounded-lg">
+      <div className="border rounded-lg mt-3">
         <table className="w-full  md:overflow-hidden">
           <thead className="w-full">
             <tr className="bg-muted">
@@ -130,7 +130,7 @@ const RoleManagement: FC<RoleManagementProps> = ({
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 };
 export default RoleManagement;

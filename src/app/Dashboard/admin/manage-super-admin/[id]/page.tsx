@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -10,50 +10,152 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import Loading from "../../loading";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
-  DialogHeader,
-} from "@/components/ui/dialog";
+} from "@radix-ui/react-dialog";
+import { DialogHeader } from "@/components/ui/dialog";
 
-type Props = {};
+// Type for user in assigned_users
+type AssignedUser = {
+  id: number;
+  email: string;
+  name: string;
+};
+
+// Type for role
+type Role = {
+  id: string;
+  name: string;
+  assigned_users: AssignedUser[];
+};
+
+type SuperAdmin = {
+  name: string;
+  email: string;
+};
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon } from "lucide-react";
+import axios from "axios";
+import env from "@/config/env";
+import { useAuthContext } from "@/context/AuthContext";
+import { showErrorToast } from "@/utils/toasters";
 
-const ManageSuperAdmin = (props: Props) => {
+const ManageSuperAdmin = () => {
+  const { accessToken } = useAuthContext();
   const [defaultTab, setDefaultTab] = useState("addNewUser");
   const route = useRouter();
-  const [open, setOpen] = useState(false);
-  const [addUSerModal, setIsAddUserModal] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const handleSelect = (option: string) => {
-    setSelectedOption(option);
-    setIsAddUserModal(false); // Close the dialog after selecting an option
+
+  const [loading, setLoading] = useState(false);
+  const [loadingInvite, setLoadingInvite] = useState(false);
+
+  const [roles, setRoles] = useState<Role[]>([]);
+
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+
+  const [selectedInviteRoleId, setSelectedInviteRoleId] = useState<
+    string | null
+  >(null);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showConfirmInviteModal, setShowConfirmInviteModal] = useState(false);
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessInviteModal, setShowSuccessInviteModal] = useState(false);
+
+  const [actionTransferOption, setActionTransferOption] = useState("");
+  const [changeRoleTransfer, setChangeRoleTransfer] = useState(false);
+
+  const [actionInviteOption, setActionInviteOption] = useState("");
+  const [changeRoleInvite, setChangeRoleInvite] = useState(false);
+
+  const [newSuperAdmin, setNewSuperAdmin] = useState<SuperAdmin>({
+    name: "",
+    email: "",
+  });
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const response = await axios.get(`${env.api.superadmin}roles/`);
+        setRoles(response.data.results || []);
+      } catch (error) {
+        // handle error
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  const adminRoles = roles.filter((role) => role.name !== "Super Admin");
+
+  const transferSuperAdminRole = async () => {
+    try {
+      setLoading(true);
+      await axios.post(
+        `${env.api.superadmin}superadmins/transfer/`,
+        {
+          email: adminRoles
+            .find((role) =>
+              role.assigned_users.some((user) => user.id === selectedUserIds[0])
+            )
+            ?.assigned_users.find((user) => user.id === selectedUserIds[0])
+            ?.email,
+          transfer_action: actionTransferOption,
+          new_role_id: selectedRoleId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setShowSuccessModal(true);
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Failed to transfer role",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-  const options = [
-    "Admin",
-    "Super Admin",
-    "User",
-    "Manager",
-    "Editor",
-    "Viewer",
-    "Guest",
-  ];
-  // Sample users
-  const users = Array(4)
-    .fill(null)
-    .map((_, i) => ({
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      role: "Admin",
-    }));
+
+  const InviteSuperAdmin = async () => {
+    try {
+      await axios.post(
+        `${env.api.superadmin}superadmins/invite/`,
+        {
+          email: newSuperAdmin.email,
+          name: newSuperAdmin.name,
+          transfer_action: actionInviteOption,
+          new_role_id: selectedInviteRoleId,
+        },
+
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setShowSuccessInviteModal(true);
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Failed to invite user",
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
-      <main className="w-full">
+      <main className="w-full px-3">
         <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-          <div className="flex items-center justify-normal gap-72 mb-5">
+          <div className="flex items-center justify-normal lg:gap-72 gap-3 mb-5">
             <Image
               src="/assets/icons/arrow-back.svg"
               alt="arrow-back"
@@ -90,75 +192,152 @@ const ManageSuperAdmin = (props: Props) => {
                 <p>Select user to transfer super admin privileges to</p>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
-                      <span>{selectedOption || "Select User"}</span>
-                      <img
-                        src="/assets/icons/arrow-down.svg"
-                        alt=""
-                        className="w-4 h-4 ml-auto"
-                      />
-                    </button>
+                    <div>
+                      <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
+                        <span>
+                          {selectedUserIds.length > 0
+                            ? adminRoles
+                                .find((role) =>
+                                  role.assigned_users.some(
+                                    (user) => user.id === selectedUserIds[0]
+                                  )
+                                )
+                                ?.assigned_users.find(
+                                  (user) => user.id === selectedUserIds[0]
+                                )?.name
+                            : "Select User"}
+                        </span>
+
+                        <img
+                          src="/assets/icons/arrow-down.svg"
+                          alt=""
+                          className="w-3 h-3 ml-auto mt-2 mr-2"
+                        />
+                      </button>
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="start"
                     className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
                   >
-                    {users.map((users, index) => (
-                      <DropdownMenuItem
-                        key={index}
-                        className="w-full text-center px-4 py-2 hover:bg-gray-200"
-                        // onClick={() => handleSelect(option)}
-                      >
-                        {users.name}
+                    <div>
+                      <DropdownMenuItem>
+                        {/* {loading ? (
+                          <Loading />
+                        ) : ( */}
+                        <div className="w-full">
+                          {adminRoles.length === 0 ? (
+                            <p className="text-center text-gray-500">
+                              No users available to add.
+                            </p>
+                          ) : (
+                            adminRoles.map((admin) =>
+                              admin.assigned_users.map((user) => (
+                                <div
+                                  key={user.id}
+                                  className="flex justify-between w-full items-center py-2"
+                                  onClick={() => setSelectedUserIds([user.id])}
+                                >
+                                  <div className="flex justify-normal items-center gap-10 w-full">
+                                    <p>{user.name || "Name"}</p>
+                                    {/* <p className="text-muted-foreground">
+                                          {user.email}
+                                        </p> */}
+                                  </div>
+
+                                  <p className="text-blue-500 text-nowrap lg:text-base text-xs">
+                                    {admin.name || "Role Name"}
+                                  </p>
+                                </div>
+                              ))
+                            )
+                          )}
+                        </div>
+                        {/* )} */}
                       </DropdownMenuItem>
-                    ))}
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <div className="pt-5">
                   <p>After transfer, select what happens to your account</p>
-                  <div className="flex items-center gap-4 mt-3">
+                  <div className="flex w-full justify-normal lg:flex-row flex-col lg:items-center gap-4 mt-3">
                     <div className="flex items-center gap-4">
-                      <input type="radio" name="" id="" />
+                      <input
+                        type="radio"
+                        name="option"
+                        value="change_role"
+                        id="change-role"
+                        onChange={(e) => {
+                          setChangeRoleTransfer(true);
+                          setActionTransferOption(e.target.value);
+                        }}
+                      />
                       <label htmlFor="change-role">Change my role</label>
                     </div>
                     <div className="flex items-center gap-4">
-                      <input type="radio" name="" id="" />
+                      <input
+                        type="radio"
+                        name="option"
+                        value="remove_access"
+                        id="remove-access"
+                        onChange={(e) => {
+                          setChangeRoleTransfer(false);
+                          setActionTransferOption(e.target.value);
+                        }}
+                      />
                       <label htmlFor="remove-access">
                         Remove my access completely
                       </label>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
-                        <span>{selectedOption || "Select Role"}</span>
-                        <img
-                          src="/assets/icons/arrow-down.svg"
-                          alt=""
-                          className="w-4 h-4 ml-auto"
-                        />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
-                    >
-                      {users.map((role, index) => (
-                        <DropdownMenuItem
-                          key={index}
-                          className="w-full text-center px-4 py-2 hover:bg-gray-200"
-                          // onClick={() => handleSelect(option)}
-                        >
-                          {role.role}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {changeRoleTransfer && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div>
+                          <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
+                            <span>
+                              {selectedRoleId
+                                ? adminRoles.find(
+                                    (role) => role.id === selectedRoleId
+                                  )?.name
+                                : "Select Role"}
+                            </span>
+
+                            <img
+                              src="/assets/icons/arrow-down.svg"
+                              alt=""
+                              className="w-3 h-3 ml-auto mt-2 mr-2"
+                            />
+                          </button>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
+                      >
+                        {adminRoles.map((role, index) => (
+                          <DropdownMenuItem
+                            key={index}
+                            className="w-full text-center px-4 py-2 hover:bg-gray-200"
+                            onClick={() => setSelectedRoleId(role.id)}
+                          >
+                            {role.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
                 <Button
-                  onClick={() => setIsAddUserModal(true)}
-                  className="
-                bg-[#023E8A] hover:bg-blue-800 cursor-pointer mt-24 w-full text-center"
+                  disabled={
+                    loading ||
+                    selectedUserIds.length === 0 ||
+                    !actionTransferOption ||
+                    (changeRoleTransfer && !selectedRoleId)
+                  }
+                  onClick={() => setShowConfirmModal(true)}
+                  className={`
+               hover:bg-blue-800 cursor-pointer mt-24 w-full text-center`}
                 >
                   Save Changes
                 </Button>
@@ -173,6 +352,14 @@ const ManageSuperAdmin = (props: Props) => {
                     <p className="font-semibold">Name</p>
                     <input
                       type="text"
+                      value={newSuperAdmin.name}
+                      onChange={(e) =>
+                        setNewSuperAdmin({
+                          ...newSuperAdmin,
+                          name: e.target.value,
+                        })
+                      }
+                      name="name"
                       className="border border-black rounded-md p-2 w-full"
                     />
                   </div>
@@ -182,52 +369,95 @@ const ManageSuperAdmin = (props: Props) => {
                     <p className="font-semibold">Email Address</p>
                     <input
                       type="email"
+                      value={newSuperAdmin.email}
+                      name="email"
+                      onChange={(e) =>
+                        setNewSuperAdmin({
+                          ...newSuperAdmin,
+                          email: e.target.value,
+                        })
+                      }
                       className="border border-black rounded-md p-2 w-full"
                     />
                   </div>
                 </div>
                 <div className="">
                   <p>After transfer, select what happens to your account</p>
-                  <div className="flex items-center gap-4 mt-3">
+                  <div className="flex w-full justify-normal lg:flex-row flex-col lg:items-center gap-4 mt-3">
                     <div className="flex items-center gap-4">
-                      <input type="radio" name="" id="" />
+                      <input
+                        type="radio"
+                        name="transfer"
+                        id=""
+                        value="change_role"
+                        onChange={(e) => {
+                          setChangeRoleInvite(true);
+                          setActionInviteOption(e.target.value);
+                        }}
+                      />
                       <label htmlFor="change-role">Change my role</label>
                     </div>
                     <div className="flex items-center gap-4">
-                      <input type="radio" name="" id="" />
+                      <input
+                        type="radio"
+                        name="transfer"
+                        id=""
+                        value="remove_access"
+                        onChange={(e) => {
+                          setChangeRoleInvite(false);
+                          setActionInviteOption(e.target.value);
+                        }}
+                      />
                       <label htmlFor="remove-access">
                         Remove my access completely
                       </label>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
-                        <span>{selectedOption || "Select Role"}</span>
-                        <img
-                          src="/assets/icons/arrow-down.svg"
-                          alt=""
-                          className="w-4 h-4 ml-auto"
-                        />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
-                    >
-                      {users.map((role, index) => (
-                        <DropdownMenuItem
-                          key={index}
-                          className="w-full text-center px-4 py-2 hover:bg-gray-200"
-                          // onClick={() => handleSelect(option)}
-                        >
-                          {role.role}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+
+                  {changeRoleInvite && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent">
+                          <span>
+                            {selectedInviteRoleId
+                              ? adminRoles.find(
+                                  (role) => role.id === selectedInviteRoleId
+                                )?.name
+                              : "Select Role"}
+                          </span>
+
+                          <img
+                            src="/assets/icons/arrow-down.svg"
+                            alt=""
+                            className="w-4 h-4 ml-auto"
+                          />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
+                      >
+                        {adminRoles.map((role, index) => (
+                          <DropdownMenuItem
+                            key={index}
+                            className="w-full text-center px-4 py-2 hover:bg-gray-200"
+                            onClick={() => setSelectedInviteRoleId(role.id)}
+                          >
+                            {role.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
                 <Button
+                  disabled={
+                    loadingInvite ||
+                    selectedInviteRoleId?.length === 0 ||
+                    !actionInviteOption ||
+                    (changeRoleInvite && !selectedInviteRoleId)
+                  }
+                  onClick={() => setShowConfirmInviteModal(true)}
                   className="
                 bg-[#023E8A] hover:bg-blue-800 cursor-pointer mt-24 w-full text-center"
                 >
@@ -238,43 +468,133 @@ const ManageSuperAdmin = (props: Props) => {
           </Tabs>
         </div>
 
-        {/* Manage Users Dialog */}
-        <Dialog open={addUSerModal} onOpenChange={setIsAddUserModal}>
-          <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[85vh]">
-            <DialogHeader>
-              <DialogTitle></DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="space-y-4 py-10">
-                <div className="flex justify-normal items-center relative">
-                  <SearchIcon className="w-5 absolute left-3" />
-                  <input
-                    type="search"
-                    className="w-full border border-black rounded-lg p-2 pl-10"
-                    placeholder="Search Users"
-                  />
-                </div>
-
-                {users.map((user, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between items-center py-2 border-b"
-                  >
-                    <div className="flex justify-normal items-center gap-10">
-                      <input type="checkbox" name="user" id="user" />
-                      <div>
-                        <p>{user.name}</p>
-                        <p className="text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-
-                    <p className="text-blue-500">{user.role}</p>
-                  </div>
-                ))}
-              </div>
+        {/* Confirm Member Transfer Modal */}
+        <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+          <DialogContent className="w-full lg:max-w-lg max-w-sm p-4 rounded-lg bg-white shadow-2xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="lg:space-y-[40px] space-y-3 flex flex-col items-center">
+              <DialogHeader className="text-left">
+                <DialogTitle className="text-xl font-bold text-[#181818]">
+                  Confirm Member Transfer?
+                </DialogTitle>
+              </DialogHeader>
+              <DialogDescription className="lg:text-base text-[12px] text-gray-700 text-left px-4 font-[500]">
+                You are about to add this selected user to this role. These
+                users will be removed from their current roles. Do you want to
+                proceed?
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 justify-end lg:pt-5 pt-2">
+              <Button
+                className="border text-black border-[#023E8A] p-2 bg-transparent hover:bg-transparent cursor-pointer"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  transferSuperAdminRole();
+                  setShowConfirmModal(false);
+                }}
+                className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
+              >
+                Yes, Proceed
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
+        {/* Success Modal for Adding New User */}
+        <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+          <DialogContent className="w-full lg:max-w-sm max-w-sm p-8">
+            <div className="flex flex-col items-center">
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-xl font-[500] text-[#181818]">
+                  Success
+                </DialogTitle>
+              </DialogHeader>
+              <img
+                src="/assets/icons/blue-success.svg"
+                alt="Success"
+                className="w-20 h-20 my-6"
+              />
+              <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
+                User Added Successfully
+              </DialogDescription>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Super Admin Invite Modal */}
+        <Dialog
+          open={showConfirmInviteModal}
+          onOpenChange={setShowConfirmInviteModal}
+        >
+          <DialogContent className="w-full lg:max-w-xl max-w-sm p-8 rounded-lg bg-white shadow-2xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="space-y-[40px] flex flex-col items-center">
+              <DialogHeader className="text-justify">
+                <DialogTitle className="text-xl font-bold text-[#181818]  text-justify">
+                  Confirm Super Admin Invite?
+                </DialogTitle>
+              </DialogHeader>
+              <DialogDescription className="lg:text-base text-[12px] text-gray-700 text-left px-4 font-[500]">
+                You are about to invite and transfer Super Admin privileges to
+                <strong> {newSuperAdmin.email}</strong> and{" "}
+                {actionInviteOption === "remove_access"
+                  ? `completely remove your access to the
+                TravelMate dashboard`
+                  : `your account will be changed to ${
+                      adminRoles.find(
+                        (role) => role.id === selectedInviteRoleId
+                      )?.name
+                    } role`}
+                . This action cannot be undone. Are you sure you want to
+                proceed?
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 justify-end pt-5">
+              <Button
+                className="border text-[#023E8A] border-[#023E8A] p-2 bg-transparent hover:bg-transparent cursor-pointer"
+                onClick={() => setShowConfirmInviteModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  InviteSuperAdmin();
+                }}
+                className="bg-[#D72638] p-2 px-4 hover:bg-red-700 cursor-pointer"
+              >
+                Yes, Proceed
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Success Modal for Inviting Users */}
+        <Dialog
+          open={showSuccessInviteModal}
+          onOpenChange={setShowSuccessInviteModal}
+        >
+          <DialogContent className="w-full lg:max-w-sm max-w-sm p-8">
+            <div className="flex flex-col items-center">
+              
+              <DialogHeader className="text-center">
+                <DialogTitle className="text-xl font-[500] text-[#181818]">
+                  Super Admin Invitation Sent Successfully!
+                </DialogTitle>
+              </DialogHeader>
+              <img
+                src="/assets/icons/blue-success.svg"
+                alt="Success"
+                className="w-20 h-20 my-6"
+              />
+              <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
+                An invitation email has been sent to {newSuperAdmin.email} and
+                Your role has been changed to an Admin.
+              </DialogDescription>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </main>
     </div>
   );

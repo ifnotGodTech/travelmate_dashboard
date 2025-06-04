@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -31,332 +31,488 @@ import {
 } from "@/components/ui/dropdown-menu";
 import axios from "axios";
 import env from "@/config/env";
+import { useAuthContext } from "@/context/AuthContext";
+import Loading from "../admin/loading";
+import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 
-// Sample data for charts
-const overviewData = [
-  { month: "August", booking: 400, revenue: 300 },
-  { month: "August", booking: 350, revenue: 400 },
-  { month: "August", booking: 450, revenue: 350 },
-  { month: "September", booking: 400, revenue: 450 },
-  { month: "October", booking: 350, revenue: 300 },
-  { month: "November", booking: 450, revenue: 500 },
-  { month: "December", booking: 400, revenue: 450 },
-  { month: "January", booking: 500, revenue: 400 },
-  { month: "February", booking: 350, revenue: 400 },
-];
-
-const bookingTrendsData = [
-  { month: "August", flights: 0, hotels: 350, cars: 100 },
-  { month: "August", flights: 200, hotels: 500, cars: 100 },
-  { month: "August", flights: 250, hotels: 300, cars: 150 },
-  { month: "September", flights: 0, hotels: 100, cars: 350 },
-  { month: "October", flights: 800, hotels: 600, cars: 200 },
-  { month: "November", flights: 600, hotels: 400, cars: 300 },
-  { month: "December", flights: 400, hotels: 200, cars: 500 },
-  { month: "January", flights: 700, hotels: 600, cars: 400 },
-  { month: "February", flights: 0, hotels: 400, cars: 500 },
-];
-
-const userActivitiesData = [
-  { month: "August", activities: 100 },
-  { month: "August", activities: 400 },
-  { month: "August", activities: 300 },
-  { month: "September", activities: 200 },
-  { month: "October", activities: 400 },
-  { month: "November", activities: 450 },
-  { month: "December", activities: 400 },
-  { month: "January", activities: 500 },
-  { month: "February", activities: 800 },
-];
-
-const revenueData = [
-  { month: "August", revenue: 100 },
-  { month: "August", revenue: 400 },
-  { month: "August", revenue: 300 },
-  { month: "September", revenue: 200 },
-  { month: "October", revenue: 400 },
-  { month: "November", revenue: 450 },
-  { month: "December", revenue: 400 },
-  { month: "January", revenue: 500 },
-  { month: "February", revenue: 800 },
-];
+type Summary = {
+  booking_growth_percentage: number;
+  total_bookings: number;
+  total_users: number;
+  user_growth_percentage: number;
+  total_revenue: number;
+  revenue_growth_percentage: number;
+};
 
 export default function ReportsPage() {
+  const APP_STATE = useAuthContext();
+  const isSuperadmin = APP_STATE?.user?.isSuperuser;
+  
   const [activeTab, setActiveTab] = useState("overview");
 
-  const formatCurrency = (value: number) => {
-    return `N${value.toLocaleString()}`;
-  };
-  const fetchoverviewData = async () => {
-    const response = await axios.get(env.api.overall);
-    console.log(response);
-  };
-  useEffect(() => {
-    fetchoverviewData();
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingExport, setIsLoadingExport] = useState(false);
 
+  const [overviewData, setOverviewData] = useState<Summary>();
+  const [revenueBookingsData, setRevenueBookingsData] = useState();
+  const [bookingTrendsData, setBookingTrendsData] = useState();
+  const [userActivitiesData, setUserActivitiesData] = useState();
+
+  const [selectedOption, setSelectedOption] = useState("This Month");
+
+  // if (!APP_STATE?.user) return <Loading />;
+  // if (!APP_STATE?.accessToken) {
+  //   showErrorToast({ message: "You are not authorized to view this page" });
+  //   return null;
+  // }
+  const formatCurrency = (value: number) => {
+    if (value >= 1_000_000) {
+      return `N${(value / 1_000_000).toFixed(1)}m`; // Format millions
+    } else if (value >= 1_000) {
+      return `N${(value / 1_000).toFixed(1)}k`; // Format thousands
+    }
+    return `N${value.toLocaleString()}`; // Format smaller values
+  };
+
+  // FETCH ALL SUMMARY DATA FOR ADMINS
+
+  const fetchAdminData = async () => {
+    try {
+      setIsLoading(true);
+      const [bookingbreakdown, bookingscombined, summary] = await Promise.all([
+        axios.get(`${env.api.admin}/reports/bookings/breakdown/`, {
+          headers: {
+            Authorization: `Bearer ${APP_STATE.accessToken}`,
+          },
+        }),
+        axios.get(`${env.api.admin}/reports/bookings/combined/`, {
+          headers: {
+            Authorization: `Bearer ${APP_STATE.accessToken}`,
+          },
+        }),
+        axios.get(`${env.api.admin}/reports/summary/`, {
+          headers: {
+            Authorization: `Bearer ${APP_STATE.accessToken}`,
+          },
+        }),
+      ]);
+      setRevenueBookingsData(bookingscombined.data);
+      setOverviewData(summary.data);
+      setBookingTrendsData(bookingbreakdown.data);
+      console.log("Summary Data:", bookingscombined.data);
+
+      // setUserActivitiesData(bookingcount.data);
+    } catch (error) {
+      showErrorToast({ message: "Error displaying data" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  //EXPORT DATA AS XLSL FORMAT
+  const exportData = async () => {
+    try {
+      setIsLoadingExport(true);
+      const response = await axios.get(`${env.api.admin}/reports/export/`, {
+        responseType: "blob", // Important for file download
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "report.xlsx"); // Set the file name
+      document.body.appendChild(link);
+      link.click();
+      showSuccessToast({ message: "Download starting" });
+    } catch (error) {
+      showErrorToast({ message: "Error exporting data" });
+    } finally {
+      setIsLoadingExport(false);
+    }
+  };
+
+  // //FILTER DATA BASED ON TIME PERIOD OR DURATIONS
+  //  const filteredData = useMemo(() => {
+  //   if (!revenueBookingsData) return [];
+  //   const now = new Date();
+  //   return revenueBookingsData.filter((item) => {
+  //     const createdAt = new Date(item.month);
+  //     if (selectedOption === "This Week") {
+  //       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+  //       return createdAt >= startOfWeek;
+  //     } else if (selectedOption === "This Month") {
+  //       return (
+  //         createdAt.getMonth() === now.getMonth() &&
+  //         createdAt.getFullYear() === now.getFullYear()
+  //       );
+  //     } else if (selectedOption === "Last 3 Months") {
+  //       const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+  //       return createdAt >= threeMonthsAgo;
+  //     } else if (selectedOption === "This Year") {
+  //       return createdAt.getFullYear() === now.getFullYear();
+  //     }
+  //     return true;
+  //   });
+  // }, [revenueBookingsData, selectedOption]);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [isSuperadmin]);
+
+
+  const SkeletonLoader = () => (
+    <div className="animate-pulse">
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
+        {/* Skeleton for Metric Cards */}
+        {[1, 2, 3].map((_, index) => (
+          <Card key={index} className="bg-gray-100 w-full">
+            <CardContent className="p-6">
+              <div className="h-4 bg-gray-300 rounded w-1/3 mb-4"></div>
+              <div className="h-8 bg-gray-300 rounded w-2/3 mb-2"></div>
+              <div className="h-4 bg-gray-300 rounded w-1/4"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Skeleton for Charts */}
+      <div className="h-[400px] bg-gray-100 rounded"></div>
+    </div>
+  );
   return (
     <div className="flex min-h-screen bg-background">
       {/* Main Content */}
-      <main className="flex-1">
-        <div className="flex justify-between w-full items-center gap-4 pb-8">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                This Month <ChevronDown className="ml-2 h-4 w-4" />
+      <main className="flex-1 w-full">
+        {isLoading ? (
+          <SkeletonLoader />
+        ) : (
+          <>
+            <div className="flex justify-between w-full items-center gap-4 pb-8">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    This Month <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem>This Week</DropdownMenuItem>
+                  <DropdownMenuItem>This Month</DropdownMenuItem>
+                  <DropdownMenuItem>Last 3 Months</DropdownMenuItem>
+                  <DropdownMenuItem>This Year</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                className={`${
+                  isLoadingExport ? `bg-orange-200` : `bg-orange-500`
+                } hover:bg-orange-600`}
+                onClick={exportData}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                <p className="hidden lg:block">
+                  {isLoadingExport ? "Exporting" : "Export All Data"}
+                </p>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>This Week</DropdownMenuItem>
-              <DropdownMenuItem>This Month</DropdownMenuItem>
-              <DropdownMenuItem>Last 3 Months</DropdownMenuItem>
-              <DropdownMenuItem>This Year</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
 
-          <Button className="bg-orange-500 hover:bg-orange-600">
-            <Download className="mr-2 h-4 w-4" />
-            <p className="hidden lg:block">Export All Data</p>
-          </Button>
-        </div>
-        {/* Metric Cards */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="bg-green-50">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Total Users
-                </span>
-              </div>
-              <div className="mt-2">
-                <span className="text-2xl font-bold">1,285</span>
-                <span className="ml-2 text-sm text-green-600">
-                  +13.2% from last month
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Metric Cards */}
 
-          <Card className="bg-blue-50">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Total Bookings
-                </span>
-              </div>
-              <div className="mt-2">
-                <span className="text-2xl font-bold">382</span>
-                <span className="ml-2 text-sm text-blue-600">
-                  +8.2% from last month
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid gap-4 md:grid-cols-3 mb-8">
+              <Card className="bg-green-50 w-full">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Total Users
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-bold">
+                      {overviewData?.total_users ?? 0}
+                    </span>
+                    <span className="ml-2 text-sm text-green-600">
+                      {overviewData?.user_growth_percentage ?? 0}% from last
+                      month
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-orange-50">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Total Revenue
-                </span>
-              </div>
-              <div className="mt-2">
-                <span className="text-2xl font-bold">N4,200,000</span>
-                <span className="ml-2 text-sm text-orange-600">
-                  +10.5% from last month
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="bg-blue-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Total Bookings
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-bold">
+                      {overviewData?.total_bookings ?? 0}
+                    </span>
+                    <span className="ml-2 text-sm text-blue-600">
+                      {overviewData?.booking_growth_percentage ?? 0}% from last
+                      month
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Charts */}
-        <Tabs
-          defaultValue="overview"
-          className="space-y-4"
-          onValueChange={setActiveTab}
-        >
-          <TabsList>
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="booking-trends"
-              className="flex items-center gap-2"
+              <Card className="bg-orange-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Total Revenue
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-2xl font-bold">
+                      {formatCurrency(overviewData?.total_revenue ?? 0)}
+                    </span>
+                    <span className="ml-2 text-sm text-orange-600">
+                      {overviewData?.revenue_growth_percentage ?? 0}% from last
+                      month
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts */}
+            <Tabs
+              defaultValue="overview"
+              className="space-y-4"
+              onValueChange={setActiveTab}
             >
-              <LineChart className="h-4 w-4" />
-              Booking Trends
-            </TabsTrigger>
-            <TabsTrigger
-              value="user-activities"
-              className="flex items-center gap-2"
-            >
-              <Users className="h-4 w-4" />
-              User Activities
-            </TabsTrigger>
-            <TabsTrigger
-              value="revenue-analysis"
-              className="flex items-center gap-2"
-            >
-              <DollarSign className="h-4 w-4" />
-              Revenue Analysis
-            </TabsTrigger>
-          </TabsList>
+              <div className="overflow-x-auto whitespace-nowrap pb-2">
+                <TabsList className="min-w-max flex gap-2">
+                  <TabsTrigger
+                    value="overview"
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart className="h-4 w-4" />
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="booking-trends"
+                    className="flex items-center gap-2"
+                  >
+                    <LineChart className="h-4 w-4" />
+                    Booking Trends
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="user-activities"
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    User Activities
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="revenue-analysis"
+                    className="flex items-center gap-2"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    Revenue Analysis
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <Card>
+                <CardContent className="pt-6">
+                  {/* OVERVIEW ACTIVITIES  CHART*/}
+                  <TabsContent value="overview" className="mt-0">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Booking & Revenue Overview
+                    </h3>
+                    {isLoading ? (
+                      <Loading />
+                    ) : (
+                      <div className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={revenueBookingsData}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
+                            <XAxis dataKey="month" />
+                            <YAxis tickFormatter={formatCurrency} />
+                            <Tooltip
+                              formatter={(value) =>
+                                formatCurrency(Number(value))
+                              }
+                              contentStyle={{
+                                background: "white",
+                                border: "1px solid #ccc",
+                              }}
+                            />
+                            <Bar
+                              dataKey="bookings"
+                              fill="#1e40af"
+                              name="Booking"
+                            />
+                            {isSuperadmin && (
+                              <Bar
+                                dataKey="revenue"
+                                fill="#f97316"
+                                name="Revenue"
+                              />
+                            )}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </TabsContent>
 
-          <Card>
-            <CardContent className="pt-6">
-              <TabsContent value="overview" className="mt-0">
-                <h3 className="text-lg font-semibold mb-4">
-                  Booking & Revenue Overview
-                </h3>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={overviewData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={formatCurrency} />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(Number(value))}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                        }}
-                      />
-                      <Bar dataKey="booking" fill="#1e40af" name="Booking" />
-                      <Bar dataKey="revenue" fill="#f97316" name="Revenue" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
+                  {/* BOOKING TRENNDS ACTIVITIES */}
+                  <TabsContent value="booking-trends" className="mt-0">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Booking Trends
+                    </h3>
+                    {isLoading ? (
+                      <Loading />
+                    ) : (
+                      <div className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={bookingTrendsData}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
+                            <XAxis dataKey="month" />
+                            <YAxis tickFormatter={formatCurrency} />
+                            <Tooltip
+                              formatter={(value) =>
+                                formatCurrency(Number(value))
+                              }
+                              contentStyle={{
+                                background: "white",
+                                border: "1px solid #ccc",
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={
+                                isSuperadmin
+                                  ? "flight_revenue"
+                                  : "flight_bookings"
+                              }
+                              stroke="#f97316"
+                              name="Flights"
+                              strokeWidth={2}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={
+                                isSuperadmin ? "car_revenue" : "car_bookings"
+                              }
+                              stroke="#22c55e"
+                              name="Hotels"
+                              strokeWidth={2}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={
+                                isSuperadmin ? "car_revenue" : "car_bookings"
+                              }
+                              stroke="#1e40af"
+                              name="Cars"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </TabsContent>
 
-              <TabsContent value="booking-trends" className="mt-0">
-                <h3 className="text-lg font-semibold mb-4">Booking Trends</h3>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={bookingTrendsData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={formatCurrency} />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(Number(value))}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="flights"
-                        stroke="#f97316"
-                        name="Flights"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="hotels"
-                        stroke="#22c55e"
-                        name="Hotels"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="cars"
-                        stroke="#1e40af"
-                        name="Cars"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
+                  {/* USERS ACTIVITIES CHART */}
+                  <TabsContent value="user-activities" className="mt-0">
+                    <h3 className="text-lg font-semibold mb-4">
+                      User Activities
+                    </h3>
+                    {isLoading ? (
+                      <Loading />
+                    ) : (
+                      <div className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={
+                              isSuperadmin
+                                ? revenueBookingsData
+                                : userActivitiesData
+                            }
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
+                            <XAxis dataKey="month" />
+                            <YAxis tickFormatter={formatCurrency} />
+                            <Tooltip
+                              formatter={(value) =>
+                                formatCurrency(Number(value))
+                              }
+                              contentStyle={{
+                                background: "white",
+                                border: "1px solid #ccc",
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="bookings"
+                              stroke="#f97316"
+                              name="User Activities"
+                              strokeWidth={2}
+                              dot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </TabsContent>
 
-              <TabsContent value="user-activities" className="mt-0">
-                <h3 className="text-lg font-semibold mb-4">User Activities</h3>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={userActivitiesData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={formatCurrency} />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(Number(value))}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="activities"
-                        stroke="#f97316"
-                        name="User Activities"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="revenue-analysis" className="mt-0">
-                <h3 className="text-lg font-semibold mb-4">Revenue Analysis</h3>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={formatCurrency} />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(Number(value))}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="revenue"
-                        stroke="#eab308"
-                        name="Revenue"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </TabsContent>
-            </CardContent>
-          </Card>
-        </Tabs>
+                  {/* //REVENUE ANALYSIS CHART */}
+                  <TabsContent value="revenue-analysis" className="mt-0">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Revenue Analysis
+                    </h3>
+                    {isLoading ? (
+                      <Loading />
+                    ) : (
+                      <div className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={revenueBookingsData}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
+                            <XAxis dataKey="month" />
+                            <YAxis tickFormatter={formatCurrency} />
+                            <Tooltip
+                              formatter={(value) =>
+                                formatCurrency(Number(value))
+                              }
+                              contentStyle={{
+                                background: "white",
+                                border: "1px solid #ccc",
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={isSuperadmin ? "revenue" : "bookings"}
+                              stroke="#eab308"
+                              name="Revenue"
+                              strokeWidth={2}
+                              dot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </TabsContent>
+                </CardContent>
+              </Card>
+            </Tabs>
+          </>
+        )}
       </main>
     </div>
   );
 }
-
-// import React from 'react'
-
-// type Props = {}
-
-// const page = (props: Props) => {
-//   return (
-//     <div>page</div>
-//   )
-// }
-
-// export default page
