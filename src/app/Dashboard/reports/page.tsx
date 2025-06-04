@@ -99,8 +99,6 @@ export default function ReportsPage() {
       setRevenueBookingsData(bookingscombined.data);
       setOverviewData(summary.data);
       setBookingTrendsData(bookingbreakdown.data);
-      console.log("Summary Data:", bookingscombined.data);
-
       // setUserActivitiesData(bookingcount.data);
     } catch (error) {
       showErrorToast({ message: "Error displaying data" });

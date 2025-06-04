@@ -44,7 +44,6 @@ const RoleManagement: FC<RoleManagementProps> = ({
     );
   };
 
-  // console.log
   return (
     <div className="p-3 lg:p-0 ">
       <div className="flex justify-between items-center md:gap-32 gap-6">

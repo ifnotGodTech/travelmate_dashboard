@@ -79,7 +79,6 @@ const page = () => {
       setBookings(bookings.data);
       isSuperadmin && setRevenue(revenue.data);
       setUsers(user.data);
-      console.log(bookings.data)
     } catch (error: any) {
       showErrorToast({ message: error.response?.data || error.message });
     } finally {
@@ -89,6 +88,18 @@ const page = () => {
 
   useEffect(() => {
     fetchDashboardData();
+  }, []);
+
+    useEffect(() => {
+    const getAdminRole = async () => {
+      try {
+        const response = await axios.get(`${env.api.admin}/me/roles/`);
+        console.log(response.data);
+      } catch (error: any) {
+        console.log(error);
+      }
+    };
+    getAdminRole()
   }, []);
 
   const generateWeeklyChartData = (bookings: BookingsProps[]) => {

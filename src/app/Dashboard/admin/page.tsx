@@ -272,7 +272,6 @@ const AdminRolesPage: React.FC = () => {
     e.preventDefault();
     const role = adminDetails.find((role) => role.name === selectedOption);
     const id = role?.id || "";
-    console.log(id);
     if (!newMember.name || !newMember.email || !newMember.role) {
       showErrorToast({ message: "Fill in all the details" });
       return;

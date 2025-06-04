@@ -95,8 +95,6 @@ const ContentTab = () => {
           axios.get(env.api.partners),
           axios.get(env.api.partnercategories),
         ]);
-
-      console.log("Terms of Use API Response:", partnerCategoryRes);
       const partnerCategories = partnerCategoryRes.data.results;
       const partners = partnerRes.data.results;
       const merged = partnerCategories.map((category: any) => ({
@@ -205,9 +203,6 @@ const ContentTab = () => {
         ...patchPartners,
         ...postPartners,
       ]);
-      console.log("Partner Categories After Patch:", contents.partnerCategory);
-      console.log("All Partners after Patch:", allPartners);
-
       setIsEditing(false);
       setShowSuccessModal(true);
     } catch (error) {
