@@ -24,7 +24,7 @@ export const ChatTableDropdown = ({
   onViewMessage?: () => void;
 }) => {
   const options = [
-    { label: "View Details", action: onViewDetails },
+    { label: "Open Chat", action: onViewDetails },
     { label: "View Chat Details", action: onViewMessage },
   ];
 
@@ -227,23 +227,29 @@ export const ClaimedChatSection = ({
   const canViewMessage = data?.name === "Support & Tickets";
 
   const [notAuthorized, setNotAuthorized] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const formattedDate = useMemo(
     () => (chatDetails ? formatCreatedAt(chatDetails.created_at, 2) : ""),
     [chatDetails]
   );
 
-  const handleClaimTicket = useCallback(() => {
+  const handleClaimTicket = useCallback(async () => {
     if (!chatDetails?.id) return;
     if (!canViewMessage) {
       setNotAuthorized(true);
       return;
     }
-    onClaiming({
-      ChatId: chatDetails.id,
-      successCallback: () =>
-        router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
-    });
+    setIsProcessing(true); // Start loader
+    try {
+      await onClaiming({
+        ChatId: chatDetails.id,
+        successCallback: () =>
+          router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
+      });
+    } finally {
+      setIsProcessing(false); // Stop loader after process
+    }
   }, [chatDetails, router, onClaiming, canViewMessage]);
 
   const handleNavigateToResponse = useCallback(() => {
@@ -290,9 +296,15 @@ export const ClaimedChatSection = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
+        {isProcessing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 z-10">
+            <div className="w-10 h-10 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+
         {notAuthorized && <NotAuthorizedModal ticketDetails={chatDetails} />}
 
-        {!notAuthorized && (
+        {!notAuthorized && !isProcessing && (
           <>
             <div className="border-b-[1px] w-full border-[#BCBEC2]">
               <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">

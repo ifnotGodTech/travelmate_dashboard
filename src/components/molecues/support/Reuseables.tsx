@@ -433,13 +433,13 @@ const UnclaimedTicketSection = ({
       </div>
 
       <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-        <div className="px-[16px] lg:px-[32px] py-[10px] flex space-x-[40px] items-center">
+        <div className="px-[16px] lg:px-[32px] py-[10px] flex space-y-[20px] lg:space-y-0 lg:space-x-[40px] flex-col lg:flex-row items-center">
           <div
             className="p-4 rounded-[8px] border-[1px] w-full border-[#D72638] justify-center flex items-center space-x-3 cursor-pointer"
             onClick={handleEscalateTicket}
           >
             <img src="/assets/icons/MessageModal.svg" alt="" />
-            <span className="text-[#D72638] text-[20px] font-[500]">
+            <span className="text-[#D72638] lg:text-[20px] text-[12px] font-[500]">
               Escalate Ticket
             </span>
           </div>
@@ -453,7 +453,7 @@ const UnclaimedTicketSection = ({
             ) : (
               <>
                 <img src="/assets/icons/ModalDanger.svg" alt="" />
-                <span className="text-[#fff] text-[20px] font-[500]">
+                <span className="text-[#fff] lg:text-[20px] text-[12px] font-[500]">
                   Claim Ticket
                 </span>
               </>

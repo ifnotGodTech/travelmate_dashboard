@@ -145,10 +145,6 @@ const Filter = () => {
                     </span>
                   </div>
                 </div>
-
-                <div className="text-[#023E8A] text-[14px] font-[400] p-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer">
-                  Apply
-                </div>
               </div>
             </div>
 

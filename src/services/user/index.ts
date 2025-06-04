@@ -21,6 +21,10 @@ class Service {
     return axios.patch(env.api.users + userId + "/deactivate/", data);
   }
 
+  reactivateUser({ userId, data }: { userId?: string; data: any }) {
+    return axios.patch(env.api.users + userId + "/activate/", data);
+  }
+
   deleteUser({ userId }: { userId?: string }) {
     return axios.delete(env.api.users + userId + "/");
   }

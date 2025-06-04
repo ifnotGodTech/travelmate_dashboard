@@ -3,7 +3,14 @@ import { useState } from "react";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { useGetUser, useDeactivateUser } from "@/hooks/api/user";
+import {
+  useGetUser,
+  useDeactivateUser,
+  useReactivateUser,
+} from "@/hooks/api/user";
+import { AlertTriangle } from "lucide-react";
+import { useMyRoles } from "@/hooks/api/roles";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -111,11 +118,19 @@ export const UserDeactivationDialog = ({
 }) => {
   const { deactivating, onDeactivateUser } = useDeactivateUser();
   const [showModal, setShowModal] = useState(false);
+  const [showError, setShowError] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [additionalNote, setAdditionalNote] = useState<string>("");
   const email = deactivatingUser?.email;
+  const { loading, data } = useMyRoles({ modalVisible: isOpen });
+  const canViewMessage = data?.name === "Super Admin";
 
   const handleDeactivate = () => {
+    if (!email || !reason) {
+      setShowError(true);
+      return;
+    }
+
     onDeactivateUser({
       payload: {
         email,
@@ -134,75 +149,90 @@ export const UserDeactivationDialog = ({
     <>
       <Dialog open={isOpen} onOpenChange={onCancel}>
         <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
-          <DialogTitle></DialogTitle>
-          <div className="px-[32px] py-[8px]">
-            <h2 className="font-[600] text-[28px] text-[#181818]">
-              Deactivate User Account
-            </h2>
-          </div>
-          <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
-          <div className="py-[19px] px-[32px] space-y-[16px]">
-            <div className="space-y-4">
-              <p className="text-[20px] font-[500] text-[#181818]">
-                Deactivation Reason
-              </p>
-
-              <MiniDropdown
-                options={[
-                  { id: "1", label: "Suspicious account activity" },
-                  { id: "2", label: "Multiple policy violations" },
-                  { id: "3", label: "Fake or misleading profile information" },
-                  { id: "4", label: "Multiple booking cancellations" },
-                  { id: "5", label: "Fraudulent payment activity" },
-                  { id: "6", label: "User reported by multiple hosts" },
-                  { id: "7", label: "Terms of service violation" },
-                ]}
-                placeholder="Select"
-                onSelect={(option) => setReason(option?.label || null)}
-              />
-            </div>
-            <div className="space-y-3 w-full">
-              <p className="text-[20px] font-[500] text-[#181818]">
-                Additional Reason
-              </p>
-
-              <textarea
-                rows={6}
-                className="py-[16px] w-full px-[12px] rounded-[8px] border-[#818489] border-[1px] font-[400] text-[16px] text-[#181818] placeholder:font-[400] placeholder:text-[16px] placeholder:text-[#818489]"
-                placeholder="Type here..."
-                value={additionalNote}
-                onChange={(e) => setAdditionalNote(e.target.value)}
-              ></textarea>
-            </div>
-
-            <div className="bg-[#F5F5F5] rounded-[12px] p-4 flex space-x-[10px] items-start">
-              <img src="/assets/icons/info.svg" alt="" />
-              <span className="lg:text-[18px] text-[12px] font-[400] text-[#181818]">
-                The selected reason as well as the additional reason will be
-                sent to the user's email to inform them of their account
-                deactivation.
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-4 w-full">
-              <div
-                className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
-                onClick={onCancel}
-              >
-                Cancel
+          {canViewMessage ? (
+            <>
+              <DialogTitle></DialogTitle>
+              <div className="px-[32px] py-[8px]">
+                <h2 className="font-[600] text-[28px] text-[#181818]">
+                  Deactivate User Account
+                </h2>
               </div>
-              <div
-                className={`bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
-                  deactivatingUser?.is_active
-                    ? "cursor-pointer"
-                    : "cursor-not-allowed opacity-25 "
-                } `}
-                onClick={handleDeactivate}
-              >
-                {deactivating ? "Deactivating user..." : "Confirm Deactivation"}
+              <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+              <div className="py-[19px] px-[32px] space-y-[16px]">
+                <div className="space-y-4">
+                  <p className="text-[20px] font-[500] text-[#181818]">
+                    Deactivation Reason
+                  </p>
+                  <MiniDropdown
+                    options={[
+                      { id: "1", label: "Suspicious account activity" },
+                      { id: "2", label: "Multiple policy violations" },
+                      {
+                        id: "3",
+                        label: "Fake or misleading profile information",
+                      },
+                      { id: "4", label: "Multiple booking cancellations" },
+                      { id: "5", label: "Fraudulent payment activity" },
+                      { id: "6", label: "User reported by multiple hosts" },
+                      { id: "7", label: "Terms of service violation" },
+                    ]}
+                    placeholder="Select"
+                    onSelect={(option) => setReason(option?.label || null)}
+                  />
+                </div>
+                <div className="space-y-3 w-full">
+                  <p className="text-[20px] font-[500] text-[#181818]">
+                    Additional Reason
+                  </p>
+                  <textarea
+                    rows={6}
+                    className="py-[16px] w-full px-[12px] rounded-[8px] border-[#818489] border-[1px] font-[400] text-[16px] text-[#181818] placeholder:font-[400] placeholder:text-[16px] placeholder:text-[#818489]"
+                    placeholder="Type here..."
+                    value={additionalNote}
+                    onChange={(e) => setAdditionalNote(e.target.value)}
+                  ></textarea>
+                </div>
+
+                {showError && (
+                  <div className="text-red-500 text-sm">
+                    Please provide all required information.
+                  </div>
+                )}
+
+                <div className="bg-[#F5F5F5] rounded-[12px] p-4 flex space-x-[10px] items-start">
+                  <img src="/assets/icons/info.svg" alt="" />
+                  <span className="lg:text-[18px] text-[12px] font-[400] text-[#181818]">
+                    The selected reason as well as the additional reason will be
+                    sent to the user's email to inform them of their account
+                    deactivation.
+                  </span>
+                </div>
+
+                <div className="flex justify-end gap-4 w-full">
+                  <div
+                    className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
+                    onClick={onCancel}
+                  >
+                    Cancel
+                  </div>
+                  <div
+                    className={`bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
+                      deactivatingUser?.is_active
+                        ? "cursor-pointer"
+                        : "cursor-not-allowed opacity-25"
+                    } `}
+                    onClick={handleDeactivate}
+                  >
+                    {deactivating
+                      ? "Deactivating user..."
+                      : "Confirm Deactivation"}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <NotAuthorizedModal string={"deactivate"} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -346,97 +376,127 @@ export const UserActivationDialog = ({
 }) => {
   const [reason, setReason] = useState<string | null>(null);
   const [additionalNote, setAdditionalNote] = useState<string>("");
+  const [showModal, setShowModal] = useState(false);
+  const { loading, data } = useMyRoles({ modalVisible: isOpen });
+  const { reactivating, onReactivateUser } = useReactivateUser();
+  const canViewMessage = data?.name === "Super Admin";
 
   const handleReactivate = () => {
-    if (reactivatingUser) {
-      console.log("Reactivating user with:", {
+    onReactivateUser({
+      payload: {
         reason,
-        additionalNote,
-        userId: reactivatingUser.id,
-      });
-    }
+        additional_note: additionalNote,
+      },
+      userId: reactivatingUser?.id,
+      successCallback: () => {
+        onCancel();
+        setShowModal(true);
+      },
+    });
   };
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onCancel}>
         <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
-          <DialogTitle></DialogTitle>
-          <div className="px-[32px] py-[8px]">
-            <h2 className="font-[600] text-[28px] text-[#181818]">
-              Reactivate User Account
-            </h2>
-          </div>
-          <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
-          <div className="py-[19px] px-[32px] space-y-[16px]">
-            <div className="space-y-4">
-              <p className="text-[20px] font-[500] text-[#181818]">
-                Reactivation Reason
-              </p>
-
-              <MiniDropdown
-                options={[
-                  { id: "1", label: "User appeal approved" },
-                  { id: "2", label: "Administrative error" },
-                  { id: "3", label: "Payment issues resolved" },
-                  { id: "4", label: "Policy update compliance" },
-                  { id: "5", label: "Other" },
-                ]}
-                placeholder="Select"
-                onSelect={(option) => setReason(option?.label || null)}
-              />
-            </div>
-            <div className="space-y-3 w-full">
-              <p className="text-[20px] font-[500] text-[#181818]">
-                Additional Details
-              </p>
-
-              <textarea
-                rows={6}
-                className="py-[16px] w-full px-[12px] rounded-[8px] border-[#818489] border-[1px] font-[400] text-[16px] text-[#181818] placeholder:font-[400] placeholder:text-[16px] placeholder:text-[#818489]"
-                placeholder="Provide additional details for the reactivation..."
-                value={additionalNote}
-                onChange={(e) => setAdditionalNote(e.target.value)}
-              ></textarea>
-            </div>
-
-            <div className="bg-[#F5F5F5] rounded-[12px] p-4 flex space-x-[10px] items-start">
-              <img src="/assets/icons/info.svg" alt="Info icon" />
-              <span className="lg:text-[18px] text-[12px] font-[400] text-[#181818]">
-                The reactivation reason and additional details will be sent to
-                the user's email to inform them about their account
-                reactivation.
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-4 w-full">
-              <div
-                className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
-                onClick={onCancel}
-              >
-                Cancel
+          {canViewMessage ? (
+            <>
+              <DialogTitle></DialogTitle>
+              <div className="px-[32px] py-[8px]">
+                <h2 className="font-[600] text-[28px] text-[#181818]">
+                  Reactivate User Account
+                </h2>
               </div>
-              <div
-                className={`bg-[#023E8A] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
-                  !reason ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                }`}
-                onClick={handleReactivate}
-              >
-                HELLO
-                {/* {reactivating ? "Reactivating User..." : "Confirm Reactivation"} */}
+              <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+              <div className="py-[19px] px-[32px] space-y-[16px]">
+                <div className="space-y-4">
+                  <p className="text-[20px] font-[500] text-[#181818]">
+                    Reactivation Reason
+                  </p>
+
+                  <MiniDropdown
+                    options={[
+                      { id: "1", label: "User appeal approved" },
+                      { id: "2", label: "Administrative error" },
+                      { id: "3", label: "Payment issues resolved" },
+                      { id: "4", label: "Policy update compliance" },
+                      { id: "5", label: "Other" },
+                    ]}
+                    placeholder="Select"
+                    onSelect={(option) => setReason(option?.label || null)}
+                  />
+                </div>
+                <div className="space-y-3 w-full">
+                  <p className="text-[20px] font-[500] text-[#181818]">
+                    Additional Details
+                  </p>
+
+                  <textarea
+                    rows={6}
+                    className="py-[16px] w-full px-[12px] rounded-[8px] border-[#818489] border-[1px] font-[400] text-[16px] text-[#181818] placeholder:font-[400] placeholder:text-[16px] placeholder:text-[#818489]"
+                    placeholder="Provide additional details for the reactivation..."
+                    value={additionalNote}
+                    onChange={(e) => setAdditionalNote(e.target.value)}
+                  ></textarea>
+                </div>
+
+                <div className="bg-[#F5F5F5] rounded-[12px] p-4 flex space-x-[10px] items-start">
+                  <img src="/assets/icons/info.svg" alt="Info icon" />
+                  <span className="lg:text-[18px] text-[12px] font-[400] text-[#181818]">
+                    The reactivation reason and additional details will be sent
+                    to the user's email to inform them about their account
+                    reactivation.
+                  </span>
+                </div>
+
+                <div className="flex justify-end gap-4 w-full">
+                  <div
+                    className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
+                    onClick={onCancel}
+                  >
+                    Cancel
+                  </div>
+                  <div
+                    className={`bg-[#023E8A] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
+                      !reason
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }`}
+                    onClick={handleReactivate}
+                  >
+                    Confirm Reactivation
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <NotAuthorizedModal string={"Reactivate"} />
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* {showModal && (
+      {showModal && (
         <SuccessModal
           title="User Reactivated Successfully"
           description={`User ${reactivatingUser?.email} has been successfully reactivated.`}
           onClose={() => setShowModal(false)}
         />
-      )} */}
+      )}
     </>
+  );
+};
+
+export const NotAuthorizedModal = ({ string }: any) => {
+  return (
+    <div className="text-center p-6 flex flex-col space-y-2 items-center justify-center min-h-[400px]">
+      <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
+      <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
+        You cannot {string} this user.
+      </h1>
+      <p className="mt-4 text-gray-600">
+        You don't have the Authorization to perform this action. <br /> Please
+        contact your administrator for assistance.
+      </p>
+    </div>
   );
 };
