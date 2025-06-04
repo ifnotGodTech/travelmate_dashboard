@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,105 +18,222 @@ import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
 import axios from "axios";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
+import { showErrorToast, showSuccessToast } from "@/utils/toasters";
+import Loading from "./loading";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuContent,
+} from "@/components/ui/dropdown-menu";
+import { Download, XCircle } from "lucide-react";
 interface Role {
   id: string;
   name: string;
   description: string;
-  assignedUsers: number;
-  permissions: string[];
-  person: string; // Optional property for the person's name
+  assigned_users: any[];
+  current_permission_group_slugs: string[];
+  // person: string;
+  is_superuser: boolean;
+  created_by: string;
 }
 type Permissions = {
-  group: string;
-  permissions: { id: string; name: string }[];
+  slug: string;
+  name: string;
 };
 
 const AdminRolesPage: React.FC = () => {
   const router = useRouter();
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-  const [isManageUsersOpen, setIsManageUsersOpen] = useState(false);
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [successModal, setSuccessModal] = useState(false);
+
   const [activeTab, setActiveTab] = useState("role-management");
+
   const [adminDetails, setAdminDetails] = useState<Role[]>([]);
-  const {accessToken} = useAuthContext()
+
+  const { accessToken } = useAuthContext();
+
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const selectedRoleIdRef = useRef<string>("");
+
   const [availablePermissions, setAvailablePermissions] = useState<
     Permissions[]
   >([]);
+
   const [roleDetails, setRoleDetails] = useState<{
+    id: string;
     name: string;
     description: string;
     permissions: string[];
   }>({
+    id: "",
     name: "",
     description: "",
     permissions: [],
   });
 
   const [newMember, setNewMember] = useState<{
+    id: string;
     name: string;
     email: string;
     role: string;
   }>({
+    id: "",
     name: "",
     email: "",
     role: "",
   });
-  //FETCH ADMIN ROLES AND DESCEIPTIONS
-  const getSuperAdminDetails = async () => {
+  const admins = adminDetails.filter((admin) => admin.name !== "Super Admin");
+  // FETCH PERMISSIONS TO CREATE NEW ROLE
+  const fetchPermissions = async () => {
     try {
-      const superAdminRes = await axios.get(`${env.api.superadmin}superadmins/`);
-      setAdminDetails(superAdminRes.data.results);
-      console.log(superAdminRes.data.results)
-    } catch (error) {
-      console.log("Error fetching details", error);
-      throw new Error("Error Fetching the superadmin details");
+      setIsLoading(true);
+      const response = await axios.get(
+        `${env.api.superadmin}permissions/groups`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken || ""}`,
+          },
+        }
+      );
+      setAvailablePermissions(
+        Array.isArray(response.data.results) ? response.data.results : []
+      );
+    } catch (error: any) {
+      console.error(
+        "Error fetching permissions:",
+        error.response?.data || error.message
+      );
+      setAvailablePermissions([]); // Ensure array on error
+      const errData = error.response?.data;
+
+      showErrorToast({
+        message:
+          errData?.detail?.[0] || errData?.messages?.[0] || error.message,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  //FETCH PERMISSIONS TO CREATE NEW ROLE
-  const fetchPermissions = async () => {
+  // FETCH ALL ROLES
+  const fetchAllRoles = async () => {
     try {
-      const response = await axios.get(`${env.api.superadmin}permissions/`);
-      setAvailablePermissions(response.data);
-    } catch (error) {
-      console.log("Cannot fetch permissions", error);
+      setIsLoading(true);
+      const response = await axios.get(`${env.api.superadmin}roles/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken || ""}`,
+          "Content-Type": "application/json",
+        },
+      });
+      setAdminDetails(
+        Array.isArray(response.data.results) ? response.data.results : []
+      );
+    } catch (error: any) {
+      showErrorToast({
+        message:
+          error.response?.data.messages.message || error.messages.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  //EDIR ADMIN ROLES AND PERMISSIONS
+  const UpdateRole = async (roleId: string, updatedRole: Role) => {
+    try {
+      const response = await axios.patch(
+        `${env.api.superadmin}roles/${roleId}/`,
+        updatedRole,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setAdminDetails((prev) =>
+        prev.map((role) => (role.id === roleId ? response.data : role))
+      );
+      showSuccessToast({
+        message: "Role updated successfully",
+      });
+    } catch (error: any) {
+      console.error(
+        "Error updating role:",
+        error.response?.data || error.message
+      );
+      showErrorToast({ message: "Failed to update role" });
     }
   };
   //CREATE NEW ROLE OR SAVE
   const saveRole = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!roleDetails.name) {
-      alert("Role name is required");
+
+    if (
+      !roleDetails.name ||
+      roleDetails.name.trim() === "" ||
+      !roleDetails.description ||
+      !roleDetails.permissions.length
+    ) {
+      showErrorToast({
+        message: "Fill in complete details and assign permissions to role",
+      });
       return;
     }
-    try {
-      const response = await axios.post(
-        `${env.api.superadmin}roles/`,
-        {
-          name: roleDetails.name,
-          description: roleDetails.description,
-          permission_ids: roleDetails.permissions.map(Number),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken || ""}`, // Include token
-            "Content-Type": "application/json",
+
+    if (isEditing && editingRoleId) {
+      await UpdateRole(editingRoleId, {
+        id: editingRoleId,
+        name: roleDetails.name,
+        description: roleDetails.description,
+        current_permission_group_slugs: roleDetails.permissions,
+        assigned_users: [],
+        is_superuser: false,
+        created_by: "",
+      });
+    } else {
+      try {
+        const response = await axios.post(
+          `${env.api.superadmin}roles/`,
+          {
+            name: roleDetails.name,
+            description: roleDetails.description,
+            permission_group_slugs: roleDetails.permissions,
           },
-        }
-      );
-      setAdminDetails((prev) => [...prev, response.data]);
-      console.log(roleDetails);
-    } catch (err) {
-      console.log("Error Creating new Role", err);
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        setAdminDetails((prev) => [...prev, response.data]);
+        showSuccessToast({
+          message: "Created new role successfully!",
+        });
+      } catch (err) {
+        console.log("Error Creating new Role", err);
+        showErrorToast({ message: "An error occurred" });
+      }
     }
-    setRoleDetails({ name: "", description: "", permissions: [] }); // Reset form
+
+    setRoleDetails({ id: "", name: "", description: "", permissions: [] });
     setIsCreateRoleOpen(false);
+    setIsEditing(false);
+    setEditingRoleId(null);
   };
 
   useEffect(() => {
-    getSuperAdminDetails();
     fetchPermissions();
+    fetchAllRoles();
   }, []);
 
   // Handle role details input changes
@@ -137,228 +254,363 @@ const AdminRolesPage: React.FC = () => {
         : prev.permissions.filter((permId) => permId !== id),
     }));
   };
+  //EDIT ADMIN ROLES
+  const handleEditRole = (role: Role) => {
+    setRoleDetails({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      permissions: role.current_permission_group_slugs,
+    });
+    setEditingRoleId(role.id);
+    setIsEditing(true);
+    setIsCreateRoleOpen(true);
+  };
 
-  // Add new member
-  const addMember = (e: React.FormEvent<HTMLFormElement>) => {
+  // INVITE NEW MEMBER
+  const inviteMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const role = adminDetails.find((role) => role.name === selectedOption);
+    const id = role?.id || "";
     if (!newMember.name || !newMember.email || !newMember.role) {
-      alert("All fields are required");
+      showErrorToast({ message: "Fill in all the details" });
       return;
     }
-    // Find the role and increment assignedUsers
-    setAdminDetails((prev) =>
-      prev.map((role) =>
-        role.name === newMember.role
-          ? { ...role, assignedUsers: role.assignedUsers + 1 }
-          : role
-      )
-    );
-    // setNewMember({ name: "", email: "", role: "" }); // Reset form
-    setIsAddMemberOpen(false);
-    setShowConfirmModal(true);
+    try {
+      await axios.post(
+        `${env.api.superadmin}roles/${id}/invite/`,
+        {
+          email: newMember.email,
+          name: newMember.name,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setIsAddMemberOpen(false);
+      setSuccessModal(true);
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Cannot add new member",
+      });
+    } finally {
+      setSelectedOption("")
+    }
   };
+
+  const AdminRolesSkeletonLoader = () => {
+    return (
+      <div className="flex min-h-screen bg-background rounded-lg">
+        <main className="w-full">
+          <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
+            {/* Header Skeleton */}
+            <div className="h-6 bg-gray-300 rounded-md w-3/4 mb-6 animate-pulse"></div>
+
+            {/* Tabs Skeleton */}
+            <div className="flex border-b mb-6">
+              {[1, 2].map((_, index) => (
+                <div
+                  key={index}
+                  className="h-10 w-32 bg-gray-300 rounded-md mr-4 animate-pulse"
+                ></div>
+              ))}
+            </div>
+
+            {/* Content Skeleton */}
+            <div className="space-y-6">
+              {/* Role Management Section */}
+              <div className="space-y-4">
+                {[1, 2, 3].map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-16 bg-gray-300 rounded-md animate-pulse"
+                  ></div>
+                ))}
+              </div>
+
+              {/* Role Assignments Section */}
+              <div className="space-y-4">
+                {[1, 2, 3].map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-16 bg-gray-300 rounded-md animate-pulse"
+                  ></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  };
+
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       {/* Main Content */}
       <main className="w-full">
-        <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-          <h2
-            className="text-lg font-medium pb-6 cursor-pointer"
-            onClick={() => router.push("/accept-invite")}
-          >
-            Manage access control for your travel agency dashboard
-          </h2>
-          <Tabs
-            defaultValue="role-management"
-            className="space-y-6"
-            onValueChange={setActiveTab}
-          >
-            <TabsList className="w-full border-b rounded-none bg-transparent p-0 h-auto">
-              <TabsTrigger
-                value="role-management"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
+        {isLoading ? (
+          <AdminRolesSkeletonLoader />
+        ) : (
+          <>
+            <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
+              <h2
+                className="text-lg font-medium pb-6 cursor-pointer"
+                onClick={() => router.push("/accept-invite")}
               >
-                Role Management
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="role-assignments"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
+                Manage access control for your travel agency dashboard
+              </h2>
+              <Tabs
+                defaultValue="role-management"
+                className="space-y-6"
+                onValueChange={setActiveTab}
               >
-                Role Assignments
-              </TabsTrigger>
-            </TabsList>
+                <TabsList className="w-full border-b rounded-none bg-transparent p-0 h-auto">
+                  <TabsTrigger
+                    value="role-management"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
+                  >
+                    Role Management
+                  </TabsTrigger>
 
-            <TabsContent value="role-management" className="space-y-4">
-              <RoleManagement
-                onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
-                roles={adminDetails}
-                onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
-              />
-            </TabsContent>
+                  <TabsTrigger
+                    value="role-assignments"
+                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
+                  >
+                    Role Assignments
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="role-assignments" className="space-y-8">
-              <RoleAssignment
-                onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
-                roles={adminDetails}
-                onManageUsersOpen={(roleId) => setIsManageUsersOpen(true)}
-                onAddMemberOpen={() => setIsAddMemberOpen(true)}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
-        {/* Create Role Dialog */}
-        <Dialog open={isCreateRoleOpen} onOpenChange={setIsCreateRoleOpen}>
-          <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Create New Role</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={saveRole} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Role Name</label>
-                  <Input
-                    name="name"
-                    value={roleDetails.name}
-                    onChange={handleChangeRoleDetails}
+                <TabsContent value="role-management" className="space-y-4">
+                  <RoleManagement
+                    roles={adminDetails}
+                    onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
+                    isLoading={isLoading}
+                    onStartEdit={handleEditRole}
                   />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Input
-                    name="description"
-                    value={roleDetails.description}
-                    onChange={handleChangeRoleDetails}
+                </TabsContent>
+
+                <TabsContent value="role-assignments" className="space-y-8">
+                  <RoleAssignment
+                    onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
+                    roles={adminDetails}
+                    isLoading={isLoading}
+                    onAddMemberOpen={() => setIsAddMemberOpen(true)}
                   />
-                </div>
-              </div>
-              <div className="space-y-6">
-                {availablePermissions.map(({ group, permissions }) => (
-                  <div key={group} className="space-y-4">
-                    <h4 className="font-medium">{group}</h4>
-                    <div className="space-y-2">
-                      {permissions.map(({ id, name }) => (
-                        <div key={id} className="flex items-center space-x-2">
-                          <Checkbox
-                            className="cursor-pointer"
-                            id={String(id)}
-                            checked={roleDetails.permissions.includes(id)}
-                            onCheckedChange={(checked: boolean) =>
-                              handlePermissionChange(id, checked)
-                            }
-                          />
-                          <label htmlFor={String(id)} className="capitalize">
-                            {name}
-                          </label>
-                        </div>
-                      ))}
+                </TabsContent>
+              </Tabs>
+            </div>
+            {/* Create Role Dialog */}
+            <Dialog
+              open={isCreateRoleOpen}
+              onOpenChange={(open) => {
+                setIsCreateRoleOpen(open);
+                if (!open) {
+                  setIsEditing(false);
+                  setRoleDetails({
+                    id: "",
+                    name: "",
+                    description: "",
+                    permissions: [],
+                  });
+                }
+              }}
+            >
+              <DialogContent className="fixed md:top-[10vh] top-[20vh] left-1/2 max-w-2xl mt-64 mb-64 overflow-y-auto w-[90vw] max-h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle>
+                    {isEditing ? "Edit Role" : "Create New Role"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={saveRole}>
+                  <div className="space-y-4">
+                    <div className="pt-4">
+                      <label className="text-sm font-medium">Role Name</label>
+                      <Input
+                        className="mt-2"
+                        name="name"
+                        value={roleDetails.name}
+                        onChange={handleChangeRoleDetails}
+                      />
+                    </div>
+                    <div className="pt-4">
+                      <label className="text-sm font-medium">Description</label>
+                      <Input
+                        className="mt-2"
+                        name="description"
+                        value={roleDetails.description}
+                        onChange={handleChangeRoleDetails}
+                      />
                     </div>
                   </div>
+                  <div className="space-y-6 pt-4">
+                    <h3 className="text-sm font-medium">Permissions</h3>
+                    {isLoading && <Loading />}
+                    {/* {availablePermissions.map((perm) => (
+                  <div key={perm.slug} className="space-y-4">
+                    <h4 className="font-medium">{perm.name}</h4>
+                    <div className="space-y-2"> */}
+                    {availablePermissions.map((perm, id) => (
+                      <div
+                        key={perm.slug}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          className="cursor-pointer"
+                          id={String(id)}
+                          checked={roleDetails.permissions.includes(perm.slug)}
+                          onCheckedChange={(checked: boolean) =>
+                            handlePermissionChange(perm.slug, checked)
+                          }
+                        />
+                        <label htmlFor={String(id)} className="capitalize">
+                          {perm.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {/* </div>
                 ))}
-              </div>
+              </div> */}
 
-              <div className="flex justify-end gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateRoleOpen(false)}
-                  className="bg-red-50 border-red-100 hover:bg-red-100 text-red-600 cursor-pointer"
-                >
-                  CANCEL
-                </Button>
+                  <div className="flex justify-between items-center w-full gap-4 mt-7">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreateRoleOpen(false)}
+                      className="bg-[#FFE2D2]  hover:bg-orange-100 text-[#FF6F1E] cursor-pointer flex gap-3 items-center w-full"
+                    >
+                      <XCircle className="w-5" /> <span> CANCEL</span>
+                    </Button>
 
-                <Button
-                  type="submit"
-                  className="bg-blue-50 border-blue-100 hover:bg-blue-100 text-blue-600 cursor-pointer"
-                >
-                  SAVE ROLE
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+                    <Button
+                      type="submit"
+                      className="bg-[#CCD8E8] hover:bg-blue-100 text-[#023E8A] cursor-pointer flex gap-3 items-center w-full"
+                    >
+                      <Download className="w-5" />
+                      <span className="text-[#023E8A]">
+                        {isEditing ? "UPDATE ROLE" : "SAVE ROLE"}
+                      </span>
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
 
-        {/* Invite New Membver Dialog  */}
-        <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-          <DialogContent>
-            <DialogHeader className="border-b pb-2">
-              <DialogTitle className="text-center">
-                Invite New Member
-              </DialogTitle>
-            </DialogHeader>
-            <form className="flex flex-col gap-4" onSubmit={addMember}>
-              <div className="flex flex-col gap-3">
-                <label htmlFor="name">Name</label>
-                <Input
-                  type="text"
-                  placeholder="Enter Name"
-                  value={newMember.name}
-                  name="name"
-                  onChange={handleNewInvite}
-                />
-              </div>
-              <div className="flex flex-col gap-3">
-                <label htmlFor="email">Email Address</label>
-                <Input
-                  type="text"
-                  placeholder="Enter Email Address"
-                  value={newMember.email}
-                  name="email"
-                  onChange={handleNewInvite}
-                />
-              </div>
-              <div className="flex flex-col gap-3">
-                <label htmlFor="role">Role</label>
-                <Input
-                  type="text"
-                  placeholder="Enter Role"
-                  value={newMember.role}
-                  name="role"
-                  onChange={handleNewInvite}
-                />
-              </div>
-              <div className="flex justify-end gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddMemberOpen(false)}
-                  className=" border-[#023E8A] text-[#023E8A] cursor-pointer"
-                >
-                  Cancel
-                </Button>
+            {/* Invite New Membver Dialog  */}
+            <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+              <DialogContent>
+                <DialogHeader className="border-b pb-2">
+                  <DialogTitle className="text-center">
+                    Invite New Member
+                  </DialogTitle>
+                </DialogHeader>
+                <form className="flex flex-col gap-4" onSubmit={inviteMember}>
+                  <div className="flex flex-col gap-3">
+                    <label htmlFor="name">Name</label>
+                    <Input
+                      type="text"
+                      placeholder="Enter Name"
+                      value={newMember.name}
+                      name="name"
+                      onChange={handleNewInvite}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <label htmlFor="email">Email Address</label>
+                    <Input
+                      type="text"
+                      placeholder="Enter Email Address"
+                      value={newMember.email}
+                      name="email"
+                      onChange={handleNewInvite}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <label htmlFor="role">Role</label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent items-center cursor-pointer">
+                          <span className="text-sm">
+                            {selectedOption || "Select Role"}
+                          </span>
+                          <img
+                            src="/assets/icons/arrow-down.svg"
+                            alt=""
+                            className="w-3 h-3 ml-auto"
+                          />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)] cursor-pointer"
+                      >
+                        {admins.map((user, index) => (
+                          <DropdownMenuItem
+                            key={index}
+                            className="w-full text-center px-4 py-2 hover:bg-gray-200"
+                            onClick={() => {
+                              setSelectedOption(user.name);
+                              setNewMember((prev) => ({
+                                ...prev,
+                                // name: user.n,
+                                role: user.name,
+                              }));
+                            }}
+                          >
+                            {user.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="flex justify-end gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddMemberOpen(false)}
+                      className=" border-[#023E8A] text-[#023E8A] cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
 
-                <Button
-                  type="submit"
-                  className="bg-[#023E8A] border-blue-100 hover:bg-blue-100 text-white cursor-pointer"
-                >
-                  Add Member
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+                    <Button
+                      type="submit"
+                      className="bg-[#023E8A] border-blue-100 hover:bg-blue-100 text-white cursor-pointer"
+                    >
+                      Add Member
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
 
-        {/* COnfirm Modal for Inviing new Member  */}
-        <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-          <DialogContent className="w-full lg:max-w-md max-w-sm p-8 ">
-            <div className="space-y-[40px] flex flex-col items-center  ">
-              <DialogHeader className="text-center">
-                <DialogTitle className="text-xl font-[500] text-[#181818]">
-                  Admin Added Successfully!
-                </DialogTitle>
-              </DialogHeader>
+            {/* COnfirm Modal for Inviing new Member  */}
+            <Dialog open={successModal} onOpenChange={setSuccessModal}>
+              <DialogContent className="w-full lg:max-w-md max-w-sm p-8 ">
+                <div className="space-y-[40px] flex flex-col items-center  ">
+                  <DialogHeader className="text-center">
+                    <DialogTitle className="text-xl font-[500] text-[#181818]">
+                      Admin Added Successfully!
+                    </DialogTitle>
+                  </DialogHeader>
 
-              <img
-                src="/assets/images/Blue-check.svg"
-                alt="Success"
-                className="w-24 h-24 "
-              />
+                  <img
+                    src="/assets/images/Blue-check.svg"
+                    alt="Success"
+                    className="w-24 h-24 "
+                  />
 
-              <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
-                You have successfully added a new Admin. An invitation email has
-                been sent to “xyz@gmail.com” to set up their account.
-              </DialogDescription>
-            </div>
-          </DialogContent>
-        </Dialog>
+                  <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
+                    You have successfully added a new Admin. An invitation email
+                    has been sent to {newMember.email || "them"} to set up their
+                    account.
+                  </DialogDescription>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
       </main>
     </div>
   );

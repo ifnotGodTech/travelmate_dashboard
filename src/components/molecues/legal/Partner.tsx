@@ -21,9 +21,15 @@ type PartnerProps = {
   isEditing: boolean;
   content: PartnerCategory[];
   onContentChange: (value: PartnerCategory[]) => void;
+  onDeletePartner?: (categoryId: number, partnerId: number) => void;
 };
 
-const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
+const Partner = ({
+  isEditing,
+  content,
+  onContentChange,
+  onDeletePartner,
+}: PartnerProps) => {
   const handleCategoryChange = (
     index: number,
     field: keyof PartnerCategory,
@@ -52,31 +58,19 @@ const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
 
   const formatSnakeToTitle = (value: string): string => {
     return value
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
-  
+
   return (
     <div className="space-y-12">
       {content.map((cat, catIndex) => (
         <div key={cat.id} className="space-y-4">
           {/* Category Title */}
           <h3 className="text-lg font-semibold text-gray-900 capitalize">
-  {isEditing ? (
-    <input
-      type="text"
-      className="border border-gray-300 p-2 w-full text-lg font-semibold"
-      value={cat.name}
-      onChange={(e) =>
-        handleCategoryChange(catIndex, "name", e.target.value)
-      }
-    />
-  ) : (
-    `${formatSnakeToTitle(cat.name)} Partner`
-  )}
-</h3>
-
+            {formatSnakeToTitle(cat.name)} Partner
+          </h3>
 
           {/* Category Description */}
           <div>
@@ -99,8 +93,10 @@ const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
           {!isEditing && (
             <div className="flex flex-wrap gap-x-2 text-base font-medium text-gray-800 uppercase">
               {cat.partners.map((partner, index) => (
-                <span key={partner.id}>
-                  {partner.name}
+                <span key={partner.id} className="capitalize">
+                  <a href={partner.website} target="blank">
+                    {partner.name || "No Partners for this category"}
+                  </a>
                   {index < cat.partners.length - 1 && (
                     <span className="mx-2 text-gray-500">•</span>
                   )}
@@ -183,7 +179,7 @@ const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
                     </label>
                     <input
                       className="border p-2 w-full"
-                      value={partner.logo}
+                      value={partner.logo || ""}
                       onChange={(e) =>
                         handlePartnerChange(
                           catIndex,
@@ -213,6 +209,14 @@ const Partner = ({ isEditing, content, onContentChange }: PartnerProps) => {
                       }
                     />
                   </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => onDeletePartner?.(cat.id, partner.id)}
+                      className="bg-red-600 py-2 text-white rounded-md cursor-pointer text-sm px-4"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

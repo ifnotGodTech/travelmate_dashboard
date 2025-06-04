@@ -13,4 +13,5 @@ export type TAuthContextProps = {
 
 export type TUser = {
   user_id: string;
+  isSuperuser: boolean;
 };

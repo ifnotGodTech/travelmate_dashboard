@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -9,7 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-// import { ChartData } from "@/components/data";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -21,74 +20,115 @@ import { useState } from "react";
 import axios from "axios";
 import env from "@/config/env";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { showErrorToast } from "@/utils/toasters";
+import { useAuthContext } from "@/context/AuthContext";
 
 const page = () => {
+  const APP_STATE = useAuthContext();
+  const isSuperadmin = APP_STATE?.user?.isSuperuser;
   const [activity, setActivity] = useState<ActivityProps[]>([]);
   const [messages, setMessages] = useState<MessageProps[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [bookings, setBookings] = useState<BookingsProps[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<Bookings>({total_bookings: 0});
   const [revenue, setRevenue] = useState<RevenueProps | null>(null);
-  const [users, setUsers] = useState<UsersProps[]>([]);
+  const [users, setUsers] = useState<UsersProps>({ total_normal_users: 0 });
   const [selectedOption, setSelectedOption] = useState("This week");
-  const [chartData, setChartData] = useState<BookingsProps[]>([]);
-  const fetchDashboardData = async () => {
+  const [allBookings, setAllBookings] = useState<BookingsProps[]>([])
+
+  const router = useRouter();
+  // if (!APP_STATE?.user || !APP_STATE?.accessToken) {
+  //   showErrorToast({ message: "You are not authorized to view this page" });
+  //   router.push("/login");
+  //   return null;
+  // }
+
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const [activities, messages, revenue, bookings, user] = await Promise.all(
         [
-          axios.get(env.api.dashboardactivities),
-          axios.get(env.api.dashboardmessages),
-          axios.get(env.api.dashboardrevenue),
-          axios.get(env.api.bookings),
-          axios.get(env.api.user),
+          axios.get(env.api.dashboardactivities, {
+            headers: {
+              Authorization: `Bearer ${APP_STATE.accessToken}`,
+            },
+          }),
+          axios.get(env.api.dashboardmessages, {
+            headers: {
+              Authorization: `Bearer ${APP_STATE.accessToken}`,
+            },
+          }),
+          axios.get(env.api.dashboardrevenue, {
+            headers: {
+              Authorization: `Bearer ${APP_STATE.accessToken}`,
+            },
+          }),
+          axios.get(env.api.dashboardbookings, {
+            headers: {
+              Authorization: `Bearer ${APP_STATE.accessToken}`,
+            },
+          }),
+          axios.get(env.api.usercount, {
+            headers: {
+              Authorization: `Bearer ${APP_STATE.accessToken}`,
+            },
+          }),
         ]
       );
       setActivity(activities.data);
       setMessages(messages.data);
       setBookings(bookings.data);
-      setRevenue(revenue.data);
-      setUsers(user.data.results);
-      // setChartData(bookings.data);
-      console.log(bookings.data);
-    } catch (error) {
-      console.log(error);
-      throw new Error("Error fetching users");
+      isSuperadmin && setRevenue(revenue.data);
+      setUsers(user.data);
+    } catch (error: any) {
+      showErrorToast({ message: error.response?.data || error.message });
     } finally {
       setLoading(false);
     }
-  };
+  }, [APP_STATE, isSuperadmin]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  const generateWeeklyChartData=(bookings: BookingsProps[])=>{
+    useEffect(() => {
+    const getAdminRole = async () => {
+      try {
+        const response = await axios.get(`${env.api.admin}/me/roles/`);
+        console.log(response.data);
+      } catch (error: any) {
+        console.log(error);
+      }
+    };
+    getAdminRole()
+  }, []);
+
+  const generateWeeklyChartData = (bookings: BookingsProps[]) => {
     const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  // Initialize a structure for each weekday with zero values
-  const weeklyData = weekDays.map((day) => ({
-    day,
-    flight: 0,
-    hotel: 0,
-    car: 0,
-    total_amount: 0,
-  }));
+    // Initialize a structure for each weekday with zero values
+    const weeklyData = weekDays.map((day) => ({
+      day,
+      flight: 0,
+      hotel: 0,
+      car: 0,
+      total_amount: 0,
+    }));
 
-  // Sum up total_amounts per booking type per day
-  bookings.forEach((item) => {
-    const date = new Date(item.created_at);
-    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
+    // Sum up total_amounts per booking type per day
+    bookings.forEach((item) => {
+      const date = new Date(item.created_at);
+      const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
 
-    const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
-    if (target && item.total_amount) {
-      target[item.booking_type] += item.total_amount;
-    }
-  });
-  return weeklyData
-  }
-  
+      const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
+      if (target && item.total_amount) {
+        target[item.booking_type] += item.total_amount;
+      }
+    });
+    return weeklyData;
+  };
+
   const filteredData = useMemo(() => {
     const now = new Date();
-    return bookings.filter((item) => {
+    return allBookings.filter((item) => {
       const createdAt = new Date(item.created_at);
 
       if (selectedOption === "This week") {
@@ -105,26 +145,81 @@ const page = () => {
       return true;
     });
   }, [bookings, selectedOption]);
- 
-  const weeklyData = useMemo(() => generateWeeklyChartData(filteredData), [filteredData])
 
+  const weeklyData = useMemo(
+    () => generateWeeklyChartData(filteredData),
+    [filteredData]
+  );
+
+  const DashboardSkeletonLoader = () => {
+    return (
+      <div className="space-y-10 py-4 lg:py-0">
+        {/* Statistics Section */}
+        <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 px-3">
+          <div className="space-y-6">
+            {/* Time Filter Dropdown Skeleton */}
+            <div className="w-32 h-8 bg-gray-300 rounded-md animate-pulse"></div>
+
+            {/* Stat Cards Skeleton */}
+            <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((_, index) => (
+                <div
+                  key={index}
+                  className="lg:p-[20px] lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] bg-gray-300 animate-pulse"
+                ></div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="w-32 h-6 bg-gray-300 rounded-md animate-pulse"></div>
+            <div className="w-48 h-8 bg-gray-300 rounded-md animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* DataGrid Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left Section (Charts and Activities) */}
+          <div className="lg:col-span-2 space-y-10">
+            <div className="grid grid-rows-2 gap-6 h-[45rem]">
+              {/* Chart Skeleton */}
+              <div className="bg-gray-300 rounded-2xl animate-pulse h-full"></div>
+
+              {/* Activity Skeleton */}
+              <div className="bg-gray-300 rounded-2xl animate-pulse h-full"></div>
+            </div>
+          </div>
+
+          {/* Right Section (Messages) */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-300 rounded-2xl animate-pulse h-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
   return (
     <div className="space-y-10 py-4 lg:py-0">
-      <Statistics
-        bookings={bookings}
-        revenue={revenue}
-        users={users}
-        selectedOption={selectedOption}
-        setSelectedOption={setSelectedOption}
-      />
-      <DataGrid
-        activity={activity}
-        loading={loading}
-        messages={messages}
-        bookings={bookings}
-        chartData={chartData}
-        weeklyData={weeklyData}
-      />
+      {loading ? (
+        <DashboardSkeletonLoader />
+      ) : (
+        <>
+          <Statistics
+            bookings={bookings}
+            revenue={revenue}
+            users={users}
+            selectedOption={selectedOption}
+            setSelectedOption={setSelectedOption}
+            isSuperadmin={isSuperadmin}
+          />
+          <DataGrid
+            activity={activity}
+            loading={loading}
+            messages={messages}
+            bookings={bookings}
+            weeklyData={weeklyData}
+          />
+        </>
+      )}
     </div>
   );
 };
@@ -135,12 +230,14 @@ const Statistics = ({
   users,
   selectedOption,
   setSelectedOption,
+  isSuperadmin,
 }: {
-  bookings: BookingsProps[];
+  bookings: Bookings;
   revenue: RevenueProps | null;
-  users: UsersProps[];
+  users: UsersProps;
   selectedOption: string;
   setSelectedOption: any;
+  isSuperadmin: boolean;
 }) => {
   let NGNNaira = new Intl.NumberFormat("en-NG", {
     style: "currency",
@@ -157,7 +254,7 @@ const Statistics = ({
   }
 
   return (
-    <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 ">
+    <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 px-3 ">
       <div className="space-y-6">
         <TimeFilterDropdown
           selectedOption={selectedOption}
@@ -166,41 +263,46 @@ const Statistics = ({
         <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Users"
-            value={users.length.toLocaleString()}
+            value={users?.total_normal_users?.toLocaleString() || "0"}
             color="#50AC79"
             icon="/assets/icons/ana-users.svg"
             smColor="#D5EBDF"
           />
           <StatCard
             title="Bookings"
-            value={bookings.length.toLocaleString()}
+            value={bookings.total_bookings.toLocaleString()}
             color="#023E8A"
             icon="/assets/icons/ana-bookings.svg"
             smColor="#CCD8E8"
           />
-          <StatCard
-            title="Revenue"
-            value={
-              revenue
-                ? Math.abs(revenue.total_revenue) >= 1000000
-                  ? `₦${formatMoney(revenue.total_revenue)}`
-                  : NGNNaira.format(revenue.total_revenue)
-                : "₦0"
-            }
-            color="#FF6F1E"
-            icon="/assets/icons/ana-revenue.svg"
-            smColor="#FFCFB4"
-          />
+          {isSuperadmin && (
+            <StatCard
+              title="Revenue"
+              value={
+                revenue
+                  ? Math.abs(revenue.total_revenue) >= 1000000
+                    ? `₦${formatMoney(revenue.total_revenue)}`
+                    : NGNNaira.format(revenue.total_revenue)
+                  : "₦0"
+              }
+              color="#FF6F1E"
+              icon="/assets/icons/ana-revenue.svg"
+              smColor="#FFCFB4"
+            />
+          )}
         </div>
       </div>
-      <div className="space-y-2">
-        <p className="text-sm lg:text-base font-semibold text-[#181818]">
-          Total Revenue
-        </p>
-        <h1 className="text-2xl font-semibold text-[#023E8A]">
-          {revenue ? NGNNaira.format(Number(revenue.total_revenue)) : "₦0"}
-        </h1>
-      </div>
+      {isSuperadmin && (
+        <div className="space-y-2">
+          <p className="text-sm lg:text-base font-semibold text-[#181818]">
+            Total Revenue
+          </p>
+
+          <h1 className="text-2xl font-semibold text-[#023E8A]">
+            {revenue ? NGNNaira.format(Number(revenue.total_revenue)) : "₦0"}
+          </h1>
+        </div>
+      )}
     </div>
   );
 };
@@ -266,22 +368,19 @@ const DataGrid = ({
   loading,
   messages,
   bookings,
-  chartData,
   weeklyData,
 }: {
   activity: ActivityProps[];
   loading: boolean;
   messages: MessageProps[];
-  bookings: BookingsProps[];
-  chartData: BookingsProps[];
+  bookings: Bookings;
   weeklyData: any;
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-10">
-        <QuickActions />
-        <div className="grid grid-rows-2 gap-6 h-[652px]">
-          <Chart chartData={chartData} weeklyData={weeklyData} />
+        <div className="grid grid-rows-2 gap-6 h-[45rem]">
+          <Chart weeklyData={weeklyData} />
           <Activity activity={activity} loading={loading} />
         </div>
       </div>
@@ -291,29 +390,6 @@ const DataGrid = ({
     </div>
   );
 };
-
-const QuickActions = () => (
-  <div className="space-y-2">
-    <h1 className="text-xl font-semibold">Quick Action</h1>
-    <div className="flex gap-4 overflow-x-auto flex-nowrap scrollbar-hidden">
-      {[
-        { name: "Daily Update", icon: "/assets/icons/quick-add.svg" },
-        { name: "Manage Listings", icon: "/assets/icons/quick-manage.svg" },
-        { name: "Share points", icon: "/assets/icons/quick-share.svg" },
-      ].map((text) => (
-        <div
-          className="flex items-center space-x-3 bg-[#CCD8E8] rounded-xl p-4 cursor-pointer shrink-0"
-          key={text.name}
-        >
-          <img src={text.icon} alt="" className="w-5" />
-          <span className="text-base font-medium text-[#181818]">
-            {text.name}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 const Legend = () => {
   return (
@@ -340,15 +416,12 @@ const Legend = () => {
   );
 };
 
-const Chart = ({
-  chartData,
-  weeklyData,
-}: {
-  chartData: BookingsProps[];
-  weeklyData: any;
-}) => {
+const Chart = ({ weeklyData }: { weeklyData: any[] }) => {
   const router = useRouter();
-
+  let NGNNaira = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "NGN",
+  });
   return (
     <div className="bg-white lg:px-6 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
@@ -358,7 +431,7 @@ const Chart = ({
         </div>
         <div
           className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 "
-          onClick={() => router.push("/reports")}
+          onClick={() => router.push("/Dashboard/reports")}
         >
           View full report
         </div>
@@ -370,9 +443,9 @@ const Chart = ({
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" className="text-xs"/>
+            <XAxis dataKey="day" className="text-xs" />
             <YAxis
-            className="text-[8px]"
+              className="text-[8px]"
               tickFormatter={(value) =>
                 new Intl.NumberFormat("en-NG", {
                   style: "currency",
@@ -430,7 +503,7 @@ const Chat = ({
     return hour >= 12 ? "PM" : "AM";
   };
   return (
-    <div className="bg-[#fff] lg:h-full h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
+    <div className="bg-[#fff] h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
       <div className="space-y-6">
         <div className="flex justify-between items-center lg:px-[20px] ">
           <h3 className="font-[500] text-[18px] text-[#181818] leading-[100%]">
@@ -528,30 +601,34 @@ const Activity = ({
         <div className="space-y-4">
           {loading ? (
             <Loading />
+          ) : activity.length === 0 ? (
+            <p className="text-center mt-auto">No recent activities</p>
           ) : (
             activity.map((act, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3"
+                className="flex md:justify-center justify-between lg:gap-24 gap-16 w-full items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3 px-2"
                 onClick={() => router.push("/Dashboard/user/profile")}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 lg:w-[200px] w-full">
                   <img
                     src="/assets/images/profile-image.svg"
                     alt=""
-                    className="w-10"
+                    className="lg:w-10 w-6"
                   />
-                  <p className="text-base font-medium text-[#181818]">
+                  <p className="lg:text-base text-sm font-medium text-[#181818]">
                     {act.user_full_name}
                   </p>
                 </div>
-                <p className="text-sm text-[#181818]">{act.booking_type}</p>
-                <div className="flex items-center space-x-2">
+                <p className="lg:text-sm text-xs text-[#181818]">
+                  {act.booking_type}
+                </p>
+                <div className="flex items-center ml-auto space-x-2">
                   <div className="text-right">
-                    <p className="text-sm text-[#181818]">
+                    <p className="lg:text-sm text-xs text-[#181818]">
                       {NGNNaira.format(act.amount)}
                     </p>
-                    <p className="text-sm text-[#9B9EA4]">
+                    <p className="lg:text-sm text-xs text-[#9B9EA4]">
                       {new Date(act.date).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -670,7 +747,12 @@ type RevenueProps = {
   flight_revenue: number;
   currency: string;
 };
-type UsersProps = any[];
+type UsersProps = {
+  total_normal_users: number;
+};
+type Bookings ={
+  total_bookings : number
+}
 type BookingsProps = {
   booking_type: "flight" | "hotel" | "car";
   created_at: string;
