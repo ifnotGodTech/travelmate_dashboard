@@ -91,3 +91,105 @@ const DateDialog = ({
 };
 
 export default DateDialog;
+
+export const DatePairDialog = ({
+  isOpen,
+  onClose,
+  selectedStartDate,
+  setSelectedStartDate,
+  selectedEndDate,
+  setSelectedEndDate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedStartDate: string | undefined;
+  setSelectedStartDate: (date: string | undefined) => void;
+  selectedEndDate: string | undefined;
+  setSelectedEndDate: (date: string | undefined) => void;
+}) => {
+  const [internalStartDate, setInternalStartDate] = useState<Date | undefined>(
+    undefined
+  );
+  const [internalEndDate, setInternalEndDate] = useState<Date | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setInternalStartDate(
+        selectedStartDate ? new Date(selectedStartDate) : undefined
+      );
+      setInternalEndDate(
+        selectedEndDate ? new Date(selectedEndDate) : undefined
+      );
+    }
+  }, [isOpen, selectedStartDate, selectedEndDate]);
+
+  const handleClear = () => {
+    setInternalStartDate(undefined);
+    setInternalEndDate(undefined);
+    console.log("Cleared Dates");
+  };
+
+  const handleApply = () => {
+    if (internalStartDate) {
+      const formattedStartDate = format(internalStartDate, "yyyy-MM-dd");
+      setSelectedStartDate(formattedStartDate);
+      console.log("Selected Start Date Set:", formattedStartDate);
+    }
+    if (internalEndDate) {
+      const formattedEndDate = format(internalEndDate, "yyyy-MM-dd");
+      console.log("Selected End Date Set:", formattedEndDate);
+      setSelectedEndDate(formattedEndDate);
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="p-6 rounded-lg shadow-lg">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold text-gray-800 text-center">
+            Select a Date Range
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center justify-between h-full mt-4">
+          {/* Calendar */}
+          <div className="flex-grow">
+            <Calendar
+              mode="range"
+              selected={{ from: internalStartDate, to: internalEndDate }}
+              onSelect={(range) => {
+                console.log("Selected Range:", range);
+                if (range) {
+                  setInternalStartDate(range.from);
+                  setInternalEndDate(range.to);
+                } else {
+                  setInternalStartDate(undefined);
+                  setInternalEndDate(undefined);
+                }
+              }}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-between mt-6 w-full">
+            <button
+              className="px-4 py-2 border rounded-lg text-gray-600 bg-gray-50 hover:bg-gray-100 transition"
+              onClick={handleClear}
+            >
+              Clear
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg text-white bg-[#023E8A] hover:bg-[#025dbf] transition"
+              onClick={handleApply}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

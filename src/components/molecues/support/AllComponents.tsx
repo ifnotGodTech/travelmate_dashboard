@@ -10,6 +10,7 @@ import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import Button from "@/components/reuseables/Button";
 import { useRouter } from "next/navigation";
+import { useGetAllTicket } from "@/hooks/useGetAllTicket";
 
 export const AllContent: React.FC = () => {
   const router = useRouter();

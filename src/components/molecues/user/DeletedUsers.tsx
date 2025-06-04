@@ -1,13 +1,19 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import {
-  UserDeactivationDialog,
-  UserDropdown,
   UserDetailsDialog,
+  UserDropdown,
+  UserDeleteDialog,
   LoadingUser,
+  NotAuthorizedModal,
 } from "@/components/molecues/user/DeleteUserComponent";
 
-import { useGetDeletedUsers, useGetUser } from "@/hooks/api/user";
+import {
+  useGetDeletedUsers,
+  useGetUser,
+  useBulkDeleteUser,
+} from "@/hooks/api/user";
 import {
   Table,
   TableBody,
@@ -17,6 +23,71 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { useMyRoles } from "@/hooks/api/roles";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+
+const BulkDeleteConfirmationDialog = ({
+  isOpen,
+  selectedCount,
+  onConfirm,
+  onCancel,
+  deleting,
+}: {
+  isOpen: boolean;
+  selectedCount: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+  deleting: boolean;
+}) => {
+  const { loading, data } = useMyRoles({ modalVisible: isOpen });
+  const canViewMessage = data?.name === "Super Admin";
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onCancel}>
+      <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
+        {canViewMessage ? (
+          <>
+            <div className="px-[32px] py-[8px]">
+              <h2 className="font-[600] text-[28px] text-[#181818]">
+                Confirm Bulk Deletion
+              </h2>
+            </div>
+            <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+            <div className="py-[19px] px-[32px] space-y-[16px]">
+              <p className="font-[400] text-[#4E4F52] text-[18px]">
+                Are you sure you want to delete <strong>{selectedCount}</strong>{" "}
+                user{selectedCount > 1 ? "s" : ""}? You are about to permanently
+                erase this user from the system. This account is currently in a
+                deleted state, but this action will remove all remaining data
+                permanently and cannot be undone. Are you sure you want to
+                continue?
+              </p>
+            </div>
+            <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+            <div className="flex justify-end gap-4 w-full py-[19px] px-[32px]">
+              <div
+                className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
+                onClick={onCancel}
+              >
+                Cancel
+              </div>
+              <div
+                className={`bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase cursor-pointer ${
+                  deleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={onConfirm}
+              >
+                {deleting ? "Deleting..." : "Yes, Continue"}
+              </div>
+            </div>
+          </>
+        ) : (
+          <NotAuthorizedModal />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
   const {
@@ -37,9 +108,15 @@ export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
+  // New state for bulk delete confirmation dialog
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+
+  // Bulk delete hook
+  const { deleting, onBulkDeleteUser, isSuccess } = useBulkDeleteUser();
+
   const { data: userDetails, loading: userLoading } = useGetUser({
     UserId: userId as string,
-    initalFetch: !!userId,
+    initialFetch: !!userId,
     successCallback: (message) => {
       console.log("User details fetched successfully:", message);
     },
@@ -52,6 +129,34 @@ export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
     setSearchTerm(searchTerm || "");
     setIsActive(selectedOption || null);
   }, [searchTerm, selectedOption, setSearchTerm, setIsActive]);
+
+  // Bulk delete handlers
+  const handleBulkDeleteClick = () => {
+    if (selectedUserIds.length === 0) return;
+    setIsBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setIsBulkDeleteDialogOpen(false);
+    if (selectedUserIds.length === 0) return;
+
+    try {
+      const userIds = selectedUserIds.map((id) => parseInt(id, 10));
+      await onBulkDeleteUser({
+        userIds,
+        successCallback: () => {
+          console.log("Users deleted successfully");
+          setSelectedUserIds([]);
+        },
+      });
+    } catch (error) {
+      console.error("Error during bulk deletion:", error);
+    }
+  };
+
+  const cancelBulkDelete = () => {
+    setIsBulkDeleteDialogOpen(false);
+  };
 
   const handleViewDetails = (user: any) => {
     setSelectedUser(user);
@@ -68,12 +173,6 @@ export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
       setDeactivatingUser(null);
       setIsDeactivateDialogOpen(false);
     }
-  };
-
-  const confirmBulkDeletion = () => {
-    console.log("Deleting users with IDs:", selectedUserIds);
-    setSelectedUserIds([]);
-    setIsDeactivateDialogOpen(false);
   };
 
   const handleDialogClose = () => {
@@ -94,122 +193,187 @@ export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
     );
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedUserIds(checked ? users.map((user) => user.id) : []);
+  };
+
   return (
-    <div className="">
+    <div className="relative w-full">
       {selectedUserIds.length > 0 && (
         <div className="flex justify-end mb-4">
           <button
-            className="bg-red-500 text-white py-2 px-4 rounded-lg"
-            onClick={() => setIsDeactivateDialogOpen(true)}
+            className={`text-white text-[14px] font-[400] py-2 px-4 rounded-[8px] transition duration-200 ${
+              deleting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-red-500 hover:bg-red-600"
+            }`}
+            onClick={handleBulkDeleteClick}
+            disabled={deleting}
           >
-            Delete Selected Users
+            {deleting
+              ? "Deleting..."
+              : `Delete Selected Users (${selectedUserIds.length})`}
           </button>
         </div>
       )}
+
       <div className="bg-white rounded-[20px] border border-gray-300 w-full overflow-hidden">
         <div className="max-w-[95vw] lg:max-w-full overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
-            <Table className="w-full min-w-[800px]">
-              <TableHeader className="bg-gray-100">
-                <TableRow>
-                  <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
-                      onChange={(e) =>
-                        setSelectedUserIds(
-                          e.target.checked ? users.map((user) => user.id) : []
-                        )
-                      }
-                      checked={selectedUserIds.length === users.length}
-                    />
-                  </TableHead>
-                  <TableHead>User ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email Address</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Deletion Date</TableHead>
-                  <TableHead>Deletion Reason</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow
-                    key={user.id}
-                    className="hover:bg-gray-50 transition duration-200 cursor-pointer"
-                  >
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
-                        checked={selectedUserIds.includes(user.id)}
-                        onChange={() => toggleSelectUser(user.id)}
-                      />
-                    </TableCell>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {user?.date_created || "---"}
-                    </TableCell>
-                    <TableCell>
-                      {user.deleted_at
-                        ? format(new Date(user.deleted_at), "MM/dd/yyyy")
-                        : "---"}
-                    </TableCell>
-                    <TableCell>{user?.reason || "---"}</TableCell>
-                    <TableCell>
-                      <UserDropdown
-                        onViewDetails={() => handleViewDetails(user)}
-                        onDeactivate={() => handleDeactivateUser(user)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {loading ? (
+              <LoadingUser />
+            ) : (
+              <>
+                {users.length === 0 ? (
+                  <div className="h-[80px] flex justify-center items-center">
+                    <p className="text-[20px] font-[500] text-[#181818]">
+                      No data found
+                    </p>
+                  </div>
+                ) : error ? (
+                  <div className="h-[80px] flex justify-center items-center">
+                    <p className="text-[20px] font-[500] text-[#181818]">
+                      We cannot fetch users at the moment. Please try again.
+                    </p>
+                  </div>
+                ) : (
+                  <Table className="w-full min-w-[800px]">
+                    <TableHeader className="bg-gray-100">
+                      <TableRow>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left w-1/12">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            checked={
+                              users.length > 0 &&
+                              selectedUserIds.length === users.length
+                            }
+                            // React doesn't support indeterminate attribute on input directly,
+                            // so you'd handle it via ref if needed — omitted for brevity
+                          />
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          User ID
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          Name
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          Email Address
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          Registration Date
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          Deletion Date
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-left">
+                          Deletion Reason
+                        </TableHead>
+                        <TableHead className="py-4 px-6 text-sm font-semibold text-gray-700 text-center">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow
+                          key={user.id}
+                          className="bg-white hover:bg-gray-50 transition duration-200 cursor-pointer"
+                        >
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 rounded border-gray-300 text-red-500 focus:ring-red-400"
+                              checked={selectedUserIds.includes(user.id)}
+                              onChange={() => toggleSelectUser(user.id)}
+                              disabled={deleting}
+                            />
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user.id}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user.name}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user.email}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user?.date_created || "---"}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user.deleted_at
+                              ? format(new Date(user.deleted_at), "MM/dd/yyyy")
+                              : "---"}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
+                            {user?.reason || "---"}
+                          </TableCell>
+                          <TableCell className="py-4 px-6 text-center">
+                            <UserDropdown
+                              onViewDetails={() => handleViewDetails(user)}
+                              onDeactivate={() => handleDeactivateUser(user)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
+            )}
           </div>
         </div>
-        {loading && <LoadingUser />}
-        {error && (
-          <div className="h-[80px] flex justify-center items-center">
-            <p>We cannot Fetch users at the moment, please try again.</p>
-          </div>
-        )}
-        {isDeactivateDialogOpen && (
-          <UserDeactivationDialog
-            isOpen={isDeactivateDialogOpen}
-            deactivatingUser={deactivatingUser || selectedUserIds}
-            onConfirm={
-              deactivatingUser ? confirmDeactivation : confirmBulkDeletion
-            }
-            onCancel={cancelDeactivation}
-          />
-        )}
-        {selectedUser && (
-          <UserDetailsDialog
-            selectedUser={selectedUser}
-            userDetails={userDetails}
-            userLoading={userLoading}
-            onClose={handleDialogClose}
-          />
-        )}
       </div>
-      <div className="flex justify-end mt-4 space-x-4">
+
+      {selectedUser && (
+        <UserDetailsDialog
+          isOpen={!!selectedUser}
+          selectedUser={selectedUser}
+          userDetails={userDetails}
+          userLoading={userLoading}
+          onClose={handleDialogClose}
+        />
+      )}
+
+      {isDeactivateDialogOpen && deactivatingUser && (
+        <UserDeleteDialog
+          isOpen={isDeactivateDialogOpen}
+          deactivatingUser={deactivatingUser}
+          onCancel={cancelDeactivation}
+        />
+      )}
+
+      <BulkDeleteConfirmationDialog
+        isOpen={isBulkDeleteDialogOpen}
+        selectedCount={selectedUserIds.length}
+        onConfirm={confirmBulkDelete}
+        onCancel={cancelBulkDelete}
+        deleting={deleting}
+      />
+
+      <div className="flex justify-end mt-[20px] space-x-4">
         <button
-          className={`py-2 px-4 border rounded-lg ${
-            previousPageUrl ? "border-blue-500" : "border-gray-300 cursor-not-allowed"
+          className={`text-[#023E8A] text-[14px] font-[400] py-2 px-3 border-[1px] rounded-[8px] ${
+            previousPageUrl && !deleting
+              ? "border-[#023E8A] hover:bg-blue-50"
+              : "cursor-not-allowed border-gray-300 text-gray-400"
           }`}
-          onClick={previousPageUrl ? loadPrevious : undefined}
+          disabled={!previousPageUrl || deleting}
+          onClick={loadPrevious}
         >
           Previous
         </button>
         <button
-          className={`py-2 px-4 border rounded-lg ${
-            nextPageUrl ? "border-blue-500" : "border-gray-300 cursor-not-allowed"
+          className={`text-[#023E8A] text-[14px] font-[400] py-2 px-3 border-[1px] rounded-[8px] ${
+            nextPageUrl && !deleting
+              ? "border-[#023E8A] hover:bg-blue-50"
+              : "cursor-not-allowed border-gray-300 text-gray-400"
           }`}
-          onClick={nextPageUrl ? loadNext : undefined}
+          disabled={!nextPageUrl || deleting}
+          onClick={loadNext}
         >
           Next
         </button>

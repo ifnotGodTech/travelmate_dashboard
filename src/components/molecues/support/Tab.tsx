@@ -1,10 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { FaqSection } from "./Faq";
 import { TicketTabContent } from "./Tickets";
-import ChatTabContent from "./ChatTabComponent";
 import { Filter } from "./Reuseables";
 import { format } from "date-fns";
 import { MessageTabContent } from "./Chats/MessageChat";
@@ -14,14 +13,28 @@ const TicketTable: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+  const [selectedStartDate, setSelectedStartDate] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(
+    undefined
+  );
 
   // Track active tab
   const [activeTab, setActiveTab] = useState("ticket");
 
+  // Reset filters when the active tab changes
+  useEffect(() => {
+    setSearchTerm("");
+    setSelectedOption("");
+    setSelectedDate(undefined);
+  }, [activeTab]);
+
   return (
     <div className="pb-20 lg:pb-0">
-      {/* padding bottom so content not hidden on small screens */}
       <Tabs
         defaultValue="ticket"
         value={activeTab}
@@ -92,6 +105,11 @@ const TicketTable: React.FC = () => {
             filterOption={activeTab}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            activeTab={activeTab}
+            selectedStartDate={selectedStartDate}
+            setSelectedStartDate={setSelectedStartDate}
+            selectedEndDate={selectedEndDate}
+            setSelectedEndDate={setSelectedEndDate}
           />
         )}
 
@@ -107,7 +125,8 @@ const TicketTable: React.FC = () => {
             <MessageTabContent
               selectedOption={selectedOption}
               searchTerm={searchTerm}
-              date={selectedDate}
+              selectedEndDate={selectedEndDate}
+              selectedStartDate={selectedStartDate}
             />
           </TabsContent>
           <TabsContent value="faq">

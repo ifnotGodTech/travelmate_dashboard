@@ -32,7 +32,6 @@ const page = (props: Props) => {
   const currentUser = APP_STATE?.user?.user_id || "";
   const { id } = useParams<{ id: string }>();
 
-  id;
   const { chat, loadingChat } = useGetChat({
     ChatId: id as string,
     initialFetch: !!id,
@@ -43,7 +42,14 @@ const page = (props: Props) => {
       console.error(error);
     },
   });
-  const isAdmin = currentUser === chat?.claimed_by_info?.id;
+
+  const isAdmin =
+    currentUser === chat?.claimed_by_info?.id ||
+    currentUser === chat?.assigned_admin_info?.id;
+  const isButtonDisabled =
+    chat?.status === "CLOSED" ||
+    (!isAdmin && chat?.assigned_admin_info !== null);
+
   const router = useRouter();
   const [closing, setClosing] = useState(false);
 
@@ -75,12 +81,12 @@ const page = (props: Props) => {
         <div className="flex space-x-6">
           <button
             className={`rounded-[8px] font-medium p-4 cursor-pointer ${
-              chat?.status === "CLOSED" || !isAdmin
+              isButtonDisabled
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-[#023E8A] text-white"
             }`}
             onClick={handleCloseChat}
-            disabled={closing || chat?.status === "CLOSED"}
+            disabled={closing || isButtonDisabled}
           >
             {closing ? "Closing..." : "Close chat"}
           </button>
@@ -115,7 +121,11 @@ const page = (props: Props) => {
         </div>
       )}
 
-      <Session chat={chat} loadingChat={loadingChat} isAdmin={isAdmin} />
+      <Session
+        chat={chat}
+        loadingChat={loadingChat}
+        isAdmin={isButtonDisabled}
+      />
     </div>
   );
 };
@@ -141,7 +151,7 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     const live = liveMessages.filter(
       (live: any) =>
         live.type !== "session_info" &&
-        live.type !== "error" && // exclude error messages here
+        live.type !== "error" &&
         !history.some((msg: any) => msg.id === live.id)
     );
     return [...history, ...live];
@@ -164,11 +174,10 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [allMessages, systemErrorMessage]); // also scroll on systemErrorMessage change
+  }, [allMessages, systemErrorMessage]);
 
-  // Disable input/send if chat closed or system error exists
   const isInputDisabled =
-    chat?.status === "CLOSED" || systemErrorMessage !== null;
+    chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
 
   return (
     <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
@@ -200,15 +209,44 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                 ref={index === allMessages.length - 1 ? lastMessageRef : null}
               >
                 <div className="space-y-1 max-w-[80%]">
-                  <div
-                    className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
-                      isUser
-                        ? "bg-gray-200 text-black"
-                        : "bg-[#023E8A] text-white"
-                    }`}
-                  >
-                    {mes.content || mes.message}
-                  </div>
+                  {/* Message or Content */}
+                  {mes.content || mes.message ? (
+                    <div
+                      className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
+                        isUser
+                          ? "bg-gray-200 text-black"
+                          : "bg-[#023E8A] text-white"
+                      }`}
+                    >
+                      {mes.content || mes.message}
+                    </div>
+                  ) : null}
+
+                  {/* Attachment */}
+                  {mes.attachment && (
+                    <div className="mt-2">
+                      {mes.attachment.type === "image" ? (
+                        <img
+                          src={mes.attachment.url}
+                          alt="Attachment"
+                          className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
+                          onClick={() =>
+                            window.open(mes.attachment.url, "_blank")
+                          }
+                        />
+                      ) : mes.attachment.type === "pdf" ? (
+                        <a
+                          href={mes.attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline"
+                        >
+                          View PDF
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+
                   <span
                     className={`block text-xs text-gray-500 ${
                       isUser ? "text-right" : "text-left"
@@ -248,21 +286,21 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                 placeholder="Type a message..."
                 className="flex-1 outline-none bg-transparent"
                 onKeyPress={(e) => {
-                  if (e.key === "Enter" && chat?.status !== "resolved") {
+                  if (e.key === "Enter" && !isInputDisabled) {
                     handleSend();
                   }
                 }}
-                disabled={isInputDisabled}
+                disabled={!isAdmin}
               />
             </div>
             <button
               onClick={handleSend}
               className={`p-3 rounded-lg ${
-                isInputDisabled || !isAdmin
+                !isAdmin
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-[#023E8A] text-white"
               }`}
-              disabled={isInputDisabled}
+              disabled={!isAdmin}
             >
               Send
             </button>

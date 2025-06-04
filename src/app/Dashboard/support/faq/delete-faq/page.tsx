@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/accordion";
 import { useDeleteFaq, useGetAllFaq } from "@/hooks/api/faq";
 import Button from "@/components/reuseables/Button";
+import { useRouter } from "next/navigation";
 
 // Define the FAQ type
 type Faq = {
@@ -52,6 +53,7 @@ export type FaqResponse = {
 };
 
 const Page = () => {
+  const router = useRouter();
   const [selectedFaqId, setSelectedFaqId] = useState<number | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [refresh, setRefresh] = useState(false);
@@ -77,6 +79,13 @@ const Page = () => {
   return (
     <>
       <div className="space-y-6 py-4 px-6 rounded-[8px] bg-[#fff]">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center mb-4 "
+          aria-label="Go back"
+        >
+          <img src="/assets/icons/arrow-back.svg" alt="Go back" className="" />
+        </button>
         <div className="space-y-6">
           <h1 className="font-semibold text-[20px] text-[#181818]">FAQs</h1>
 

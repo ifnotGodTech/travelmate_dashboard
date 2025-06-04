@@ -5,6 +5,7 @@ import {
   UserDeactivationDialog,
   UserDropdown,
   LoadingUser,
+  UserActivationDialog,
 } from "@/components/molecues/user/AllUserComponents";
 
 import { useGetUsers, useExportCSV, useGetUser } from "@/hooks/api/user";
@@ -19,8 +20,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-export const UsersTable = ({ searchTerm, selectedOption }: any) => {
+export const UsersTable = ({
+  searchTerm,
+  selectedOption,
+  selectedEndDate,
+  selectedStartDate,
+}: any) => {
   const router = useRouter();
+  console.log({ selectedEndDate, selectedStartDate });
+
   const {
     users,
     loadNext,
@@ -31,6 +39,8 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
     previousPageUrl,
     setSearchTerm,
     setIsActive,
+    setDateJoinedAfter,
+    setDateJoinedBefore,
   } = useGetUsers();
 
   useEffect(() => {
@@ -41,11 +51,24 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
     setIsActive(selectedOption === "" ? null : selectedOption);
   }, [selectedOption, setIsActive]);
 
+  // New effect for setting date filters
+  useEffect(() => {
+    // If dates are empty strings or null, pass null to clear filter
+    setDateJoinedAfter(selectedStartDate || null);
+    setDateJoinedBefore(selectedEndDate || null);
+  }, [
+    selectedStartDate,
+    selectedEndDate,
+    setDateJoinedAfter,
+    setDateJoinedBefore,
+  ]);
+
   const [selectedUser, setSelectedUser] = useState(null);
-  console.log({ searchTerm, selectedOption });
   const [userId, setUserId] = useState<string | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState(null);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [reactivatingUser, setReactivatingUser] = useState(null);
+  const [isReactivateDialogOpen, setIsReactivateDialogOpen] = useState(false);
 
   const { data: userDetails, loading: userLoading } = useGetUser({
     UserId: userId as string,
@@ -68,6 +91,11 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
     setIsDeactivateDialogOpen(true);
   };
 
+  const handleReactivateUser = (user: any) => {
+    setReactivatingUser(user);
+    setIsReactivateDialogOpen(true);
+  };
+
   const confirmDeactivation = () => {
     if (deactivatingUser) {
       setDeactivatingUser(null);
@@ -75,9 +103,21 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
     }
   };
 
+  const confirmReactivation = () => {
+    if (reactivatingUser) {
+      setReactivatingUser(null);
+      setIsReactivateDialogOpen(false);
+    }
+  };
+
   const cancelDeactivation = () => {
     setDeactivatingUser(null);
     setIsDeactivateDialogOpen(false);
+  };
+
+  const cancelReactivation = () => {
+    setReactivatingUser(null);
+    setIsReactivateDialogOpen(false);
   };
 
   const handleDialogClose = () => {
@@ -87,7 +127,7 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
 
   return (
     <div className="">
-      <div className="bg-white rounded-[20px]  border border-gray-300 w-full overflow-hidden">
+      <div className="bg-white rounded-[20px] border border-gray-300 w-full overflow-hidden">
         <div className="max-w-[95vw] lg:max-w-full overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
             {loading ? (
@@ -96,7 +136,7 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
               <>
                 {users.length === 0 ? (
                   <div className="h-[80px] flex justify-center items-center">
-                    <p className="ttext-[20px] font-[500] text-[#181818]">
+                    <p className="text-[20px] font-[500] text-[#181818]">
                       No data found
                     </p>
                   </div>
@@ -104,8 +144,8 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
                   <>
                     {error ? (
                       <div className="h-[80px] flex justify-center items-center">
-                        <p className="ttext-[20px] font-[500] text-[#181818]">
-                          We cannot Fetch users at the moment please try again.
+                        <p className="text-[20px] font-[500] text-[#181818]">
+                          We cannot fetch users at the moment, please try again.
                         </p>
                       </div>
                     ) : (
@@ -173,6 +213,8 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
                                   onDeactivate={() =>
                                     handleDeactivateUser(user)
                                   }
+                                  onActivate={() => handleReactivateUser(user)}
+                                  status={user.is_active}
                                 />
                               </TableCell>
                             </TableRow>
@@ -187,7 +229,6 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
           </div>
         </div>
       </div>
-      {/* {loading && } */}
       <div className="flex w-full justify-end space-x-5 mt-[20px]">
         <div
           className={`text-[#023E8A] text-[14px] font-[400] py-2 px-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer ${
@@ -200,7 +241,7 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
           Previous
         </div>
         <div
-          className={`text-[#023E8A] text-[14px] font-[400] py-2 px-3 border-[1px]  rounded-[8px] cursor-pointer ${
+          className={`text-[#023E8A] text-[14px] font-[400] py-2 px-3 border-[1px] rounded-[8px] cursor-pointer ${
             nextPageUrl
               ? "border-[#023E8A]"
               : "border-[#a3a3a3] cursor-not-allowed"
@@ -210,14 +251,6 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
           Next
         </div>
       </div>
-
-      {/* {error && (
-        <div className="h-[80px] flex justify-center items-center">
-          <p className="ttext-[20px] font-[500] text-[#181818]">
-            We cannot Fetch users at the moment please try again.
-          </p>
-        </div>
-      )} */}
 
       <UserDetailsDialog
         selectedUser={selectedUser}
@@ -230,6 +263,12 @@ export const UsersTable = ({ searchTerm, selectedOption }: any) => {
         isOpen={isDeactivateDialogOpen}
         onConfirm={confirmDeactivation}
         onCancel={cancelDeactivation}
+      />
+      <UserActivationDialog
+        reactivatingUser={reactivatingUser}
+        isOpen={isReactivateDialogOpen}
+        onConfirm={confirmReactivation}
+        onCancel={cancelReactivation}
       />
     </div>
   );

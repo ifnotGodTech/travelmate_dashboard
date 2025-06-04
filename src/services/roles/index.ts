@@ -3,7 +3,10 @@ import env from "@/config/env";
 
 class Service {
   getRoles() {
-    return axios.get(env.api.superadmin + "roles/");
+    return axios.get(env.api.superadmin + "roles/admin-list/");
+  }
+  getMyRole() {
+    return axios.get(env.api.roles + "roles/");
   }
 }
 

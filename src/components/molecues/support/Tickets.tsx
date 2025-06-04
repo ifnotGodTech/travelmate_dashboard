@@ -183,10 +183,7 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
                             <TableCell className="table-cell border-none whitespace-nowrap">
                               <div className="space-y-2">
                                 <p className="text-[#181818] text-[14px] font-[500]">
-                                  {format(
-                                    addDays(new Date(ticket.created_at), 2),
-                                    "dd/MM/yyyy"
-                                  )}
+                                  {format(parseISO(ticket.created_at), "dd/MM/yyyy")}
                                 </p>
                                 <p className="text-[#9B9EA4] text-[12px]">
                                   <span>

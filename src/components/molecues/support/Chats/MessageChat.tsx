@@ -20,6 +20,8 @@ import {
 export const MessageTabContent: React.FC<any> = ({
   selectedOption,
   searchTerm,
+  selectedEndDate,
+  selectedStartDate,
   date,
 }) => {
   const router = useRouter();
@@ -41,6 +43,8 @@ export const MessageTabContent: React.FC<any> = ({
     setFilters,
   } = useGetAllChat();
 
+  console.log({ selectedEndDate, selectedStartDate });
+
   const { chat: chatDetails, loadingChat } = useGetChat({
     ChatId: ticketId as string,
     initialFetch: !!ticketId,
@@ -51,14 +55,32 @@ export const MessageTabContent: React.FC<any> = ({
   useEffect(() => {
     const filters: any = {};
     filters.status = statusFilter === "all" ? "" : statusFilter;
+
     if (searchTerm) {
       filters.search = searchTerm;
     }
+
+    if (selectedStartDate) {
+      filters.created_after = selectedStartDate;
+    }
+
+    if (selectedEndDate) {
+      filters.created_before = selectedEndDate;
+    }
+
     if (date) {
       filters.date = date as string;
     }
+
     setFilters(filters);
-  }, [statusFilter, searchTerm, date, setFilters]);
+  }, [
+    statusFilter,
+    searchTerm,
+    selectedStartDate,
+    selectedEndDate,
+    date,
+    setFilters,
+  ]);
 
   const handleViewDetails = (chat: any) => {
     setSelectedTicket(chat);
@@ -181,7 +203,7 @@ export const MessageTabContent: React.FC<any> = ({
                               <div className="space-y-2">
                                 <p className="text-[#181818] text-[14px] font-[500]">
                                   {format(
-                                    addDays(new Date(chat.created_at), 2),
+                                    parseISO(chat.created_at),
                                     "dd/MM/yyyy"
                                   )}
                                 </p>

@@ -56,8 +56,8 @@ interface User {
   date_created: string;
   total_bookings: number;
   is_active: boolean;
-  reason: string
-  deleted_at: string
+  reason: string;
+  deleted_at: string;
 }
 
 interface UsersResponse {
@@ -75,8 +75,13 @@ export const useGetUsers = () => {
   const [previousPageUrl, setPreviousPageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isActive, setIsActive] = useState<string | null>(null);
+
+  // New states for date filter
+  const [dateJoinedAfter, setDateJoinedAfter] = useState<string | null>(null);
+  const [dateJoinedBefore, setDateJoinedBefore] = useState<string | null>(null);
 
   const hasFetchedInitial = useRef(false);
 
@@ -84,6 +89,8 @@ export const useGetUsers = () => {
     const params = new URLSearchParams();
     if (searchTerm) params.append("search", searchTerm);
     if (isActive !== null) params.append("is_active", isActive);
+    if (dateJoinedAfter) params.append("date_joined_after", dateJoinedAfter);
+    if (dateJoinedBefore) params.append("date_joined_before", dateJoinedBefore);
 
     return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
   };
@@ -97,7 +104,6 @@ export const useGetUsers = () => {
       const response = await axios.get(endpoint);
       const data: UsersResponse = response.data;
 
-      // Replace the users list if reset === true, else append
       setUsers(reset ? data.results : [...users, ...data.results]);
       setNextPageUrl(data.next);
       setPreviousPageUrl(data.previous);
@@ -118,17 +124,15 @@ export const useGetUsers = () => {
     }
   }, []);
 
-  // Refetch when searchTerm or isActive changes
+  // Refetch when filters change
   useEffect(() => {
     fetchUsers(undefined, true);
-  }, [searchTerm, isActive]);
+  }, [searchTerm, isActive, dateJoinedAfter, dateJoinedBefore]);
 
-  // Load next page and replace user list
   const loadNext = () => {
     if (nextPageUrl) fetchUsers(nextPageUrl, true);
   };
 
-  // Load previous page and replace user list
   const loadPrevious = () => {
     if (previousPageUrl) fetchUsers(previousPageUrl, true);
   };
@@ -143,10 +147,15 @@ export const useGetUsers = () => {
     previousPageUrl,
     setSearchTerm,
     setIsActive,
+    // expose setters for date filters
+    setDateJoinedAfter,
+    setDateJoinedBefore,
   };
 };
+
 export const useGetDeletedUsers = () => {
-  const BASE_URL = "https://travelmate-backend-0suw.onrender.com/api/superuser/soft-deleted-users/";
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/superuser/soft-deleted-users/";
 
   const [users, setUsers] = useState<User[]>([]);
   const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
@@ -224,7 +233,6 @@ export const useGetDeletedUsers = () => {
   };
 };
 
-
 export const useDeactivateUser = () => {
   const [deactivating, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -239,9 +247,15 @@ export const useDeactivateUser = () => {
     successCallback?: () => void;
   }) => {
     setLoading(true);
-    setIsSuccess(false); // Reset success state before the API call
+    setIsSuccess(false);
+
+    const data = {
+      additional_reason: payload.additional_note,
+      reason_choices: payload.reason,
+    };
+
     try {
-      const res = await UserService.deactivateUser({ userId, payload });
+      const res = await UserService.deactivateUser({ userId, data });
       const {
         message = res.data.Message || "🚀 User Deactivated successfully",
         description = "",
@@ -316,4 +330,88 @@ export const useExportCSV = () => {
   };
 
   return { exporting, onExportCSV, isSuccess };
+};
+
+export const useDeleteUser = () => {
+  const [deleting, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onDeleteUser = async ({
+    userId,
+    successCallback,
+  }: {
+    userId: any;
+    successCallback?: () => void;
+  }) => {
+    setLoading(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await UserService.deleteUser({ userId });
+      const {
+        message = res.data.Message || "🚀 User Deleted successfully",
+        description = "",
+      } = res.data || {};
+
+      showSuccessToast({ message, description });
+
+      try {
+        successCallback?.();
+      } catch (callbackError) {
+        console.error("Error in successCallback:", callbackError);
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      showErrorToast({
+        message: "unable to deactivate user at the moment",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleting, onDeleteUser, isSuccess };
+};
+
+export const useBulkDeleteUser = () => {
+  const [deleting, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onBulkDeleteUser = async ({
+    userIds,
+    successCallback,
+  }: {
+    userIds: number[];
+    successCallback?: () => void;
+  }) => {
+    setLoading(true);
+    setIsSuccess(false);
+
+    try {
+      const res = await UserService.bulkDeleteUser({ userIds });
+      const {
+        message = res.data.Message || "🚀 Users deleted successfully",
+        description = "",
+      } = res.data || {};
+
+      showSuccessToast({ message, description });
+
+      try {
+        successCallback?.();
+      } catch (callbackError) {
+        console.error("Error in successCallback:", callbackError);
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      showErrorToast({
+        message: "Unable to delete users at the moment",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleting, onBulkDeleteUser, isSuccess };
 };

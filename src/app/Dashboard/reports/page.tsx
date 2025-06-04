@@ -176,7 +176,7 @@ export default function ReportsPage() {
     </div>
   );
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen p-5">
       {/* Main Content */}
       <main className="flex-1 w-full">
         {isLoading ? (

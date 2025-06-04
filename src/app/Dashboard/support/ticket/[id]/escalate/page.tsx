@@ -160,7 +160,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
               Department:
             </h1>
             <Dropdown
-              options={Leveldata?.results || []}
+              options={Leveldata || []}
               placeholder="Select Department"
               onSelect={(option) => {
                 formik.setFieldValue("escalation_level", option.id);

@@ -5,7 +5,7 @@ import env from "@/config/env";
 import { useUpdateAuthContext } from "@/context/AuthContext";
 
 function isUnAuthorizedError(error: Error | AxiosError | any) {
-  return error?.config && error?.response && error?.response?.status === 403;
+  return error?.config && error?.response && error?.response?.status === 401;
 }
 
 let tokenRefreshRetries = 0;

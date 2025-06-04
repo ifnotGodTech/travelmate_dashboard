@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const currentNavItem = navItems.find(
     (item) =>
       pathname === item.href ||
-      (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard") 
+      (pathname.startsWith(`${item.href}/`) && item.href !== "/Dashboard")
   );
 
   const handleLinkClick = () => {
@@ -157,7 +157,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className="p-4 border-t border-gray-200">
-              <button className="flex items-center w-full px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg  " onClick={onLogout} >
+              <button
+                className="flex items-center w-full px-4 py-3 text-sm text-red-500 hover:bg-gray-100 rounded-lg  "
+                onClick={onLogout}
+              >
                 <LogOut className="h-5 w-5 mr-3" />
                 Log Out
               </button>
@@ -167,12 +170,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-y-auto w-full">
+      <div className="flex-1 flex flex-col overflow-y-auto w-full bg-[#f5f5f5] ">
         <Navbar
           pageName={currentNavItem?.label || "Unknown Page"}
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 lg:px-[40px] px-2 pb-6 ">{children}</main>
+        <main className="flex-1 lg:px-[40px] px-2 pb-6  ">{children}</main>
       </div>
     </div>
   );

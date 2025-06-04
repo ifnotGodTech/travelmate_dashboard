@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+import { useMyRoles } from "@/hooks/api/roles";
+import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 
 import {
   Dialog,
@@ -16,6 +19,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+
+import { useDeleteUser } from "@/hooks/api/user";
 
 const DetailRow = ({
   label,
@@ -36,7 +41,7 @@ export const UserDetailsDialog = ({
   userLoading,
   onClose,
 }: any) => {
-  console.log(userDetails)
+  console.log(userDetails);
   return (
     <Dialog open={Boolean(selectedUser)} onOpenChange={onClose}>
       <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0 ">
@@ -63,6 +68,10 @@ export const UserDetailsDialog = ({
                 value={format(new Date(userDetails.date_created), "MM/dd/yyyy")}
               />
               <DetailRow
+                label="Deletion Date"
+                value={format(new Date(userDetails.deleted_at), "MM/dd/yyyy")}
+              />
+              <DetailRow
                 label="Gender"
                 value={userDetails.gender || "Not Available"}
               />
@@ -78,19 +87,12 @@ export const UserDetailsDialog = ({
                 label="Address"
                 value={userDetails.address || "Not Available"}
               />
-
-              <div className="flex justify-between">
-                <p className="text-[18px] font-[400] text-[#181818] ">Status</p>
-                <span
-                  className={`p-[10px] border-[1px] rounded-[12px] text-[14px] uppercase font-[400] ${
-                    userDetails.status
-                      ? "bg-[#2D9C5E1A] text-green-700 border-[#2D9C5E]"
-                      : "bg-[#D726380D] text-red-700 border-[#D72638]"
-                  }`}
-                >
-                  {"Active"}
-                </span>
-              </div>
+              <DetailRow
+                label="Deletion Reason"
+                value={
+                  userDetails.deactivation_reason.reason || "Not Available"
+                }
+              />
             </div>
           ) : (
             <p>No details available for this user.</p>
@@ -101,46 +103,89 @@ export const UserDetailsDialog = ({
   );
 };
 
-export const UserDeactivationDialog = ({
+export const UserDeleteDialog = ({
   deactivatingUser,
   isOpen,
-  onConfirm,
   onCancel,
 }: {
-  deactivatingUser: any;
+  deactivatingUser: { id: string } | null;
   isOpen: boolean;
-  onConfirm: () => void;
   onCancel: () => void;
 }) => {
+  const { deleting, onDeleteUser } = useDeleteUser();
+  const { loading, data } = useMyRoles({ modalVisible: isOpen });
+  const canViewMessage = data?.name === "Super Admin";
+
+  const handleConfirm = () => {
+    if (!deactivatingUser?.id) return;
+
+    onDeleteUser({
+      userId: deactivatingUser.id,
+      successCallback: () => {
+        onCancel();
+      },
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0 ">
-        <DialogTitle></DialogTitle>
-        <div className="px-[32px] py-[8px] ">
-          <h2 className="font-[600] text-[28px] text-[#181818] ">
-            Confirm Deletion
-          </h2>
-        </div>
-        <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
-        <div className="py-[19px] px-[32px] space-y-[16px]">
-          <p className=" font-[400] text-[#4E4F52] text-[18px] ">
-            You are about to permanently erase this user from the system. This
-            account is currently in a deleted state, but this action will remove
-            all remaining data permanently and cannot be undone. Are you sure
-            you want to continue?
-          </p>
-        </div>
-        <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
-        <div className="flex justify-end  gap-4 w-full py-[19px] px-[32px]">
-          <div className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer ">
-            Cancel
-          </div>
-          <div className="bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase cursor-pointer">
-            Yes, Continue
-          </div>
-        </div>
+        {canViewMessage ? (
+          <>
+            <DialogTitle></DialogTitle>
+            <div className="px-[32px] py-[8px] ">
+              <h2 className="font-[600] text-[28px] text-[#181818] ">
+                Confirm Deletion
+              </h2>
+            </div>
+            <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+            <div className="py-[19px] px-[32px] space-y-[16px]">
+              <p className=" font-[400] text-[#4E4F52] text-[18px] ">
+                You are about to permanently erase this user from the system.
+                This account is currently in a deleted state, but this action
+                will remove all remaining data permanently and cannot be undone.
+                Are you sure you want to continue?
+              </p>
+            </div>
+            <div className="w-full border-b-[1px] border-[#9B9EA4]"></div>
+            <div className="flex justify-end gap-4 w-full py-[19px] px-[32px]">
+              <div
+                className="border-[#023E8A] border-[1px] p-3 rounded-[8px] text-[#023E8A] font-[500] text-[16px] uppercase cursor-pointer"
+                onClick={onCancel}
+              >
+                Cancel
+              </div>
+              <div
+                className={`bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase cursor-pointer ${
+                  deleting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={handleConfirm}
+              >
+                {deleting ? "Deleting..." : "Yes, Continue"}
+              </div>
+            </div>
+          </>
+        ) : (
+          <NotAuthorizedModal ticketDetails={deactivatingUser} />
+        )}
       </DialogContent>
     </Dialog>
+  );
+};
+
+export const NotAuthorizedModal = () => {
+  const router = useRouter();
+  return (
+    <div className="text-center p-6 flex flex-col space-y-2 items-center justify-center min-h-[400px]">
+      <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
+      <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
+        You cannot view this message.
+      </h1>
+      <p className="mt-4 text-gray-600">
+        You don't have the Authorization to delete an account. <br /> Please
+        contact your administrator for assistance.
+      </p>
+    </div>
   );
 };
 

@@ -140,7 +140,7 @@ export function useGetTicket({
   errorCallback?: (props: { message?: string; description?: string }) => void;
 }) {
   const [loadingTicket, setLoading] = useState(false);
-  const [ticket, setData] = useState<Ticket | null>(null);
+  const [ticket, setData] = useState<any>(null);
 
   const fetchTicket = async () => {
     if (!TicketId) return;
@@ -428,7 +428,7 @@ export function useClaimTicket() {
 
     try {
       const res = await TicketService.claimTicket({ TicketId });
-      const message = res.data?.detail || "Ticket response sent successfully";
+      const message = res.data?.detail || "Ticket claimed successfully";
       showSuccessToast({ message });
 
       if (successCallback) {
