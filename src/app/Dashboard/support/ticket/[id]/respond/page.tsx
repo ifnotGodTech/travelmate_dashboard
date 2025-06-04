@@ -235,6 +235,22 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
 
   return (
     <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px] flex flex-col">
+      {/* Full-screen Modal */}
+      {modalImage && (
+        <div
+          className="fixed inset-0 bg-black/80 bg-opacity-75 flex justify-center items-center z-50 h-screen "
+          onClick={() => setModalImage(null)}
+        >
+          <img
+            src={modalImage}
+            alt="Full-Screen Image"
+            className="max-w-full max-h-[90%] rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Existing UI */}
       <div className="flex justify-center items-center space-x-4">
         <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
         <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818] text-[12px] lg:text-[16px] ">
@@ -267,14 +283,18 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                 className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 ref={index === messages.length - 1 ? lastMessageRef : null}
               >
-                <div className="space-y-2 max-w-[80%]">
+                <div
+                  className={`flex flex-col items-${
+                    isUser ? "end" : "start"
+                  } space-y-2 max-w-[80%]`}
+                >
                   {/* Message Content */}
                   {mes.content && (
                     <div
                       className={`py-3 px-4 text-[16px] font-medium rounded-xl shadow-md ${
                         isUser
                           ? "bg-[#f0f0f0] text-[#181818] text-end"
-                          : "bg-[#023E8A] text-white "
+                          : "bg-[#023E8A] text-white text-start"
                       }`}
                       style={{ maxWidth: "fit-content" }}
                     >
@@ -282,11 +302,12 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                     </div>
                   )}
 
-                  {/* Attachment */}
+                  {/* Image Attachment */}
                   {mes.attachment && (
                     <div
-                      className={`mt-2 ${isUser ? "text-right" : "text-left"}`}
-                      style={{ maxWidth: "100%" }}
+                      className={`flex ${
+                        isUser ? "justify-end" : "justify-start"
+                      }`}
                     >
                       <img
                         src={mes.attachment}
@@ -297,6 +318,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                     </div>
                   )}
 
+                  {/* Timestamp */}
                   <span
                     className={`block text-sm font-light text-[#67696D] ${
                       isUser ? "text-right" : "text-left"
@@ -316,15 +338,13 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
         className="sticky bottom-0 rounded-b-[24px] bg-[#fff]"
       >
         {ticket?.status == "resolved" ? (
-          <div className="">
-            <p className="text-center p-4  text-[14px] lg:text-[24px] font-[500] text-[#181818] ">
-              This Ticket has been marked as resolved
-            </p>
+          <div className="text-center p-4 text-[14px] lg:text-[24px] font-[500] text-[#181818]">
+            This Ticket has been marked as resolved
           </div>
         ) : (
           <div className="p-4 flex items-center gap-4 w-full">
             {loadingTicket ? (
-              <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px] "></div>
+              <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px]"></div>
             ) : (
               <>
                 <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
@@ -346,7 +366,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                 <button
                   type="submit"
                   disabled={!isAdmin}
-                  className={`p-3 bg-[#023E8A] flex space-x-2 rounded-[8px] items-center ${
+                  className={`p-3 rounded-[8px] items-center flex space-x-1 ${
                     !isAdmin
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#023E8A] text-white"
@@ -357,7 +377,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                   ) : (
                     <img src="/assets/icons/white-send.svg" alt="Send" />
                   )}
-
                   <span className="text-[#fff] font-[500] text-[20px]">
                     Send
                   </span>
@@ -367,17 +386,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
           </div>
         )}
       </form>
-
-      {/* Modal for Image */}
-      {modalImage && (
-        <Modal onClose={() => setModalImage(null)}>
-          <img
-            src={modalImage}
-            alt="Modal Attachment"
-            className="w-full h-auto max-w-[800px] max-h-[90vh] rounded-lg mx-auto"
-          />
-        </Modal>
-      )}
     </div>
   );
 };
