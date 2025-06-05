@@ -229,6 +229,7 @@ export const ClaimedChatSection = ({
 
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRedirecting, setisRedirecting] = useState(false);
 
   const formattedDate = useMemo(
     () => (chatDetails ? formatCreatedAt(chatDetails.created_at, 2) : ""),
@@ -237,11 +238,13 @@ export const ClaimedChatSection = ({
 
   const handleClaimTicket = useCallback(async () => {
     if (!chatDetails?.id) return;
+
     if (!canViewMessage) {
       setNotAuthorized(true);
       return;
     }
-    setIsProcessing(true); // Start loader
+
+    setIsProcessing(true);
     try {
       await onClaiming({
         ChatId: chatDetails.id,
@@ -249,15 +252,21 @@ export const ClaimedChatSection = ({
           router.push(`/Dashboard/support/chats/${chatDetails.id}/`),
       });
     } finally {
-      setIsProcessing(false); // Stop loader after process
+      setIsProcessing(false);
     }
   }, [chatDetails, router, onClaiming, canViewMessage]);
 
   const handleNavigateToResponse = useCallback(() => {
+    setisRedirecting(true);
+    if (!canViewMessage) {
+      setNotAuthorized(true);
+      return;
+    }
+
     if (chatDetails?.id) {
       router.push(`/Dashboard/support/chats/${chatDetails.id}/`);
     }
-  }, [chatDetails, router]);
+  }, [chatDetails, router, canViewMessage]);
 
   useEffect(() => {
     if (
@@ -283,35 +292,35 @@ export const ClaimedChatSection = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
+      className={`fixed inset-0 z-50 flex justify-center items-center bg-black/50 transition-opacity duration-500 ${
         chatDetails ? "visible opacity-100" : "invisible opacity-0"
       }`}
       onClick={onClose}
       aria-hidden={!chatDetails}
     >
       <div
-        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-300 ${
+        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-500 ${
           chatDetails ? "scale-100" : "scale-95"
         }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {/* {isProcessing && (
-
-        )} */}
-
-        {chatLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 z-10">
-            <div className="w-10 h-10 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+        {(isRedirecting || chatLoading) && (
+          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px]">
+            <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        ) : (
+        )}
+        {!isRedirecting && !chatLoading && (
           <>
             {notAuthorized && (
-              <NotAuthorizedModal ticketDetails={chatDetails} />
+              <NotAuthorizedModal
+                ticketDetails={chatDetails}
+                className="animate-fade-in"
+              />
             )}
 
-            {!notAuthorized && !isProcessing && (
+            {!notAuthorized && (
               <>
                 <div className="border-b-[1px] w-full border-[#BCBEC2]">
                   <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
@@ -334,7 +343,7 @@ export const ClaimedChatSection = ({
                 <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
                   <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
                     <div
-                      className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer"
+                      className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer hover:opacity-90"
                       onClick={() =>
                         router.push(
                           `/Dashboard/support/chats/${chatDetails.id}/`
@@ -347,12 +356,12 @@ export const ClaimedChatSection = ({
                     </div>
 
                     <div
-                      className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+                      className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer hover:bg-[#0353A4]"
                       onClick={handleClaimTicket}
                     >
                       <span className="text-[#fff] text-[20px] font-[500]">
                         {claiming ? (
-                          <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
                         ) : (
                           "Yes, Proceed"
                         )}
@@ -378,13 +387,14 @@ const NotAuthorizedModal = ({ ticketDetails }: any) => {
         You cannot view this message.
       </h1>
       <p className="mt-4 text-gray-600">
-        You don't belong to the department the ticket was escalated to.
+        You don't belong to the ticket and suport department <br /> you can only
+        view the message only.
       </p>
 
       <div
         className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
         onClick={() =>
-          router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`)
+          router.push(`/Dashboard/support/chats/${ticketDetails.id}`)
         }
       >
         <>

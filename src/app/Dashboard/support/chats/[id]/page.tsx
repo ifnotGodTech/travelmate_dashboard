@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useWebSocketService } from "@/hooks/api/chat";
 import ChatService from "@/services/chat";
 import { useAuthContext } from "@/context/AuthContext";
+import { useMyRoles } from "@/hooks/api/roles";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -42,13 +43,17 @@ const page = (props: Props) => {
       console.error(error);
     },
   });
+  const { loading, data } = useMyRoles({ modalVisible: chat?.id });
+  const canViewMessage = data?.name === "Support & Tickets";
 
-  const isAdmin =
-    currentUser === chat?.claimed_by_info?.id ||
-    currentUser === chat?.assigned_admin_info?.id;
-  const isButtonDisabled =
+  const isInputDisabled =
     chat?.status === "CLOSED" ||
-    (!isAdmin && chat?.assigned_admin_info !== null);
+    !canViewMessage ||
+    !(
+      chat?.assigned_admin_info === null ||
+      chat?.claimed_by_info?.id === currentUser ||
+      chat?.assigned_admin_info?.id === currentUser
+    );
 
   const router = useRouter();
   const [closing, setClosing] = useState(false);
@@ -81,12 +86,12 @@ const page = (props: Props) => {
         <div className="flex space-x-6">
           <button
             className={`rounded-[8px] font-medium p-4 cursor-pointer ${
-              isButtonDisabled
+              isInputDisabled
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-[#023E8A] text-white"
             }`}
             onClick={handleCloseChat}
-            disabled={closing || isButtonDisabled}
+            disabled={closing || isInputDisabled || !canViewMessage}
           >
             {closing ? "Closing..." : "Close chat"}
           </button>
@@ -124,13 +129,21 @@ const page = (props: Props) => {
       <Session
         chat={chat}
         loadingChat={loadingChat}
-        isAdmin={isButtonDisabled}
+        isAdmin={isInputDisabled}
+        canViewMessage={canViewMessage}
+        currentUser={currentUser}
       />
     </div>
   );
 };
 
-const Session = ({ chat, loadingChat, isAdmin }: any) => {
+const Session = ({
+  chat,
+  loadingChat,
+  isAdmin,
+  canViewMessage,
+  currentUser,
+}: any) => {
   const { messages: liveMessages, send } = useWebSocketService(chat?.id);
   const [input, setInput] = useState("");
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
@@ -156,6 +169,8 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
     );
     return [...history, ...live];
   }, [chat?.messages, liveMessages]);
+
+  console.log(allMessages);
 
   const handleSend = () => {
     if (input.trim()) {
@@ -201,7 +216,9 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
       ) : (
         <div className="flex-1 overflow-auto p-4 space-y-4">
           {allMessages.map((mes: any, index: any) => {
-            const isUser = chat?.user_info?.id === mes.sender_info?.id;
+            const isUser =
+              chat?.user_info?.id === mes.sender_info?.id ||
+              chat?.user_info?.id === mes.sender_id;
             return (
               <div
                 key={index}
@@ -223,13 +240,15 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                   ) : null}
 
                   {/* Attachment */}
-                  {mes.attachment && (
+                  {mes.attachment?.url && (
                     <div className="mt-2">
-                      {mes.attachment.type === "image" ? (
+                      {mes.attachment.type === "other" ? (
                         <img
-                          src={mes.attachment.url}
+                          src={mes.attachment_url}
                           alt="Attachment"
-                          className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
+                          className={`w-[250px] h-auto rounded-lg shadow-lg cursor-pointer ${
+                            isUser ? "ml-auto" : "mr-auto"
+                          }`}
                           onClick={() =>
                             window.open(mes.attachment.url, "_blank")
                           }
@@ -239,7 +258,9 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                           href={mes.attachment.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 underline"
+                          className={`text-blue-500 underline block ${
+                            isUser ? "text-right" : "text-left"
+                          }`}
                         >
                           View PDF
                         </a>
@@ -290,17 +311,22 @@ const Session = ({ chat, loadingChat, isAdmin }: any) => {
                     handleSend();
                   }
                 }}
-                disabled={!isAdmin}
+                disabled={
+                  isAdmin ||
+                  !canViewMessage ||
+                  chat?.status === "CLOSED" ||
+                  systemErrorMessage !== null
+                }
               />
             </div>
             <button
               onClick={handleSend}
               className={`p-3 rounded-lg ${
-                !isAdmin
+                isAdmin
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-[#023E8A] text-white"
               }`}
-              disabled={!isAdmin}
+              disabled={isAdmin}
             >
               Send
             </button>
