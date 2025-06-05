@@ -27,19 +27,15 @@ const Filter = () => {
   const [activeTab, setActiveTab] = useState("registerUser");
 
   // Date states
-  const [selectedStartDate, setSelectedStartDate] = useState<
-    string | undefined
-  >(undefined);
-  const [selectedEndDate, setSelectedEndDate] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedStartDate, setSelectedStartDate] = useState<string | "">("");
+  const [selectedEndDate, setSelectedEndDate] = useState<string | "">("");
 
   // Helper to format date range display string
   const formatDateRange = () => {
     if (selectedStartDate && selectedEndDate) {
       return `${selectedStartDate} - ${selectedEndDate}`;
     }
-    return "YYYY-MM-DD - YYYYY-MM-DD";
+    return "YYYY-MM-DD - YYYY-MM-DD";
   };
 
   // Build dateRange object for tables
@@ -121,6 +117,7 @@ const Filter = () => {
                     selectedOption={selectedOption}
                     setSelectedOption={setSelectedOption}
                     options={[
+                      { label: "All", value: "" },
                       { label: "Active", value: "true" },
                       { label: "Deactivated", value: "false" },
                     ]}

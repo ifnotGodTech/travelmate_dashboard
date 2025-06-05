@@ -245,7 +245,7 @@ export const UserDeactivationDialog = ({
           title="User Deactivated Successfully"
           description="You have successfully deactivated a user."
           onClose={() => setShowModal(false)}
-          dlink="/Dashboard/users"
+          dlink="/Dashboard/user"
         />
       )}
     </>
@@ -486,7 +486,7 @@ export const UserActivationDialog = ({
           title="User Reactivated Successfully"
           description={`User ${reactivatingUser?.email} has been successfully reactivated.`}
           onClose={() => setShowModal(false)}
-          dlink="/Dashboard/users"
+          dlink="/Dashboard/user"
         />
       )}
     </>
