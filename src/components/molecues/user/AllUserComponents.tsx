@@ -121,19 +121,18 @@ export const UserDeactivationDialog = ({
   const [showError, setShowError] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [additionalNote, setAdditionalNote] = useState<string>("");
-  const email = deactivatingUser?.email;
+
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const canViewMessage = data?.name === "Super Admin" || "Customer Agent";
 
   const handleDeactivate = () => {
-    if (!email || !reason) {
+    if (!reason || !additionalNote) {
       setShowError(true);
       return;
     }
 
     onDeactivateUser({
       payload: {
-        email,
         reason,
         additional_note: additionalNote,
       },
@@ -217,11 +216,15 @@ export const UserDeactivationDialog = ({
                   </div>
                   <div
                     className={`bg-[#D72638] p-3 rounded-[8px] text-[#fff] font-[500] text-[16px] uppercase ${
-                      deactivatingUser?.is_active
-                        ? "cursor-pointer"
-                        : "cursor-not-allowed opacity-25"
-                    } `}
-                    onClick={handleDeactivate}
+                      !reason || !additionalNote
+                        ? "cursor-not-allowed opacity-25"
+                        : "cursor-pointer"
+                    }`}
+                    onClick={() => {
+                      if (reason && additionalNote) {
+                        handleDeactivate();
+                      }
+                    }}
                   >
                     {deactivating
                       ? "Deactivating user..."
@@ -241,6 +244,7 @@ export const UserDeactivationDialog = ({
           title="User Deactivated Successfully"
           description="You have successfully deactivated a user."
           onClose={() => setShowModal(false)}
+          dlink="/Dashboard/users"
         />
       )}
     </>
@@ -465,7 +469,6 @@ export const UserActivationDialog = ({
                     onClick={handleReactivate}
                   >
                     {reactivating ? "Reactivating user..." : "Reactivate User"}
-                    Confirm Reactivation
                   </div>
                 </div>
               </div>
@@ -481,6 +484,7 @@ export const UserActivationDialog = ({
           title="User Reactivated Successfully"
           description={`User ${reactivatingUser?.email} has been successfully reactivated.`}
           onClose={() => setShowModal(false)}
+          dlink="/Dashboard/users"
         />
       )}
     </>
