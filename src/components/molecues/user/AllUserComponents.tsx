@@ -123,7 +123,8 @@ export const UserDeactivationDialog = ({
   const [additionalNote, setAdditionalNote] = useState<string>("");
 
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
-  const canViewMessage = data?.name === "Super Admin" || "Customer Agent";
+  const canViewMessage =
+    data?.name === "Super Admin" || data?.name === "Customer Agent";
 
   const handleDeactivate = () => {
     if (!reason || !additionalNote) {
@@ -383,7 +384,8 @@ export const UserActivationDialog = ({
   const [showModal, setShowModal] = useState(false);
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const { reactivating, onReactivateUser } = useReactivateUser();
-  const canViewMessage = data?.name === "Super Admin" || "Customer Agent";
+  const canViewMessage =
+    data?.name === "Super Admin" || data?.name === "Customer Agent";
 
   const handleReactivate = () => {
     onReactivateUser({
