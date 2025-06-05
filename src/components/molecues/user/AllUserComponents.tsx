@@ -464,6 +464,7 @@ export const UserActivationDialog = ({
                     }`}
                     onClick={handleReactivate}
                   >
+                    {reactivating ? "Reactivating user..." : "Reactivate User"}
                     Confirm Reactivation
                   </div>
                 </div>
