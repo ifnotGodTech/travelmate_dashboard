@@ -220,10 +220,10 @@ const Session = ({
         <div className="flex justify-center items-center space-x-4 p-4">
           <div className="w-48 h-0.5 bg-black"></div>
           <div className="rounded-full border border-black py-2 px-4 text-black">
-            {chat?.claimed_admin ? (
+            {chat?.claimed_by_info ? (
               <>
                 Responding:{" "}
-                {chat.claimed_admin.first_name || chat.claimed_admin.email}
+                {chat.claimed_by_info.first_name || "---"}
               </>
             ) : (
               "No admin claimed"

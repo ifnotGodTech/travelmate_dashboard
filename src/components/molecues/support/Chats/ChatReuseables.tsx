@@ -229,7 +229,7 @@ export const ClaimedChatSection = ({
 
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isRedirecting, setisRedirecting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const formattedDate = useMemo(
     () => (chatDetails ? formatCreatedAt(chatDetails.created_at, 2) : ""),
@@ -257,7 +257,7 @@ export const ClaimedChatSection = ({
   }, [chatDetails, router, onClaiming, canViewMessage]);
 
   const handleNavigateToResponse = useCallback(() => {
-    setisRedirecting(true);
+    setIsRedirecting(true);
     if (!canViewMessage) {
       setNotAuthorized(true);
       return;
@@ -299,19 +299,18 @@ export const ClaimedChatSection = ({
       aria-hidden={!chatDetails}
     >
       <div
-        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-500 ${
+        className={`relative bg-white w-[90%] max-w-[720px] p-6 rounded-2xl shadow-lg border border-gray-300 transform transition-transform duration-500 min-h-[400px] ${
           chatDetails ? "scale-100" : "scale-95"
         }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {(isRedirecting || chatLoading) && (
-          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 h-[400px]">
+        {chatLoading || loading ? (
+          <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 min-h-[400px]">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        )}
-        {!isRedirecting && !chatLoading && (
+        ) : (
           <>
             {notAuthorized && (
               <NotAuthorizedModal
@@ -331,10 +330,10 @@ export const ClaimedChatSection = ({
                 <div className="px-[16px] lg:px-[32px]">
                   <p className="font-[400] text-[16px] lg:text-[20px]">
                     This chat is currently being handled by{" "}
-                    {chatDetails?.claimed_admin?.first_name || "---"}. You can
+                    {chatDetails?.claimed_by_info?.first_name || "---"}. You can
                     either view the ticket or claim it. Claiming the ticket will
                     transfer responsibility to you, removing{" "}
-                    {chatDetails?.claimed_admin?.first_name || "---"} from the
+                    {chatDetails?.claimed_by_info?.first_name || "---"} from the
                     conversation. The customer will be notified of the change.
                     Would you like to proceed?
                   </p>
@@ -359,13 +358,13 @@ export const ClaimedChatSection = ({
                       className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer hover:bg-[#0353A4]"
                       onClick={handleClaimTicket}
                     >
-                      <span className="text-[#fff] text-[20px] font-[500]">
-                        {claiming ? (
-                          <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          "Yes, Proceed"
-                        )}
-                      </span>
+                      {claiming ? (
+                        <div className="w-5 h-5 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <span className="text-[#fff] text-[20px] font-[500]">
+                          Yes, Proceed
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

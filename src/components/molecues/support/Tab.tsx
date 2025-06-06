@@ -136,7 +136,7 @@ const TicketTable: React.FC = () => {
       </Tabs>
 
       {activeTab !== "faq" && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 flex justify-around py-3 px-4 shadow-lg z-50">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 flex justify-around py-3 px-4 shadow-lg z-20">
           {activeTab === "chat" ? (
             <button
               onClick={() => router.push("/Dashboard/support/chats")}

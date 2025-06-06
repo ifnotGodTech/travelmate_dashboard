@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar - hidden on mobile */}
-      <div className="w-64 bg-[#EBECED] border-r border-gray-200 hidden md:flex flex-col h-screen">
+      <div className="w-64 z-50 bg-[#EBECED] border-r border-gray-200 hidden md:flex flex-col h-screen">
         <div className="p-6">
           <Link href="/" className="text-blue-700 text-xl font-semibold">
             TravelMate
