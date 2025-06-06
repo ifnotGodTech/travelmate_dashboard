@@ -33,7 +33,7 @@ export function useGetAllEscalationLevel({
 export function useMyRoles({
   modalVisible = false,
 }: {
-  modalVisible: boolean;
+  modalVisible?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any | null>(null);

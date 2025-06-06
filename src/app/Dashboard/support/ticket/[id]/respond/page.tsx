@@ -3,12 +3,17 @@ import React, { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useParams } from "next/navigation";
-import { useRespondToTicket, useGetTicket } from "@/hooks/api/ticket";
+import {
+  useRespondToTicket,
+  useGetTicket,
+  useClaimTicket,
+} from "@/hooks/api/ticket";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ConfirmResolution } from "@/components/molecues/support/Reuseables";
 import * as Yup from "yup";
 import { useAuthContext } from "@/context/AuthContext";
+import { useMyRoles } from "@/hooks/api/roles";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -31,6 +36,7 @@ const page = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { loading, data } = useMyRoles({ modalVisible: true });
 
   const { loadingTicket, ticket } = useGetTicket({
     TicketId: id as string,
@@ -39,7 +45,11 @@ const page = () => {
     errorCallback: (error) => console.error(error),
   });
 
-  const isAdmin = currentUser === ticket?.claimed_admin?.id;
+  const isAdmin =
+    currentUser === ticket?.claimed_admin?.id ||
+    (ticket?.escalated === true &&
+      ticket?.escalation_role?.name === data?.name);
+  console.log(isAdmin, ticket?.escalation_role?.name, data?.name);
 
   return (
     <>
@@ -124,7 +134,12 @@ const page = () => {
             </div>
           </div>
         )}
-        <Chat ticket={ticket} loadingTicket={loadingTicket} isAdmin={isAdmin} />
+        <Chat
+          ticket={ticket}
+          loadingTicket={loadingTicket}
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+        />
       </div>
       {ticket?.status !== "resolved" && (
         <div className="  sticky lg:hidden bottom-0 bg-white p-4 flex justify-between items-end space-x-4 shadow-lg">
@@ -160,6 +175,7 @@ const page = () => {
           title="Ticket Resolved Successfully"
           description="You have successfully resolved this ticket."
           onClose={() => setShowSuccessModal(false)}
+          dlink="/Dashboard/support/ticket/escalates"
         />
       )}
 
@@ -174,7 +190,9 @@ const page = () => {
   );
 };
 
-const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
+const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
+  const { claiming, onClaiming } = useClaimTicket();
+
   const { responding, onRespondToTicket } = useRespondToTicket();
 
   // State for managing older and new messages
@@ -205,26 +223,36 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
     validationSchema: Yup.object({
       message: Yup.string().required("Message is required"),
     }),
-    onSubmit: (values, { resetForm }) => {
+    // Update to the form submission handler
+    onSubmit: async (values, { resetForm }) => {
+      if (
+        !ticket?.claimed_admin?.id ||
+        ticket?.claimed_admin?.id !== currentUser
+      ) {
+        try {
+          await onClaiming({
+            TicketId: ticket?.id,
+            successCallback: () => console.log("Ticket successfully claimed."),
+          });
+        } catch (error) {
+          console.error("Claiming ticket failed:", error);
+          return;
+        }
+      }
+
+      // Proceed with responding to the ticket
       onRespondToTicket({
         TicketId: ticket?.id,
         payload: { content: values.message },
         successCallback: () => {
-          console.log("Message sent successfully");
-
-          // Append the new message to the state
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            {
-              id: Date.now(), // Temporary ID for new message
-              sender: { id: "currentUserId" }, // Replace with actual user ID
-              content: values.message,
-              attachment: null,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
-
-          resetForm(); // Clear the input field
+          const newMessage = {
+            id: new Date().toISOString(),
+            content: values.message,
+            sender: { id: currentUser },
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+          resetForm();
         },
         errorCallback: (error: any) => {
           console.error("Error sending message", error);
@@ -286,7 +314,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                 <div
                   className={`flex flex-col items-${
                     isUser ? "end" : "start"
-                  } space-y-2 max-w-[80%]`}
+                  } space-y-1 max-w-[80%]`}
                 >
                   {/* Message Content */}
                   {mes.content && (
@@ -320,7 +348,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
 
                   {/* Timestamp */}
                   <span
-                    className={`block text-sm font-light text-[#67696D] ${
+                    className={`block text-[12px] font-light text-[#67696D] ${
                       isUser ? "text-right" : "text-left"
                     }`}
                   >
@@ -367,7 +395,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                   type="submit"
                   disabled={!isAdmin}
                   className={`p-3 rounded-[8px] items-center flex space-x-1 ${
-                    !isAdmin
+                    !isAdmin || ticket?.status === "resolved"
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#023E8A] text-white"
                   }`}
