@@ -41,6 +41,7 @@ export const UsersTable = ({
     setIsActive,
     setDateJoinedAfter,
     setDateJoinedBefore,
+    refetch,
   } = useGetUsers();
 
   useEffect(() => {
@@ -263,12 +264,14 @@ export const UsersTable = ({
         isOpen={isDeactivateDialogOpen}
         onConfirm={confirmDeactivation}
         onCancel={cancelDeactivation}
+        refetch={refetch}
       />
       <UserActivationDialog
         reactivatingUser={reactivatingUser}
         isOpen={isReactivateDialogOpen}
         onConfirm={confirmReactivation}
         onCancel={cancelReactivation}
+        refetch={refetch}
       />
     </div>
   );

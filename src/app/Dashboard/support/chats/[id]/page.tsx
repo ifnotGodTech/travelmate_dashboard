@@ -11,6 +11,7 @@ import { useWebSocketService } from "@/hooks/api/chat";
 import ChatService from "@/services/chat";
 import { useAuthContext } from "@/context/AuthContext";
 import { useMyRoles } from "@/hooks/api/roles";
+import { FileText, ArrowUpRight, DownloadIcon, X } from "lucide-react";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -147,10 +148,30 @@ const Session = ({
   const { messages: liveMessages, send } = useWebSocketService(chat?.id);
   const [input, setInput] = useState("");
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
   const name = `${chat?.user?.first_name || "---"} ${
     chat?.user?.last_name || "---"
   }`;
+  const handleDownload = () => {
+    fetch(modalImage)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = url;
+        a.download = "image";
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch((err) => console.error("Failed to download image:", err));
+  };
+  const handleCloseModal = () => setModalImage(null);
+
+  const handleImageClick = (url: string) => setModalImage(url);
 
   // Extract system error message from liveMessages, if any
   const systemErrorMessage = useMemo(() => {
@@ -193,147 +214,174 @@ const Session = ({
 
   const isInputDisabled =
     chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
-
   return (
-    <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
-      <div className="flex justify-center items-center space-x-4 p-4">
-        <div className="w-48 h-0.5 bg-black"></div>
-        <div className="rounded-full border border-black py-2 px-4 text-black">
-          {chat?.claimed_admin ? (
-            <>
-              Responding:{" "}
-              {chat.claimed_admin.first_name || chat.claimed_admin.email}
-            </>
-          ) : (
-            "No admin claimed"
-          )}
+    <>
+      <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
+        <div className="flex justify-center items-center space-x-4 p-4">
+          <div className="w-48 h-0.5 bg-black"></div>
+          <div className="rounded-full border border-black py-2 px-4 text-black">
+            {chat?.claimed_admin ? (
+              <>
+                Responding:{" "}
+                {chat.claimed_admin.first_name || chat.claimed_admin.email}
+              </>
+            ) : (
+              "No admin claimed"
+            )}
+          </div>
+          <div className="w-48 h-0.5 bg-black"></div>
         </div>
-        <div className="w-48 h-0.5 bg-black"></div>
-      </div>
 
-      {loadingChat ? (
-        <div className="text-center text-gray-500">Loading messages...</div>
-      ) : (
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          {allMessages.map((mes: any, index: any) => {
-            const isUser =
-              chat?.user_info?.id === mes.sender_info?.id ||
-              chat?.user_info?.id === mes.sender_id;
-            return (
-              <div
-                key={index}
-                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                ref={index === allMessages.length - 1 ? lastMessageRef : null}
-              >
-                <div className="space-y-1 max-w-[80%]">
-                  {/* Message or Content */}
-                  {mes.content || mes.message ? (
-                    <div
-                      className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
-                        isUser
-                          ? "bg-gray-200 text-black"
-                          : "bg-[#023E8A] text-white"
+        {loadingChat ? (
+          <div className="text-center text-gray-500">Loading messages...</div>
+        ) : (
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            {allMessages.map((mes: any, index: any) => {
+              const isUser =
+                chat?.user_info?.id === mes.sender_info?.id ||
+                chat?.user_info?.id === mes.sender_id;
+              return (
+                <div
+                  key={index}
+                  className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                  ref={index === allMessages.length - 1 ? lastMessageRef : null}
+                >
+                  <div className="space-y-1 max-w-[80%]">
+                    {/* Message or Content */}
+                    {mes.content || mes.message ? (
+                      <div
+                        className={`py-3 px-4 text-sm font-medium rounded-xl shadow-md ${
+                          isUser
+                            ? "bg-gray-200 text-black"
+                            : "bg-[#023E8A] text-white"
+                        }`}
+                      >
+                        {mes.content || mes.message}
+                      </div>
+                    ) : null}
+
+                    {/* Attachment */}
+                    {mes.attachment_url && (
+                      <div className="mt-2">
+                        {mes.attachment_type === "other" ? (
+                          <img
+                            src={mes.attachment_url}
+                            alt="Attachment"
+                            className={`w-[250px] h-auto rounded-lg shadow-lg cursor-pointer ${
+                              isUser ? "ml-auto" : "mr-auto"
+                            }`}
+                            onClick={() => handleImageClick(mes.attachment_url)}
+                          />
+                        ) : (
+                          <a
+                            href={mes.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`w-[250px] flex items-center justify-between gap-2 text-blue-500 h-[50px] bg-blue-100 hover:bg-blue-200 transition-all duration-300 font-semibold px-4 py-2 rounded-lg shadow-md ${
+                              isUser ? "ml-auto" : "mr-auto"
+                            }`}
+                          >
+                            <FileText className="w-5 h-5" />
+                            <span>Download</span>
+                            <DownloadIcon className="w-5 h-5" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    <span
+                      className={`block text-xs text-gray-500 ${
+                        isUser ? "text-right" : "text-left"
                       }`}
                     >
-                      {mes.content || mes.message}
-                    </div>
-                  ) : null}
+                      {mes.created_at
+                        ? format(new Date(mes.created_at), "h:mm a")
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
 
-                  {/* Attachment */}
-                  {mes.attachment?.url && (
-                    <div className="mt-2">
-                      {mes.attachment.type === "other" ? (
-                        <img
-                          src={mes.attachment_url}
-                          alt="Attachment"
-                          className={`w-[250px] h-auto rounded-lg shadow-lg cursor-pointer ${
-                            isUser ? "ml-auto" : "mr-auto"
-                          }`}
-                          onClick={() =>
-                            window.open(mes.attachment.url, "_blank")
-                          }
-                        />
-                      ) : mes.attachment.type === "pdf" ? (
-                        <a
-                          href={mes.attachment.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`text-blue-500 underline block ${
-                            isUser ? "text-right" : "text-left"
-                          }`}
-                        >
-                          View PDF
-                        </a>
-                      ) : null}
-                    </div>
-                  )}
-
-                  <span
-                    className={`block text-xs text-gray-500 ${
-                      isUser ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {mes.created_at
-                      ? format(new Date(mes.created_at), "h:mm a")
-                      : ""}
-                  </span>
+            {systemErrorMessage && (
+              <div className="flex justify-center">
+                <div className="bg-red-100 text-red-800 text-center px-4 py-2 rounded-md shadow-md max-w-[80%]">
+                  {systemErrorMessage}
                 </div>
               </div>
-            );
-          })}
+            )}
+          </div>
+        )}
 
-          {systemErrorMessage && (
-            <div className="flex justify-center">
-              <div className="bg-red-100 text-red-800 text-center px-4 py-2 rounded-md shadow-md max-w-[80%]">
-                {systemErrorMessage}
+        <div className="p-4 border-t flex items-center gap-4">
+          {chat?.status === "resolved" ? (
+            <p className="text-center w-full text-gray-500">
+              This chat has been marked as resolved
+            </p>
+          ) : (
+            <>
+              <div className="bg-gray-200 flex-1 p-3 border rounded-lg flex items-center space-x-4">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 outline-none bg-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !isInputDisabled) {
+                      handleSend();
+                    }
+                  }}
+                  disabled={
+                    isAdmin ||
+                    !canViewMessage ||
+                    chat?.status === "CLOSED" ||
+                    systemErrorMessage !== null
+                  }
+                />
               </div>
-            </div>
+              <button
+                onClick={handleSend}
+                className={`p-3 rounded-lg ${
+                  isAdmin
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[#023E8A] text-white"
+                }`}
+                disabled={isAdmin}
+              >
+                Send
+              </button>
+            </>
           )}
         </div>
-      )}
-
-      <div className="p-4 border-t flex items-center gap-4">
-        {chat?.status === "resolved" ? (
-          <p className="text-center w-full text-gray-500">
-            This chat has been marked as resolved
-          </p>
-        ) : (
-          <>
-            <div className="bg-gray-200 flex-1 p-3 border rounded-lg flex items-center space-x-4">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 outline-none bg-transparent"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !isInputDisabled) {
-                    handleSend();
-                  }
-                }}
-                disabled={
-                  isAdmin ||
-                  !canViewMessage ||
-                  chat?.status === "CLOSED" ||
-                  systemErrorMessage !== null
-                }
-              />
-            </div>
-            <button
-              onClick={handleSend}
-              className={`p-3 rounded-lg ${
-                isAdmin
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-[#023E8A] text-white"
-              }`}
-              disabled={isAdmin}
-            >
-              Send
-            </button>
-          </>
-        )}
       </div>
-    </div>
+
+      {modalImage && (
+        <div className="fixed inset-0 bg-black/50 bg-opacity-75 flex justify-center items-center z-50">
+          <div className="relative w-[auto] max-w-3xl max-h-[90vh]">
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                className="text-white bg-black bg-opacity-50 rounded-full p-2"
+                onClick={handleCloseModal}
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handleDownload}
+                className="text-white bg-black bg-opacity-50 rounded-full p-2"
+              >
+                <DownloadIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <img
+              src={modalImage}
+              alt="Modal Content"
+              className="max-w-full max-h-full rounded-lg shadow-lg"
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

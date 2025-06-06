@@ -14,18 +14,23 @@ export const SuccessModal = ({
   title,
   description,
   dlink = "",
+  refetch,
 }: {
   onClose: () => void;
   title: string;
   description: string;
   dlink?: string;
+  refetch?: () => void;
 }) => {
   const router = useRouter();
 
   const handleRedirect = async () => {
     await router.push(dlink || "/Dashboard/support");
-    router.refresh(); // Refresh the current page
+
     onClose();
+    if (refetch) {
+      refetch();
+    }
   };
 
   return (

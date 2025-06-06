@@ -137,6 +137,10 @@ export const useGetUsers = () => {
     if (previousPageUrl) fetchUsers(previousPageUrl, true);
   };
 
+  const refetch = () => {
+    fetchUsers(undefined, true);
+  };
+
   return {
     users,
     loadNext,
@@ -150,6 +154,7 @@ export const useGetUsers = () => {
     // expose setters for date filters
     setDateJoinedAfter,
     setDateJoinedBefore,
+    refetch, // Expose the refetch method
   };
 };
 
@@ -281,7 +286,6 @@ export const useDeactivateUser = () => {
 
   return { deactivating, onDeactivateUser, isSuccess };
 };
-
 
 export const useReactivateUser = () => {
   const [reactivating, setLoading] = useState(false);

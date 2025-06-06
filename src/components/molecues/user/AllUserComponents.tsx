@@ -110,11 +110,13 @@ export const UserDeactivationDialog = ({
   isOpen,
   onConfirm,
   onCancel,
+  refetch,
 }: {
   deactivatingUser: any;
   isOpen: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  refetch: () => void;
 }) => {
   const { deactivating, onDeactivateUser } = useDeactivateUser();
   const [showModal, setShowModal] = useState(false);
@@ -149,7 +151,11 @@ export const UserDeactivationDialog = ({
     <>
       <Dialog open={isOpen} onOpenChange={onCancel}>
         <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
-          {canViewMessage ? (
+          {loading ? (
+            <div className="flex justify-center items-center h-[300px]">
+              <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : canViewMessage ? (
             <>
               <DialogTitle></DialogTitle>
               <div className="px-[32px] py-[8px]">
@@ -246,6 +252,7 @@ export const UserDeactivationDialog = ({
           description="You have successfully deactivated a user."
           onClose={() => setShowModal(false)}
           dlink="/Dashboard/user"
+          refetch={refetch}
         />
       )}
     </>
@@ -373,11 +380,13 @@ export const UserActivationDialog = ({
   isOpen,
   onConfirm,
   onCancel,
+  refetch,
 }: {
   reactivatingUser: any;
   isOpen: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  refetch: () => void;
 }) => {
   const [reason, setReason] = useState<string | null>(null);
   const [additionalNote, setAdditionalNote] = useState<string>("");
@@ -405,7 +414,11 @@ export const UserActivationDialog = ({
     <>
       <Dialog open={isOpen} onOpenChange={onCancel}>
         <DialogContent className="lg:min-w-[800px] rounded-[16px] p-0 space-y-0">
-          {canViewMessage ? (
+          {loading ? (
+            <div className="flex justify-center items-center h-[300px]">
+              <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : canViewMessage ? (
             <>
               <DialogTitle></DialogTitle>
               <div className="px-[32px] py-[8px]">
@@ -487,6 +500,7 @@ export const UserActivationDialog = ({
           description={`User ${reactivatingUser?.email} has been successfully reactivated.`}
           onClose={() => setShowModal(false)}
           dlink="/Dashboard/user"
+          refetch={refetch}
         />
       )}
     </>
