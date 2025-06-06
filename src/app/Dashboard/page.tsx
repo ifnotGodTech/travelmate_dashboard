@@ -423,14 +423,14 @@ const Chart = ({ weeklyData }: { weeklyData: any[] }) => {
     currency: "NGN",
   });
   return (
-    <div className="bg-white lg:px-6 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
+    <div className="bg-white lg:px-6 px-2 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Booking Trends</h2>
+        <h2 className="lg:text-xl text-sm font-semibold">Booking Trends</h2>
         <div className="hidden lg:block">
           <Legend />
         </div>
         <div
-          className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 "
+          className="ld:text-sm text-xs text-blue-600 cursor-pointer hover:text-blue-800 "
           onClick={() => router.push("/Dashboard/reports")}
         >
           View full report
@@ -584,17 +584,17 @@ const Activity = ({
   };
 
   return (
-    <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto">
+    <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto p-3">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-lg font-medium text-[#181818]">
+          <h1 className="lg:text-lg text-sm font-medium text-[#181818]">
             Recent Activities
           </h1>
           <div
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => router.push("/Dashboard/bookings")}
           >
-            <p className="text-base font-medium text-[#023E8A]">See all</p>
+            <p className="lg:text-base text-xs font-medium text-[#023E8A]">See all</p>
             <ChevronRight stroke="#023E8A" />
           </div>
         </div>

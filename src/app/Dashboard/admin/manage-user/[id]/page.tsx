@@ -41,6 +41,7 @@ const ManageUsers = () => {
   const { accessToken } = useAuthContext();
   const [defaultTab, setDefaultTab] = useState("addNewUser");
   const route = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
   const [addUSerModal, setIsAddUserModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -77,18 +78,19 @@ const ManageUsers = () => {
     );
   };
 
+  const fetchRoles = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${env.api.superadmin}roles/`);
+      setRoles(response.data.results || []);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${env.api.superadmin}roles/`);
-        setRoles(response.data.results || []);
-      } catch (error) {
-        console.error("Error fetching roles:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchRoles();
   }, []);
 
@@ -118,6 +120,7 @@ const ManageUsers = () => {
       );
       setShowSuccessModal(true);
       setSelectedUserIds([]);
+      await fetchRoles();
     } catch (error: any) {
       console.log(error);
       showErrorToast({
@@ -150,6 +153,7 @@ const ManageUsers = () => {
       setShowConfirmRemoveModal(false);
       setShowSuccessRemoveModal(true);
       setSelectedUserIdRemove([]);
+      await fetchRoles();
     } catch (error: any) {
       console.log(error);
       showErrorToast({
@@ -169,6 +173,10 @@ const ManageUsers = () => {
     }
   });
 
+  //SEARCH USERS TO ADD
+  const handleSearch = (e: any) => {
+    setSearchQuery(e.target.value);
+  };
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
       <main className="w-full">
@@ -238,6 +246,8 @@ const ManageUsers = () => {
                             type="search"
                             className="w-full border border-black rounded-lg p-2 pl-10"
                             placeholder="Search Users"
+                            value={searchQuery}
+                            onChange={handleSearch}
                           />
                         </div>
 
@@ -250,35 +260,43 @@ const ManageUsers = () => {
                                 No users available to add.
                               </p>
                             ) : (
-                              usersAssignedToOtherRoles.map((user) => (
-                                <div
-                                  key={user.id}
-                                  className="flex justify-between w-full lg:items-center items-start py-2 border-b"
-                                >
-                                  <div className="flex justify-normal items-center gap-10">
-                                    <input
-                                      type="checkbox"
-                                      name={`add-${user.id}`}
-                                      id={`add-${user.id}`}
-                                      checked={selectedUserIds.includes(
-                                        user.id
-                                      )}
-                                      onChange={() => handleSelectAdd(user.id)}
-                                    />
+                              usersAssignedToOtherRoles
+                                .filter((user) =>
+                                  user.name
+                                    .toLowerCase()
+                                    .includes(searchQuery.toLowerCase())
+                                )
+                                .map((user) => (
+                                  <div
+                                    key={user.id}
+                                    className="flex justify-between w-full lg:items-center items-start py-2 border-b"
+                                  >
+                                    <div className="flex justify-normal items-center gap-10">
+                                      <input
+                                        type="checkbox"
+                                        name={`add-${user.id}`}
+                                        id={`add-${user.id}`}
+                                        checked={selectedUserIds.includes(
+                                          user.id
+                                        )}
+                                        onChange={() =>
+                                          handleSelectAdd(user.id)
+                                        }
+                                      />
 
-                                    <div>
-                                      <p>{user.name || "Name"}</p>
-                                      <p className="text-muted-foreground">
-                                        {user.email}
-                                      </p>
+                                      <div>
+                                        <p>{user.name || "Name"}</p>
+                                        <p className="text-muted-foreground">
+                                          {user.email}
+                                        </p>
+                                      </div>
                                     </div>
-                                  </div>
 
-                                  <p className="text-blue-500 text-nowrap lg:text-base text-xs">
-                                    {user.roleName}
-                                  </p>
-                                </div>
-                              ))
+                                    <p className="text-blue-500 text-nowrap lg:text-base text-xs">
+                                      {user.roleName}
+                                    </p>
+                                  </div>
+                                ))
                             )}
                           </div>
                         )}
@@ -347,6 +365,7 @@ const ManageUsers = () => {
                 <Button
                   onClick={() => setShowConfirmRemoveModal(true)}
                   className="bg-[#D72638] hover:bg-red-800 cursor-pointer mt-24 w-full text-center"
+                  disabled={selectedUserIdRemove.length < 1}
                 >
                   Remove
                 </Button>
