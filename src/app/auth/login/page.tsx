@@ -34,7 +34,7 @@ const LoginComponent = () => {
     await onLogin({
       payload: values,
       successCallback: () => {
-        router.push("/Dashboard/support");
+        router.push("/Dashboard");
       },
     });
   };
