@@ -1,6 +1,14 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableBody,
+} from "@/components/ui/table";
 import Link from "next/link";
 const page = () => {
   return (
@@ -45,75 +53,85 @@ const CmsContent = () => {
       <div className="space-y-6">
         <h1 className="text-[20px] font-[600] text-[#181818]">Services</h1>
 
-        <div className="rounded-[20px] space-y-[40px] p-0 lg:p-6 bg-[#fff]">
-          <table className="w-full border-collapse table-fixed">
-            <thead>
-              <tr>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
+        <div className="space-y-[40px]">
+          <div className="">
+            <Table className="w-full border border-gray-300 rounded-lg space-y- ">
+              <TableHeader>
+                <TableRow className="bg-[#fff]">
+                  <TableHead>Service</TableHead>
+                  <TableHead>Commission (%)</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 3 }).map((_, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    <TableCell>Row {rowIndex + 1} - Col 1</TableCell>
+                    <TableCell>Row {rowIndex + 1} - Col 2</TableCell>
+                    <TableCell>
+                      {" "}
+                      <div
+                        className="flex items-center space-x-2"
+                        // onClick={() => {
+                        //   if (item.Service === "Cars") {
+                        //     router.push("/Dashboard/cms/change-rate/cars");
+                        //   } else {
+                        //     router.push("/Dashboard/cms/change-rate");
+                        //   }
+                        // }}
+                      >
+                        <img
+                          src="/assets/icons/mode_edit.svg"
+                          alt="Edit"
+                          className="w-4 h-4 lg:w-5 lg:h-5"
+                        />
+                        <button className=" rounded-md  text-blue-700 font-semibold text-xs lg:text-sm hover:bg-blue-200 transition-all">
+                          Edit
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* <Table className="min-w-full table-auto border border-gray-300 rounded-lg overflow-hidden">
+            <TableHead className="bg-gray-100">
+              <TableRow>
+                <TableCell className="w-1/3 text-left text-sm lg:text-base font-bold text-gray-700 py-3 px-4">
                   Service
-                </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
-                  Fee
-                </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
-                  Rate
-                </th>
-                <th className="w-2/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] hidden lg:table-cell">
-                  Description
-                </th>
-                <th className="w-1/5 text-l text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] text-e ">
+                </TableCell>
+                <TableCell className="w-1/3 text-left text-sm lg:text-base font-bold text-gray-700 py-3 px-4">
+                  Commissions (%)
+                </TableCell>
+                <TableCell className="w-1/3 text-left text-sm lg:text-base font-bold text-gray-700 py-3 px-4">
                   Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {serviceData.map((item, index) => (
-                <tr key={index}>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[600] text-[#181818] text-left">
+                <TableRow
+                  key={index}
+                  className="hover:bg-gray-50 border-b border-gray-200 transition-colors"
+                >
+                  <TableCell className="py-3 px-4">
+                    <span className="text-sm lg:text-base font-medium text-gray-800">
                       {item.Service}
                     </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.Fee}
+                  </TableCell>
+                  <TableCell className="py-3 px-4">
+                    <span className="text-sm lg:text-base text-gray-600">
+                      0 (%)
                     </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.Rate}
-                    </span>
-                  </td>
-                  <td className="py-[16px] hidden lg:table-cell">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left truncate max-w-none">
-                      {item.Description}
-                    </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <div
-                      className="flex items-center cursor-pointer"
-                      onClick={() => {
-                        if (item.Service === "Cars") {
-                          router.push("/Dashboard/cms/change-rate/cars");
-                        } else {
-                          router.push("/Dashboard/cms/change-rate");
-                        }
-                      }}
-                    >
-                      <img
-                        src="/assets/icons/mode_edit.svg"
-                        alt="Edit"
-                        className="cursor-pointer lg:hidden "
-                      />
-                      <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
-                        Edit
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="py-3 px-4">
+
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table> */}
 
           <div className="w-full h-[1px] bg-[#EBECED] "></div>
 
@@ -133,7 +151,10 @@ const CmsContent = () => {
           </div>
           <div className="w-full h-[1px] bg-[#EBECED] "></div>
           <div className="lg:px-12 py-3 cursor-pointer w-full bg-[#D5EBDF] rounded-lg text-center">
-            <Link href="/Dashboard/cms/legal" className="uppercase text-[#2D9C5E]  w-full ">
+            <Link
+              href="/Dashboard/cms/legal"
+              className="uppercase text-[#2D9C5E]  w-full "
+            >
               Go to Information Policies
             </Link>
           </div>

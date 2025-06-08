@@ -232,7 +232,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           </div>
         </div>
 
-        <div className="flex space-x-3 items-center lg:hidden">
+        <div className="flex space-x-3 items-center md:hidden">
           <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
             <img src="/assets/icons/Bell.svg" alt="" />
           </div>
