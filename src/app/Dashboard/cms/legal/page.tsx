@@ -205,9 +205,9 @@ const ContentTab = () => {
       ]);
       setIsEditing(false);
       setShowSuccessModal(true);
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error updating content:", error);
-      setError("Failed to update content. Please try again.");
+      setError(error?.message || "Failed to display content please refresh!");
     } finally {
       setIsLoading(false);
     }
@@ -282,12 +282,13 @@ const ContentTab = () => {
           <p className="font-[600] text-[14px] lg:text-[20px] text-[#181818] leading-[100%] ">
             Manage Information and Policies
           </p>
-          <div
+          <button
             onClick={handleEditClick}
             className=" cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] leading-[100%] text-[#FFFFFF] hidden lg:block"
+            disabled= {isLoading}
           >
             {isEditing ? "Cancel" : "Edit"}
-          </div>
+          </button>
           <img
             onClick={handleEditClick}
             src="/assets/icons/mode_edit.svg"

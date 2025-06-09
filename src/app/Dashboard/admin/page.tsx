@@ -142,7 +142,7 @@ const AdminRolesPage: React.FC = () => {
     } catch (error: any) {
       showErrorToast({
         message:
-          error.response?.data.messages.message || error.messages.message,
+          error?.response?.data.messages?.message || error?.messages?.message,
       });
     } finally {
       setIsLoading(false);

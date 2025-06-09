@@ -165,7 +165,7 @@ const page = () => {
               {[1, 2, 3].map((_, index) => (
                 <div
                   key={index}
-                  className="lg:p-[20px] lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] bg-gray-300 animate-pulse"
+                  className="lg:p-[20px] lg:rounded-[20px] lg:space-y-[12px] lg:w-[168px] bg-gray-300 animate-pulse h-12 w-12"
                 ></div>
               ))}
             </div>
