@@ -192,24 +192,17 @@ const page = () => {
 
 const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
   const { claiming, onClaiming } = useClaimTicket();
-
   const { responding, onRespondToTicket } = useRespondToTicket();
 
-  // State for managing older and new messages
   const [messages, setMessages] = useState(ticket?.messages || []);
-
-  // Ref for the last message
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
-
-  // Modal state for image attachments
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added state
 
-  // Sync messages with ticket prop when ticket changes
   useEffect(() => {
     setMessages(ticket?.messages || []);
   }, [ticket]);
 
-  // Scroll to the last message whenever messages change
   useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
@@ -223,7 +216,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
     validationSchema: Yup.object({
       message: Yup.string().required("Message is required"),
     }),
-    // Update to the form submission handler
     onSubmit: async (values, { resetForm }) => {
       if (
         !ticket?.claimed_admin?.id ||
@@ -240,7 +232,8 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         }
       }
 
-      // Proceed with responding to the ticket
+      setIsSubmitting(true); // Disable sending
+
       onRespondToTicket({
         TicketId: ticket?.id,
         payload: { content: values.message },
@@ -253,9 +246,11 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
           };
           setMessages((prevMessages) => [...prevMessages, newMessage]);
           resetForm();
+          setIsSubmitting(false); // Re-enable sending
         },
         errorCallback: (error: any) => {
           console.error("Error sending message", error);
+          setIsSubmitting(false); // Re-enable sending in case of error
         },
       });
     },
@@ -388,14 +383,14 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
                     className="flex-1 outline-none bg-transparent"
                     value={formik.values.message}
                     onChange={formik.handleChange}
-                    disabled={!isAdmin}
+                    disabled={!isAdmin || isSubmitting}
                   />
                 </div>
                 <button
                   type="submit"
-                  disabled={!isAdmin}
+                  disabled={!isAdmin || ticket?.status === "resolved" || isSubmitting}
                   className={`p-3 rounded-[8px] items-center flex space-x-1 ${
-                    !isAdmin || ticket?.status === "resolved"
+                    !isAdmin || ticket?.status === "resolved" || isSubmitting
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#023E8A] text-white"
                   }`}

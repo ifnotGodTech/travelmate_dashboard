@@ -64,7 +64,7 @@ const Filter = () => {
             className="space-y-[20px] w-full"
             onValueChange={(value) => setActiveTab(value)}
           >
-            <div className="flex lg:justify-between space-x-[5px] ">
+            <div className="flex justify-between space-x-[5px] ">
               <TabsList className="bg-[#fff] lg:shadow-none shadow-sm rounded-[10px] flex justify-between items-center p-2 h-[44px] lg:h-[53px]">
                 <TabsTrigger
                   value="registerUser"

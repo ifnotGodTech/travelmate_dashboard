@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { formatCreatedAt } from "../Reuseables";
 import { Loading } from "../Reuseables";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/AuthContext";
 import { useClaimChat } from "@/hooks/api/chat";
 import { AlertTriangle } from "lucide-react";
@@ -306,7 +306,7 @@ export const ClaimedChatSection = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {chatLoading || loading ? (
+        {chatLoading || loading || isRedirecting ? (
           <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 min-h-[400px]">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>

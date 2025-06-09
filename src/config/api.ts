@@ -23,7 +23,8 @@ const api = () => {
     superadmin: BASE_URL_LINK + "/api/superadmin/",
     roles: BASE_URL_LINK + "/api/admin/me/",
     usercount: BASE_URL_LINK + "/api/admin/dashboard/user-count/",
-    dashboardbookings: BASE_URL_LINK+ "/api/admin/dashboard/stats/",
+    dashboardbookings: BASE_URL_LINK + "/api/admin/dashboard/stats/",
+    cms: BASE_URL_LINK + "/api/admin/commissions/",
   };
 };
 
