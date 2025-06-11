@@ -41,15 +41,12 @@ const page = () => {
   const { loadingTicket, ticket } = useGetTicket({
     TicketId: id as string,
     initalFetch: true,
-    successCallback: (message) => console.log(message),
-    errorCallback: (error) => console.error(error),
   });
 
   const isAdmin =
     currentUser === ticket?.claimed_admin?.id ||
     (ticket?.escalated === true &&
       ticket?.escalation_role?.name === data?.name);
-  console.log(isAdmin, ticket?.escalation_role?.name, data?.name);
 
   return (
     <>
@@ -224,10 +221,8 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         try {
           await onClaiming({
             TicketId: ticket?.id,
-            successCallback: () => console.log("Ticket successfully claimed."),
           });
         } catch (error) {
-          console.error("Claiming ticket failed:", error);
           return;
         }
       }
@@ -249,7 +244,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
           setIsSubmitting(false); // Re-enable sending
         },
         errorCallback: (error: any) => {
-          console.error("Error sending message", error);
           setIsSubmitting(false); // Re-enable sending in case of error
         },
       });
