@@ -41,6 +41,7 @@ export const MessageTabContent: React.FC<any> = ({
     error: chatError,
     nextPageUrl,
     setFilters,
+    isFetchingNextPage,
   } = useGetAllChat();
 
   console.log({ selectedEndDate, selectedStartDate });
@@ -137,7 +138,7 @@ export const MessageTabContent: React.FC<any> = ({
             </TabsTrigger>
           </TabsList>
 
-          {loading ? (
+          {loading && chats.length === 0 ? (
             <Skeleton />
           ) : (
             <>
@@ -251,9 +252,15 @@ export const MessageTabContent: React.FC<any> = ({
               <button
                 className="bg-[#EBECED] cursor-pointer rounded-[8px] px-[40px] py-[16px] flex items-center"
                 onClick={loadNext}
+                disabled={loading}
               >
                 <p className="text-[#023E8A] text-[14px]">Load more</p>
               </button>
+            </div>
+          )}
+          {loading && (
+            <div className="flex justify-center mt-4">
+              <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
         </Tabs>

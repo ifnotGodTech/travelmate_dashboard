@@ -9,7 +9,7 @@ import {
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useRouter } from "next/navigation";
 import DateDialog, { DatePairDialog } from "@/components/reuseables/DateDialog";
-import { parseISO, addDays, format, isValid } from "date-fns";
+import { parseISO, addDays, format, isValid, sub } from "date-fns";
 import { useClaimTicket } from "@/hooks/api/ticket";
 import { useResolveTicket } from "@/hooks/api/ticket";
 import { useAuthContext } from "@/context/AuthContext";
@@ -146,17 +146,25 @@ export const TicketDetailsDialog = ({
                     <Loading />
                   ) : (
                     <div className="sace-y-2">
-                      {ticketDetails?.claim_history?.map(
+                      {ticketDetails?.claim_history?.results.map(
                         (text: any, i: any) => (
                           <p
-                            className="text-[14px] font-[400] text-[#343537]"
+                            className="text-[14px] font-[600] text-[#343537]"
                             key={i}
                           >
-                            {`This chat was claimed by ${
-                              text.claimed_admin.first_name || "---"
-                            } ${" "} ${
-                              text.claimed_admin.lastt_name || "---"
-                            } - ${formatCreatedAt(text?.timestamp, 2)}  `}{" "}
+                            {(() => {
+                              const admin = text.claimed_admin;
+                              const name =
+                                admin?.first_name || admin?.last_name
+                                  ? `${admin.first_name || ""} ${
+                                      admin.last_name || ""
+                                    }`.trim()
+                                  : admin?.email || "---";
+                              return `This chat was claimed by ${name} - ${formatCreatedAt(
+                                text?.timestamp,
+                                2
+                              )}`;
+                            })()}
                           </p>
                         )
                       )}
@@ -213,7 +221,7 @@ export const ViewingChatModal = ({
   const currentUser = APP_STATE?.user?.user_id;
 
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [notAuthorized, setNotAuthorized] = useState(false);
+  const [showNotAuthorized, setShowNotAuthorized] = useState(false); // New state
 
   const { loading, data } = useMyRoles({ modalVisible: selectedTicket });
   const canViewMessage = data?.name === "Support & Tickets";
@@ -223,6 +231,20 @@ export const ViewingChatModal = ({
     [ticketDetails]
   );
 
+  // Check authorization first - this will be computed on every render
+  const notAuthorized = useMemo(() => {
+    if (!selectedTicket || !ticketDetails) return false;
+
+    if (
+      ticketDetails.escalated === true &&
+      ticketDetails.escalation_role.name !== data?.name
+    ) {
+      return true;
+    }
+
+    return false;
+  }, [selectedTicket, ticketDetails, data?.name]);
+
   const handleNavigateToResponse = useCallback(() => {
     if (ticketDetails?.id) {
       setIsRedirecting(true);
@@ -231,39 +253,48 @@ export const ViewingChatModal = ({
   }, [ticketDetails, router]);
 
   useEffect(() => {
-    if (
-      selectedTicket &&
-      (ticketDetails?.claimed_admin?.id === currentUser ||
-        ticketDetails?.status === "resolved")
-    ) {
-      handleNavigateToResponse();
+    if (selectedTicket && !notAuthorized) {
+      if (
+        ticketDetails?.claimed_admin?.id === currentUser ||
+        ticketDetails?.status === "resolved" ||
+        (ticketDetails?.escalated === true &&
+          ticketDetails?.escalation_role.name === data?.name)
+      ) {
+        handleNavigateToResponse();
+      }
     }
-  }, [selectedTicket, ticketDetails, currentUser, handleNavigateToResponse]);
+  }, [
+    selectedTicket,
+    ticketDetails,
+    currentUser,
+    handleNavigateToResponse,
+    data?.name,
+    notAuthorized,
+  ]);
 
-  useEffect(() => {
-    if (!selectedTicket) {
-      setNotAuthorized(false);
-    }
-  }, [selectedTicket]);
+  const handleClaimTicket = useCallback(
+    (ticketDetails: any) => {
+      if (!ticketDetails?.id) return;
 
-  const handleClaimTicket = useCallback(() => {
-    if (!ticketDetails?.id) return;
+      if (!canViewMessage) {
+        setShowNotAuthorized(true); // Show NotAuthorizedModal
+        return;
+      }
 
-    if (!canViewMessage) {
-      setNotAuthorized(true);
-      return;
-    }
+      onClaiming({
+        TicketId: ticketDetails.id,
+        successCallback: () =>
+          router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`),
+      });
 
-    onClaiming({
-      TicketId: ticketDetails.id,
-      successCallback: () =>
-        router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`),
-    });
-  }, [ticketDetails, onClaiming, router, canViewMessage]);
+      console.log(`Claim ticket triggered for ticket ID: ${ticketDetails.id}`);
+    },
+    [onClaiming, router, canViewMessage]
+  );
 
   const handleEscalateTicket = useCallback(() => {
     if (!canViewMessage) {
-      setNotAuthorized(true);
+      setShowNotAuthorized(true); // Show NotAuthorizedModal
       return;
     }
     router.push(`/Dashboard/support/ticket/${ticketDetails?.id}/escalate`);
@@ -295,9 +326,16 @@ export const ViewingChatModal = ({
           </div>
         )}
 
-        {notAuthorized && <NotAuthorizedModal ticketDetails={ticketDetails!} />}
-
-        {!isRedirecting && !notAuthorized && (
+        {showNotAuthorized ? (
+          <NotAuthorizedModal
+            ticketDetails={ticketDetails!}
+            title={"You cannot perform this action."}
+            subtible={"You do not belong in customer support department ."}
+            show={false}
+          />
+        ) : notAuthorized ? (
+          <NotAuthorizedModal ticketDetails={ticketDetails!} />
+        ) : !isRedirecting ? (
           <>
             {ticketLoading ? (
               <div className="h-[300px] flex justify-center items-center">
@@ -335,7 +373,7 @@ export const ViewingChatModal = ({
               <img src="/assets/icons/modalClose.svg" alt="Close Modal" />
             </button>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -358,12 +396,14 @@ const ClaimedTicketSection = ({
       <div className=" px-[16px] lg:px-[32px]">
         <p className="font-[400] text-[16px] lg:text-[20px]">
           This chat is currently being handled by{" "}
-          {ticketDetails?.claimed_admin?.first_name || "---"}. You can either
-          view the ticket or claim it. Claiming the ticket will transfer
-          responsibility to you, removing{" "}
-          {ticketDetails?.claimed_admin?.first_name || "---"} from the
-          conversation. The customer will be notified of the change. Would you
-          like to proceed?
+          {ticketDetails?.claimed_admin?.first_name ||
+            ticketDetails?.claimed_admin?.email}
+          . You can either view the ticket or claim it. Claiming the ticket will
+          transfer responsibility to you, removing{" "}
+          {ticketDetails?.claimed_admin?.first_name ||
+            ticketDetails?.claimed_admin?.email}{" "}
+          from the conversation. The customer will be notified of the change.
+          Would you like to proceed?
         </p>
       </div>
 
@@ -409,10 +449,11 @@ const UnclaimedTicketSection = ({
 }: {
   ticketDetails: any;
   formattedDate: string;
-  handleClaimTicket: () => void;
+  handleClaimTicket: any;
   handleEscalateTicket: () => void;
   claiming: boolean;
 }) => {
+  const router = useRouter();
   return (
     <>
       <div className="border-b-[1px] w-full border-[#BCBEC2]">
@@ -446,7 +487,7 @@ const UnclaimedTicketSection = ({
 
           <div
             className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 w-full justify-center cursor-pointer"
-            onClick={handleClaimTicket}
+            onClick={() => handleClaimTicket(ticketDetails)}
           >
             {claiming ? (
               <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
@@ -725,30 +766,38 @@ interface EscalatedTicketChatModalProps {
   onClose: () => void;
 }
 
-const NotAuthorizedModal = ({ ticketDetails }: any) => {
+const NotAuthorizedModal = ({
+  ticketDetails,
+  title,
+  subtible,
+  show = true,
+}: any) => {
   const router = useRouter();
   return (
     <div className="text-center p-6 flex flex-col space-y-4 items-center justify-center min-h-[400px]">
       <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
       <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
-        You cannot view this message.
+        {title || "You cannot view this message."}
       </h1>
       <p className="mt-4 text-gray-600">
-        You don't belong to the department the ticket was escalated to.
+        {subtible ||
+          "You don't belong to the department the ticket was escalated to."}
       </p>
 
-      <div
-        className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
-        onClick={() =>
-          router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`)
-        }
-      >
-        <>
-          <span className="text-[#fff] text-[20px] font-[500]">
-            View Chat Only
-          </span>
-        </>
-      </div>
+      {show && (
+        <div
+          className="p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+          onClick={() =>
+            router.push(`/Dashboard/support/ticket/${ticketDetails.id}/respond`)
+          }
+        >
+          <>
+            <span className="text-[#fff] text-[20px] font-[500]">
+              View Chat Only
+            </span>
+          </>
+        </div>
+      )}
     </div>
   );
 };
@@ -833,6 +882,7 @@ export const EscalatedTicketDetailsDialog = ({
     ticketDetails?.user?.last_name || "---"
   }`;
   const formattedDate = formatCreatedAt(ticketDetails?.created_at, 2);
+
   return (
     <div
       className={`fixed inset-0 z-100 bg-black/50 ${
@@ -867,7 +917,7 @@ export const EscalatedTicketDetailsDialog = ({
               </div>
             )}
           </div>
-          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="border-[#9B9EA4] border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">
             <h2 className="text-[18px] font-[500] text-[#18181]">
               Escalation Details
@@ -878,27 +928,29 @@ export const EscalatedTicketDetailsDialog = ({
               ) : (
                 <>
                   <div className="flex space-x-2">
-                    <p className="">Escalated by :</p>
-                    <span className="">
-                      {ticketDetails?.escalation_by?.first_name || "---"}
+                    <p>Escalated by :</p>
+                    <span>
+                      {ticketDetails?.escalated_by?.first_name ||
+                        ticketDetails?.escalated_by?.email ||
+                        "---"}
                     </span>
                   </div>
                   <div className="flex space-x-4">
-                    <p className="">Escalated to :</p>
-                    <span className="">
-                      {ticketDetails?.escalation_role.name}
-                    </span>
+                    <p>Escalated to :</p>
+                    <span>{ticketDetails?.escalation_role?.name || "---"}</span>
                   </div>
                   <div className="flex space-x-4">
-                    <p className="">Escalation Reason :</p>
-                    <span className="">{ticketDetails?.escalation_reason}</span>
+                    <p>Escalation Reason :</p>
+                    <span className="">
+                      {ticketDetails?.escalation_reason || "N/A"}
+                    </span>
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+          <div className="border-[#9B9EA4] border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">
             <h2 className="text-[18px] font-[500] text-[#18181]">
               Customer Information
@@ -911,16 +963,16 @@ export const EscalatedTicketDetailsDialog = ({
                   <DetailRow label="Customer’s Name" value={name} />
                   <DetailRow
                     label="Customer’s Email"
-                    value={ticketDetails?.user.email}
+                    value={ticketDetails?.user?.email || "---"}
                   />
                 </>
               )}
             </div>
           </div>
 
-          {ticketDetails?.claim_history?.length !== 0 && (
+          {ticketDetails?.claim_history?.results?.length > 0 && (
             <>
-              <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+              <div className="border-[#9B9EA4] border-b-[1px]"></div>
               <div className="px-[16px] lg:px-[32px] space-y-3">
                 <h2 className="text-[18px] font-[500] text-[#18181]">
                   Claim History
@@ -929,18 +981,18 @@ export const EscalatedTicketDetailsDialog = ({
                   {ticketLoading ? (
                     <Loading />
                   ) : (
-                    <div className="sace-y-2">
-                      {ticketDetails?.claim_history?.map(
-                        (text: any, i: any) => (
+                    <div className="space-y-2">
+                      {ticketDetails.claim_history.results.map(
+                        (claim: any, i: number) => (
                           <p
                             className="text-[14px] font-[400] text-[#343537]"
                             key={i}
                           >
                             {`This chat was claimed by ${
-                              text.claimed_admin.first_name || "---"
-                            } ${" "} ${
-                              text.claimed_admin.lastt_name || "---"
-                            } - ${formatCreatedAt(text?.timestamp, 2)}  `}{" "}
+                              claim.claimed_admin?.first_name || "---"
+                            } ${
+                              claim.claimed_admin?.last_name || "---"
+                            } - ${formatCreatedAt(claim.timestamp, 2)}`}
                           </p>
                         )
                       )}
@@ -950,7 +1002,8 @@ export const EscalatedTicketDetailsDialog = ({
               </div>
             </>
           )}
-          <div className="border-[#9B9EA4]  border-b-[1px]"></div>
+
+          <div className="border-[#9B9EA4] border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">
             <h2 className="text-[18px] font-[500] text-[#18181]">
               Issue Description
@@ -960,11 +1013,14 @@ export const EscalatedTicketDetailsDialog = ({
                 <Loading />
               ) : (
                 <>
-                  <p className="">Hello</p>
-                  <DetailRow label="Subject" value={ticketDetails?.title} />
+                  <p>{ticketDetails?.description || "No description"}</p>
+                  <DetailRow
+                    label="Subject"
+                    value={ticketDetails?.title || "---"}
+                  />
                   <DetailRow
                     label="Description"
-                    value={ticketDetails?.description}
+                    value={ticketDetails?.description || "---"}
                   />
                 </>
               )}

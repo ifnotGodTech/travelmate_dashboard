@@ -192,7 +192,8 @@ export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
                           <TableCell className=" border-none">
                             <div className="space-y-2">
                               <p className="text-[#181818] text-[14px] font-[500]">
-                                {ticket?.escalated_by?.first_name || "N/A"}
+                                {ticket?.escalated_by?.first_name ||
+                                  ticket?.escalated_by?.email}
                               </p>
                               <p className="text-[#9B9EA4] text-[12px] space-x-[2px] items-center flex">
                                 {ticket?.escalated_at ? (
@@ -221,11 +222,7 @@ export const EscaleteTable: React.FC = ({ searchTerm, date }: any) => {
                           <TableCell className=" border-none">
                             <div className="space-y-2">
                               <p className="text-[#181818] text-[14px] font-[500]">
-                                {ticket.escalation_history?.length
-                                  ? ticket.escalation_history[
-                                      ticket.escalation_history.length - 1
-                                    ]?.escalation_role?.name || "Unknown"
-                                  : "No Escalation Role"}
+                                {ticket.escalation_role?.name || "N/A"}
                               </p>
                             </div>
                           </TableCell>

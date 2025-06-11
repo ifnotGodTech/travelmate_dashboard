@@ -13,7 +13,7 @@ const page = () => {
 };
 
 const CmsContent = () => {
-  const { loading, data } = useGetAllServices({});
+  const { loading, data, refresh } = useGetAllServices({});
 
   return (
     <div className="p-4">
@@ -73,7 +73,10 @@ const CmsContent = () => {
                             alt="Edit"
                             className="w-4 h-4 lg:w-5 lg:h-5"
                           />
-                          <EditDialog serviceId={service.id} />
+                          <EditDialog
+                            serviceId={service.id}
+                            refresh={refresh}
+                          />
                         </div>
                       </td>
                     </tr>

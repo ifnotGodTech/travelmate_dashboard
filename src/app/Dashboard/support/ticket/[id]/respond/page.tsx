@@ -200,7 +200,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false); // Added state
 
   useEffect(() => {
-    setMessages(ticket?.messages || []);
+    setMessages(ticket?.messages.results || []);
   }, [ticket]);
 
   useEffect(() => {
@@ -273,25 +273,35 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         </div>
       )}
 
-      {/* Existing UI */}
-      <div className="flex justify-center items-center space-x-4">
-        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
-        <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818] text-[12px] lg:text-[16px] ">
+      <div className="flex justify-center items-center">
+        <div className="hidden md:block w-[100px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="w-[70vw] md:w-auto mx-auto md:mx-4 rounded-[100px] border-[1px] border-[#181818] py-[8px] px-[10px] sm:py-[10px] sm:px-[14px] font-[400] text-[#181818] text-[10px] sm:text-[12px] lg:text-[14px] text-center">
           {ticket?.claimed_admin ? (
-            <>
-              Responding: {ticket.claimed_admin.first_name || "---"} -{" "}
-              {ticket.claim_timestamp
-                ? format(
-                    new Date(ticket.claim_timestamp),
-                    "dd/MM/yyyy | hh:mm a"
-                  )
-                : "Unknown Time"}
-            </>
+            <div className="flex items-center sm:justify-center sm:space-x-1">
+              <span className="font-medium">Responding: </span>
+              <span className="truncate">
+                {ticket.claimed_admin.first_name ||
+                ticket.claimed_admin.last_name
+                  ? `${ticket.claimed_admin.first_name || ""} ${
+                      ticket.claimed_admin.last_name || ""
+                    }`.trim()
+                  : ticket.claimed_admin.email || "---"}
+              </span>
+              <span className="text-[10px] sm:text-[12px] lg:text-[14px] text-gray-600">
+                -{" "}
+                {ticket.claim_timestamp
+                  ? format(
+                      new Date(ticket.claim_timestamp),
+                      "dd/MM/yyyy | hh:mm a"
+                    )
+                  : "Unknown Time"}
+              </span>
+            </div>
           ) : (
             "No admin claimed"
           )}
         </div>
-        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="hidden md:block w-[100px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
       </div>
 
       {loadingTicket ? (
@@ -388,7 +398,9 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
                 </div>
                 <button
                   type="submit"
-                  disabled={!isAdmin || ticket?.status === "resolved" || isSubmitting}
+                  disabled={
+                    !isAdmin || ticket?.status === "resolved" || isSubmitting
+                  }
                   className={`p-3 rounded-[8px] items-center flex space-x-1 ${
                     !isAdmin || ticket?.status === "resolved" || isSubmitting
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"

@@ -28,7 +28,7 @@ export function useGetAllServices({
     if (initalFetch || refresh) onCMSdata();
   }, [initalFetch, refresh]);
 
-  return { loading, data };
+  return { loading, data, refresh };
 }
 export function useEditServices() {
   const [loading, setLoading] = useState(false);

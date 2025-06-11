@@ -10,11 +10,7 @@ import { useEditServices } from "@/hooks/api/cms";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 
-interface EditDialogProps {
-  serviceId: string;
-}
-
-const EditDialog: React.FC<EditDialogProps> = ({ serviceId }) => {
+const EditDialog = ({ serviceId, refresh }: any) => {
   const { onCMSdata } = useEditServices();
 
   const handleSubmit = async (values: { percentage: string }) => {
@@ -22,6 +18,8 @@ const EditDialog: React.FC<EditDialogProps> = ({ serviceId }) => {
       id: serviceId,
       payload: values,
     });
+
+    refresh();
   };
 
   const validationSchema = Yup.object({
