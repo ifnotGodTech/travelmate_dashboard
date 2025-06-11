@@ -126,7 +126,7 @@ export const UserDeactivationDialog = ({
 
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const canViewMessage =
-    data?.name === "Super Admin" || data?.name === "Customer Agent";
+    data?.name === "Super Admin" || data?.name === "User Management";
 
   const handleDeactivate = () => {
     if (!reason || !additionalNote) {
