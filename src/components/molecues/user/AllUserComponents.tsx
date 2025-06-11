@@ -394,7 +394,7 @@ export const UserActivationDialog = ({
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const { reactivating, onReactivateUser } = useReactivateUser();
   const canViewMessage =
-    data?.name === "Super Admin" || data?.name === "Customer Agent";
+    data?.name === "Super Admin" || data?.name === "User Management";
 
   const handleReactivate = () => {
     onReactivateUser({
