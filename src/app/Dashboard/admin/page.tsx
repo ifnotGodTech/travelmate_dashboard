@@ -36,6 +36,7 @@ interface Role {
   // person: string;
   is_superuser: boolean;
   created_by: string;
+  invited_users: any[];
 }
 type Permissions = {
   slug: string;
@@ -63,8 +64,7 @@ const AdminRolesPage: React.FC = () => {
   const { accessToken } = useAuthContext();
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
-  const selectedRoleIdRef = useRef<string>("");
+  const [isInvited, setIsInvited] = useState(false);
 
   const [availablePermissions, setAvailablePermissions] = useState<
     Permissions[]
@@ -142,7 +142,7 @@ const AdminRolesPage: React.FC = () => {
     } catch (error: any) {
       showErrorToast({
         message:
-          error.response?.data.messages.message || error.messages.message,
+          error?.response?.data.messages?.message || error?.messages?.message,
       });
     } finally {
       setIsLoading(false);
@@ -161,8 +161,19 @@ const AdminRolesPage: React.FC = () => {
         }
       );
       setAdminDetails((prev) =>
-        prev.map((role) => (role.id === roleId ? response.data : role))
+        prev.map((role) =>
+          role.id === roleId
+            ? {
+                ...role,
+                name: response.data.name,
+                description: response.data.description,
+                current_permission_group_slugs:
+                  response.data.current_permission_group_slugs,
+              }
+            : role
+        )
       );
+      await fetchAllRoles();
       showSuccessToast({
         message: "Role updated successfully",
       });
@@ -199,6 +210,7 @@ const AdminRolesPage: React.FC = () => {
         assigned_users: [],
         is_superuser: false,
         created_by: "",
+        invited_users: [],
       });
     } else {
       try {
@@ -291,16 +303,60 @@ const AdminRolesPage: React.FC = () => {
       );
       setIsAddMemberOpen(false);
       setSuccessModal(true);
+      setAdminDetails((prev) => [
+        ...prev,
+        {
+          name: newMember.name,
+          email: newMember.email,
+          role: newMember.role,
+        },
+      ]);
+      console.log(adminDetails);
+      setIsInvited(true);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
         message: error?.response?.data?.message || "Cannot add new member",
       });
     } finally {
-      setSelectedOption("")
+      setSelectedOption("");
     }
   };
-
+//REVOKE INVITATION OF ADMINS AND SUPERADMINS
+  const revokeInvite = async (id: string, email: string) => {
+    try {
+      await axios.post(
+        `${env.api.superadmin}roles/${id}/cancel-invite/`,
+        {
+          email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+        setAdminDetails((prev) =>
+      prev.map((role) =>
+        role.id === id
+          ? {
+              ...role,
+              invited_users: role.invited_users.filter(
+                (user) => user.email !== email
+              ),
+            }
+          : role
+      )
+    );
+    } catch (error: any) {
+      console.log("error revoking invite", error);
+      showErrorToast({
+        message:
+          error?.response?.data?.message ||
+          "Error revoking invite member, please try again ",
+      });
+    }
+  };
   const AdminRolesSkeletonLoader = () => {
     return (
       <div className="flex min-h-screen bg-background rounded-lg">
@@ -357,7 +413,7 @@ const AdminRolesPage: React.FC = () => {
           <>
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
               <h2
-                className="text-lg font-medium pb-6 cursor-pointer"
+                className="text-lg font-medium pb-6 cursor-pointer px-2"
                 onClick={() => router.push("/accept-invite")}
               >
                 Manage access control for your travel agency dashboard
@@ -398,6 +454,7 @@ const AdminRolesPage: React.FC = () => {
                     roles={adminDetails}
                     isLoading={isLoading}
                     onAddMemberOpen={() => setIsAddMemberOpen(true)}
+                    revokeInvite={revokeInvite}
                   />
                 </TabsContent>
               </Tabs>
@@ -448,10 +505,6 @@ const AdminRolesPage: React.FC = () => {
                   <div className="space-y-6 pt-4">
                     <h3 className="text-sm font-medium">Permissions</h3>
                     {isLoading && <Loading />}
-                    {/* {availablePermissions.map((perm) => (
-                  <div key={perm.slug} className="space-y-4">
-                    <h4 className="font-medium">{perm.name}</h4>
-                    <div className="space-y-2"> */}
                     {availablePermissions.map((perm, id) => (
                       <div
                         key={perm.slug}
@@ -471,9 +524,6 @@ const AdminRolesPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  {/* </div>
-                ))}
-              </div> */}
 
                   <div className="flex justify-between items-center w-full gap-4 mt-7">
                     <Button
