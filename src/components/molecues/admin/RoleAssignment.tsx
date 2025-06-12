@@ -33,13 +33,13 @@ interface RoleAssignmentProps {
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
   onAddMemberOpen: () => void;
   isLoading?: boolean;
-  isInvited?: boolean;
+  revokeInvite: (id: string, email: string) => void;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
   onAddMemberOpen,
   roles,
   isLoading,
-  isInvited,
+  revokeInvite,
 }) => {
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
@@ -78,15 +78,17 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
       });
     }
   };
+
   const [searchQuery, setSearchQuery] = useState("");
   const filteredRoles = roles.filter((role) => {
     const query = searchQuery.toLowerCase();
     const isRoleNameMatch = role.name.toLowerCase().includes(query);
-    const isAssignedUserMatch = role.assigned_users.some((user) =>
+    const isAssignedUserMatch = role?.assigned_users?.some((user) =>
       user.name.toLowerCase().includes(query)
     );
     return isRoleNameMatch || isAssignedUserMatch;
   });
+
   return (
     <>
       <div className="p-4 lg:p-0">
@@ -127,7 +129,9 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                   className=" flex justify-between w-full items-center"
                   key={i}
                 >
-                  <p className="font-medium">{assigned.name || "Names"}</p>
+                  <p className="font-medium">
+                    {assigned?.name || assigned?.email}
+                  </p>
 
                   {role.name !== "Super Admin" && (
                     <Button
@@ -153,6 +157,14 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                       hover:text-blue-800 p-0`}
                   >
                     Invited
+                  </Button>
+                  <Button
+                    onClick={() => revokeInvite(role.id, invited.email)}
+                    variant="link"
+                    className={` text-green-600
+                      hover:text-green-800 p-0`}
+                  >
+                   Revoke Invite
                   </Button>
                 </div>
               ))}

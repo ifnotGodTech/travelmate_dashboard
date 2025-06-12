@@ -173,7 +173,7 @@ const AdminRolesPage: React.FC = () => {
             : role
         )
       );
-      await fetchAllRoles()
+      await fetchAllRoles();
       showSuccessToast({
         message: "Role updated successfully",
       });
@@ -322,7 +322,41 @@ const AdminRolesPage: React.FC = () => {
       setSelectedOption("");
     }
   };
-
+//REVOKE INVITATION OF ADMINS AND SUPERADMINS
+  const revokeInvite = async (id: string, email: string) => {
+    try {
+      await axios.post(
+        `${env.api.superadmin}roles/${id}/cancel-invite/`,
+        {
+          email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+        setAdminDetails((prev) =>
+      prev.map((role) =>
+        role.id === id
+          ? {
+              ...role,
+              invited_users: role.invited_users.filter(
+                (user) => user.email !== email
+              ),
+            }
+          : role
+      )
+    );
+    } catch (error: any) {
+      console.log("error revoking invite", error);
+      showErrorToast({
+        message:
+          error?.response?.data?.message ||
+          "Error revoking invite member, please try again ",
+      });
+    }
+  };
   const AdminRolesSkeletonLoader = () => {
     return (
       <div className="flex min-h-screen bg-background rounded-lg">
@@ -420,7 +454,7 @@ const AdminRolesPage: React.FC = () => {
                     roles={adminDetails}
                     isLoading={isLoading}
                     onAddMemberOpen={() => setIsAddMemberOpen(true)}
-                    isInvited={isInvited}
+                    revokeInvite={revokeInvite}
                   />
                 </TabsContent>
               </Tabs>
