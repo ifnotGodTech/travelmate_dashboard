@@ -225,8 +225,7 @@ export const ClaimedChatSection = ({
   const { onClaiming, claiming } = useClaimChat();
   const currentUser = APP_STATE?.user?.user_id || "";
   const { loading, data } = useMyRoles({ modalVisible: !!chatDetails });
-  const canViewMessage =
-    data?.name === "Support & Tickets" || data?.name === "Super Admin";
+  const canViewMessage = data?.name === "Support & Tickets";
 
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
