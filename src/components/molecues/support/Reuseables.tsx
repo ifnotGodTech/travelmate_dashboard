@@ -425,7 +425,7 @@ const ClaimedTicketSection = ({
           <div className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer">
             <span
               className="text-[#fff] text-[20px] font-[500]"
-              onClick={handleClaimTicket}
+              onClick={() => handleClaimTicket(ticketDetails)}
             >
               {claiming ? (
                 <div className="w-5 h-5 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
