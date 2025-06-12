@@ -225,7 +225,8 @@ export const ClaimedChatSection = ({
   const { onClaiming, claiming } = useClaimChat();
   const currentUser = APP_STATE?.user?.user_id || "";
   const { loading, data } = useMyRoles({ modalVisible: !!chatDetails });
-  const canViewMessage = data?.name === "Support & Tickets";
+  const canViewMessage =
+    data?.name === "Support & Tickets" || data?.name === "Super Admin";
 
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -269,6 +270,14 @@ export const ClaimedChatSection = ({
   }, [chatDetails, router, canViewMessage]);
 
   useEffect(() => {
+    if (!canViewMessage) {
+      setNotAuthorized(true);
+    } else {
+      setNotAuthorized(false);
+    }
+  }, [canViewMessage]);
+
+  useEffect(() => {
     if (
       chatDetails?.claimed_admin?.id === currentUser ||
       chatDetails?.assigned_admin_info?.id === currentUser
@@ -306,70 +315,62 @@ export const ClaimedChatSection = ({
         role="dialog"
         aria-labelledby="modal-title"
       >
-        {chatLoading || loading || isRedirecting ? (
+        {chatLoading || ((loading || isRedirecting) && !notAuthorized) ? (
           <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 min-h-[400px]">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
+        ) : notAuthorized ? (
+          <NotAuthorizedModal
+            ticketDetails={chatDetails}
+            className="animate-fade-in"
+          />
         ) : (
           <>
-            {notAuthorized && (
-              <NotAuthorizedModal
-                ticketDetails={chatDetails}
-                className="animate-fade-in"
-              />
-            )}
+            <div className="border-b-[1px] w-full border-[#BCBEC2]">
+              <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
+                Ticket Already Claimed
+              </h2>
+            </div>
 
-            {!notAuthorized && (
-              <>
-                <div className="border-b-[1px] w-full border-[#BCBEC2]">
-                  <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
-                    Ticket Already Claimed
-                  </h2>
+            <div className="px-[16px] lg:px-[32px]">
+              <p className="font-[400] text-[16px] lg:text-[20px]">
+                This chat is currently being handled by{" "}
+                {chatDetails?.claimed_by_info?.first_name || "---"}. You can
+                either view the ticket or claim it. Claiming the ticket will
+                transfer responsibility to you, removing{" "}
+                {chatDetails?.claimed_by_info?.first_name || "---"} from the
+                conversation. The customer will be notified of the change. Would
+                you like to proceed?
+              </p>
+            </div>
+
+            <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
+              <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
+                <div
+                  className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer hover:opacity-90"
+                  onClick={() =>
+                    router.push(`/Dashboard/support/chats/${chatDetails.id}/`)
+                  }
+                >
+                  <span className="text-[#023E8A] text-[20px] font-[500]">
+                    View Only
+                  </span>
                 </div>
 
-                <div className="px-[16px] lg:px-[32px]">
-                  <p className="font-[400] text-[16px] lg:text-[20px]">
-                    This chat is currently being handled by{" "}
-                    {chatDetails?.claimed_by_info?.first_name || "---"}. You can
-                    either view the ticket or claim it. Claiming the ticket will
-                    transfer responsibility to you, removing{" "}
-                    {chatDetails?.claimed_by_info?.first_name || "---"} from the
-                    conversation. The customer will be notified of the change.
-                    Would you like to proceed?
-                  </p>
+                <div
+                  className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer hover:bg-[#0353A4]"
+                  onClick={handleClaimTicket}
+                >
+                  {claiming ? (
+                    <div className="w-5 h-5 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span className="text-[#fff] text-[20px] font-[500]">
+                      Yes, Proceed
+                    </span>
+                  )}
                 </div>
-
-                <div className="mt-10 border-t-[1px] border-[#BCBEC2]">
-                  <div className="px-[16px] lg:px-[32px] py-[10px] flex lg:space-x-[24px] flex-col lg:flex-row items-center justify-end space-y-2 lg:space-y-0">
-                    <div
-                      className="w-full lg:w-auto p-4 rounded-[8px] border-[1px] border-[#023E8A] justify-center flex items-center space-x-3 cursor-pointer hover:opacity-90"
-                      onClick={() =>
-                        router.push(
-                          `/Dashboard/support/chats/${chatDetails.id}/`
-                        )
-                      }
-                    >
-                      <span className="text-[#023E8A] text-[20px] font-[500]">
-                        View Only
-                      </span>
-                    </div>
-
-                    <div
-                      className="w-full lg:w-auto p-4 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer hover:bg-[#0353A4]"
-                      onClick={handleClaimTicket}
-                    >
-                      {claiming ? (
-                        <div className="w-5 h-5 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <span className="text-[#fff] text-[20px] font-[500]">
-                          Yes, Proceed
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+              </div>
+            </div>
           </>
         )}
       </div>
