@@ -59,10 +59,10 @@ const DateDialog = ({
           <div className="flex-grow">
             <Calendar
               mode="single"
-              selected={internalDate} // Set the initial date
+              selected={internalDate} 
               onSelect={(date: Date) => {
                 if (date) {
-                  setInternalDate(date); // Update internal date
+                  setInternalDate(date);
                 }
               }}
               className="w-full h-full"
@@ -102,10 +102,10 @@ export const DatePairDialog = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  selectedStartDate: string | undefined;
-  setSelectedStartDate: (date: string | undefined) => void;
-  selectedEndDate: string | undefined;
-  setSelectedEndDate: (date: string | undefined) => void;
+  selectedStartDate: string | "";
+  setSelectedStartDate: (date: string | "") => void;
+  selectedEndDate: string | "";
+  setSelectedEndDate: (date: string | "") => void;
 }) => {
   const [internalStartDate, setInternalStartDate] = useState<Date | undefined>(
     undefined
@@ -128,6 +128,8 @@ export const DatePairDialog = ({
   const handleClear = () => {
     setInternalStartDate(undefined);
     setInternalEndDate(undefined);
+    setSelectedStartDate("");
+    setSelectedEndDate("");
     console.log("Cleared Dates");
   };
 
@@ -144,7 +146,6 @@ export const DatePairDialog = ({
     }
     onClose();
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-6 rounded-lg shadow-lg">

@@ -301,7 +301,9 @@ export const DeletedUsersTable = ({ searchTerm, selectedOption }: any) => {
                             {user.email}
                           </TableCell>
                           <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
-                            {user?.date_created || "---"}
+                            {user.registration_date
+                              ? format(new Date(user.registration_date), "MM/dd/yyyy")
+                              : "---"}
                           </TableCell>
                           <TableCell className="py-4 px-6 text-[14px] font-[400] text-[#181818]">
                             {user.deleted_at

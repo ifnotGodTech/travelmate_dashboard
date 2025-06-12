@@ -24,9 +24,19 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const { tickets, loadNext, loading, error, nextPageUrl, setFilters } =
-    useGetAllTickets();
+  const {
+    tickets: fetchedTickets,
+    loadNext,
+    loading,
+    error,
+    nextPageUrl,
+    setFilters,
+  } = useGetAllTickets();
+
+  const [tickets, setTickets] = useState<any[]>([]); // Maintain local ticket state
 
   const { ticket: ticketDetails, loadingTicket } = useGetTicket({
     TicketId: ticketId as string,
@@ -51,9 +61,19 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
     setFilters(filters);
   }, [statusFilter, searchTerm, date, setFilters]);
 
+  useEffect(() => {
+    if (fetchedTickets && fetchedTickets.length > 0) {
+      setTickets(fetchedTickets);
+      setIsLoadingMore(false);
+      setIsInitialLoad(false);
+    }
+  }, [fetchedTickets]);
+
   const handleTabChange = (value: string) => {
     setStatusFilter(value);
     setFilters({ status: value === "all" ? "" : value });
+    setTickets([]); // Reset tickets when filter changes
+    setIsInitialLoad(true); // Reset initial load flag
   };
 
   const handleViewDetails = (ticket: any) => {
@@ -78,6 +98,11 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
     setIsChatModalOpen(false);
     setSelectedTicket(null);
     setTicketId(null);
+  };
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    loadNext();
   };
 
   const styling =
@@ -112,127 +137,132 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
             </TabsTrigger>
           </TabsList>
 
-          {loading ? (
-            <Skeleton />
+          {loading && tickets.length === 0 && isInitialLoad ? (
+            <div className="h-[200px] flex justify-center items-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : tickets.length === 0 && !loading ? (
+            <div className="h-[40px] flex justify-center items-center">
+              <p className="text-[20px] font-[500] text-[#181818]">
+                No data found
+              </p>
+            </div>
           ) : (
-            <>
-              {tickets.length === 0 ? (
-                <div className="h-[40px] flex justify-center items-center">
-                  <p className="ttext-[20px] font-[500] text-[#181818]">
-                    No data found
-                  </p>
-                </div>
-              ) : (
-                <div className="lg:px-[24px] px-[4px]">
-                  {/* Wrap table in scrollable container */}
-                  <div className="overflow-x-auto">
-                    <Table className="border-none border-collapse min-w-[600px]">
-                      <TableHeader>
-                        <TableRow className="items-center border-none hover:bg-none">
-                          <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
-                            Subject
-                          </TableCell>
-                          <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
-                            Customer
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Created at
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Status
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Action
-                          </TableCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tickets.map((ticket, index) => (
-                          <TableRow
-                            key={`${ticket.id}-${index}`}
-                            className="items-center cursor-pointer border-none"
+            <div className="lg:px-[24px] px-[4px] relative">
+              <div className="overflow-x-auto">
+                <Table className="border-none border-collapse min-w-[600px]">
+                  <TableHeader>
+                    <TableRow className="items-center border-none hover:bg-none">
+                      <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
+                        Subject
+                      </TableCell>
+                      <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
+                        Customer
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Created at
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Status
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tickets.map((ticket, index) => (
+                      <TableRow
+                        key={`${ticket.id}-${index}`}
+                        className="items-center cursor-pointer border-none"
+                      >
+                        <TableCell className="border-none min-w-[200px] whitespace-nowrap">
+                          <div className="flex items-center space-x-4">
+                            <img
+                              src="/assets/icons/flight_cancellation.svg"
+                              alt="icon"
+                              className="w-[30px] lg:w-[40px]"
+                            />
+                            <div className="space-y-[8px]">
+                              <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
+                                {ticket.title}
+                              </h2>
+                              <p className="text-[#9B9EA4] text-[12px]">
+                                {ticket.ticket_id} • {ticket.category}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="border-none min-w-[180px] whitespace-nowrap">
+                          <div className="space-y-2">
+                            <p className="text-[#181818] text-[14px] font-[500] capitalize">
+                              {ticket.user.first_name || "---"}{" "}
+                              {ticket.user.last_name || "---"}
+                            </p>
+                            <p className="text-[#9B9EA4] text-[12px]">
+                              {ticket.user.email || "---"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="table-cell border-none whitespace-nowrap">
+                          <div className="space-y-2">
+                            <p className="text-[#181818] text-[14px] font-[500]">
+                              {format(
+                                parseISO(ticket.created_at),
+                                "dd/MM/yyyy"
+                              )}
+                            </p>
+                            <p className="text-[#9B9EA4] text-[12px]">
+                              <span>{getRelativeTime(ticket.created_at)}</span>
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="border-none whitespace-nowrap">
+                          <span
+                            className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
+                              ticket.status === "new"
+                                ? "bg-[#CCD8E8] text-[#181818]"
+                                : ticket.status === "in_progress"
+                                ? `bg-[#EFB60880]/50 ${
+                                    ticket.escalated
+                                      ? "text-red-500"
+                                      : "text-[#181818]"
+                                  }`
+                                : ticket.status === "resolved"
+                                ? "bg-[#2D9C5E80]/50 text-[#181818]"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
                           >
-                            <TableCell className="border-none min-w-[200px] whitespace-nowrap">
-                              <div className="flex items-center space-x-4">
-                                <img
-                                  src="/assets/icons/flight_cancellation.svg"
-                                  alt="icon"
-                                  className="w-[30px] lg:w-[40px]"
-                                />
-                                <div className="space-y-[8px]">
-                                  <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
-                                    {ticket.title}
-                                  </h2>
-                                  <p className="text-[#9B9EA4] text-[12px]">
-                                    {ticket.ticket_id} • {ticket.category}
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="border-none min-w-[180px] whitespace-nowrap">
-                              <div className="space-y-2">
-                                <p className="text-[#181818] text-[14px] font-[500] capitalize">
-                                  {ticket.user.first_name || "---"}{" "}
-                                  {ticket.user.last_name || "---"}
-                                </p>
-                                <p className="text-[#9B9EA4] text-[12px]">
-                                  {ticket.user.email || "---"}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="table-cell border-none whitespace-nowrap">
-                              <div className="space-y-2">
-                                <p className="text-[#181818] text-[14px] font-[500]">
-                                  {format(parseISO(ticket.created_at), "dd/MM/yyyy")}
-                                </p>
-                                <p className="text-[#9B9EA4] text-[12px]">
-                                  <span>
-                                    {getRelativeTime(ticket.created_at)}
-                                  </span>
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="border-none whitespace-nowrap">
-                              <span
-                                className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                                  ticket.status === "new"
-                                    ? "bg-[#CCD8E8] text-[#181818]"
-                                    : ticket.status === "in_progress"
-                                    ? "bg-[#EFB60880]/50  text-[#181818]"
-                                    : ticket.status === "resolved"
-                                    ? "bg-[#2D9C5E80]/50  text-[#181818]"
-                                    : "bg-gray-100 text-gray-600" // fallback for other/unknown statuses
-                                }`}
-                              >
-                                {ticket.status.replace("_", " ").toUpperCase()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="border-none whitespace-nowrap">
-                              <TableDropdown
-                                parentWidth={180}
-                                onViewDetails={() => handleViewDetails(ticket)}
-                                onViewMessage={() => handleViewMessage(ticket)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Loading Spinner at the Bottom */}
-                </div>
-              )}
-            </>
+                            {ticket.status.replace("_", " ").toUpperCase()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="border-none whitespace-nowrap">
+                          <TableDropdown
+                            parentWidth={180}
+                            onViewDetails={() => handleViewDetails(ticket)}
+                            onViewMessage={() => handleViewMessage(ticket)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           )}
 
-          {nextPageUrl && !loading && (
+          {nextPageUrl && (
             <div className="flex justify-center mt-4">
               <button
                 className="bg-[#EBECED] cursor-pointer rounded-[8px] px-[40px] py-[16px] flex items-center"
-                onClick={loadNext}
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
               >
-                <p className="text-[#023E8A] text-[14px]">Load more</p>
+                {isLoadingMore ? (
+                  <div className="w-5 h-5 border-2 border-[#023E8A] border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <p className="text-[#023E8A] text-[14px]">Load more</p>
+                )}
               </button>
             </div>
           )}

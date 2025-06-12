@@ -27,19 +27,15 @@ const Filter = () => {
   const [activeTab, setActiveTab] = useState("registerUser");
 
   // Date states
-  const [selectedStartDate, setSelectedStartDate] = useState<
-    string | undefined
-  >(undefined);
-  const [selectedEndDate, setSelectedEndDate] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedStartDate, setSelectedStartDate] = useState<string | "">("");
+  const [selectedEndDate, setSelectedEndDate] = useState<string | "">("");
 
   // Helper to format date range display string
   const formatDateRange = () => {
     if (selectedStartDate && selectedEndDate) {
       return `${selectedStartDate} - ${selectedEndDate}`;
     }
-    return "YYYY-MM-DD - YYYYY-MM-DD";
+    return "YYYY-MM-DD - YYYY-MM-DD";
   };
 
   // Build dateRange object for tables
@@ -68,7 +64,7 @@ const Filter = () => {
             className="space-y-[20px] w-full"
             onValueChange={(value) => setActiveTab(value)}
           >
-            <div className="flex lg:justify-between space-x-[5px] ">
+            <div className="flex justify-between space-x-[5px] ">
               <TabsList className="bg-[#fff] lg:shadow-none shadow-sm rounded-[10px] flex justify-between items-center p-2 h-[44px] lg:h-[53px]">
                 <TabsTrigger
                   value="registerUser"
@@ -121,6 +117,7 @@ const Filter = () => {
                     selectedOption={selectedOption}
                     setSelectedOption={setSelectedOption}
                     options={[
+                      { label: "All", value: "" },
                       { label: "Active", value: "true" },
                       { label: "Deactivated", value: "false" },
                     ]}
@@ -144,10 +141,6 @@ const Filter = () => {
                       : {formatDateRange()}
                     </span>
                   </div>
-                </div>
-
-                <div className="text-[#023E8A] text-[14px] font-[400] p-3 border-[1px] border-[#023E8A] rounded-[8px] cursor-pointer">
-                  Apply
                 </div>
               </div>
             </div>

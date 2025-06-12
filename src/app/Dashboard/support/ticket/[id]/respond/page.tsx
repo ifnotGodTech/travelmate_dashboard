@@ -3,12 +3,17 @@ import React, { useState, useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useParams } from "next/navigation";
-import { useRespondToTicket, useGetTicket } from "@/hooks/api/ticket";
+import {
+  useRespondToTicket,
+  useGetTicket,
+  useClaimTicket,
+} from "@/hooks/api/ticket";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ConfirmResolution } from "@/components/molecues/support/Reuseables";
 import * as Yup from "yup";
 import { useAuthContext } from "@/context/AuthContext";
+import { useMyRoles } from "@/hooks/api/roles";
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -31,15 +36,17 @@ const page = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { loading, data } = useMyRoles({ modalVisible: true });
 
   const { loadingTicket, ticket } = useGetTicket({
     TicketId: id as string,
     initalFetch: true,
-    successCallback: (message) => console.log(message),
-    errorCallback: (error) => console.error(error),
   });
 
-  const isAdmin = currentUser === ticket?.claimed_admin?.id;
+  const isAdmin =
+    currentUser === ticket?.claimed_admin?.id ||
+    (ticket?.escalated === true &&
+      ticket?.escalation_role?.name === data?.name);
 
   return (
     <>
@@ -124,7 +131,12 @@ const page = () => {
             </div>
           </div>
         )}
-        <Chat ticket={ticket} loadingTicket={loadingTicket} isAdmin={isAdmin} />
+        <Chat
+          ticket={ticket}
+          loadingTicket={loadingTicket}
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+        />
       </div>
       {ticket?.status !== "resolved" && (
         <div className="  sticky lg:hidden bottom-0 bg-white p-4 flex justify-between items-end space-x-4 shadow-lg">
@@ -160,6 +172,7 @@ const page = () => {
           title="Ticket Resolved Successfully"
           description="You have successfully resolved this ticket."
           onClose={() => setShowSuccessModal(false)}
+          dlink="/Dashboard/support/ticket/escalates"
         />
       )}
 
@@ -174,24 +187,19 @@ const page = () => {
   );
 };
 
-const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
+const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
+  const { claiming, onClaiming } = useClaimTicket();
   const { responding, onRespondToTicket } = useRespondToTicket();
 
-  // State for managing older and new messages
   const [messages, setMessages] = useState(ticket?.messages || []);
-
-  // Ref for the last message
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
-
-  // Modal state for image attachments
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added state
 
-  // Sync messages with ticket prop when ticket changes
   useEffect(() => {
-    setMessages(ticket?.messages || []);
+    setMessages(ticket?.messages.results || []);
   }, [ticket]);
 
-  // Scroll to the last message whenever messages change
   useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
@@ -205,29 +213,38 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
     validationSchema: Yup.object({
       message: Yup.string().required("Message is required"),
     }),
-    onSubmit: (values, { resetForm }) => {
+    onSubmit: async (values, { resetForm }) => {
+      if (
+        !ticket?.claimed_admin?.id ||
+        ticket?.claimed_admin?.id !== currentUser
+      ) {
+        try {
+          await onClaiming({
+            TicketId: ticket?.id,
+          });
+        } catch (error) {
+          return;
+        }
+      }
+
+      setIsSubmitting(true); // Disable sending
+
       onRespondToTicket({
         TicketId: ticket?.id,
         payload: { content: values.message },
         successCallback: () => {
-          console.log("Message sent successfully");
-
-          // Append the new message to the state
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            {
-              id: Date.now(), // Temporary ID for new message
-              sender: { id: "currentUserId" }, // Replace with actual user ID
-              content: values.message,
-              attachment: null,
-              timestamp: new Date().toISOString(),
-            },
-          ]);
-
-          resetForm(); // Clear the input field
+          const newMessage = {
+            id: new Date().toISOString(),
+            content: values.message,
+            sender: { id: currentUser },
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+          resetForm();
+          setIsSubmitting(false); // Re-enable sending
         },
         errorCallback: (error: any) => {
-          console.error("Error sending message", error);
+          setIsSubmitting(false); // Re-enable sending in case of error
         },
       });
     },
@@ -235,24 +252,50 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
 
   return (
     <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px] flex flex-col">
-      <div className="flex justify-center items-center space-x-4">
-        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
-        <div className="rounded-[100px] border-[1px] border-[#181818] py-[10px] px-[14px] font-[400] text-[#181818] text-[12px] lg:text-[16px] ">
+      {/* Full-screen Modal */}
+      {modalImage && (
+        <div
+          className="fixed inset-0 bg-black/80 bg-opacity-75 flex justify-center items-center z-50 h-screen "
+          onClick={() => setModalImage(null)}
+        >
+          <img
+            src={modalImage}
+            alt="Full-Screen Image"
+            className="max-w-full max-h-[90%] rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      <div className="flex justify-center items-center">
+        <div className="hidden md:block w-[100px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="w-[70vw] md:w-auto mx-auto md:mx-4 rounded-[100px] border-[1px] border-[#181818] py-[8px] px-[10px] sm:py-[10px] sm:px-[14px] font-[400] text-[#181818] text-[10px] sm:text-[12px] lg:text-[14px] text-center">
           {ticket?.claimed_admin ? (
-            <>
-              Responding: {ticket.claimed_admin.first_name || "---"} -{" "}
-              {ticket.claim_timestamp
-                ? format(
-                    new Date(ticket.claim_timestamp),
-                    "dd/MM/yyyy | hh:mm a"
-                  )
-                : "Unknown Time"}
-            </>
+            <div className="flex items-center sm:justify-center sm:space-x-1">
+              <span className="font-medium">Responding: </span>
+              <span className="truncate">
+                {ticket.claimed_admin.first_name ||
+                ticket.claimed_admin.last_name
+                  ? `${ticket.claimed_admin.first_name || ""} ${
+                      ticket.claimed_admin.last_name || ""
+                    }`.trim()
+                  : ticket.claimed_admin.email || "---"}
+              </span>
+              <span className="text-[10px] sm:text-[12px] lg:text-[14px] text-gray-600">
+                -{" "}
+                {ticket.claim_timestamp
+                  ? format(
+                      new Date(ticket.claim_timestamp),
+                      "dd/MM/yyyy | hh:mm a"
+                    )
+                  : "Unknown Time"}
+              </span>
+            </div>
           ) : (
             "No admin claimed"
           )}
         </div>
-        <div className="w-[31px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
+        <div className="hidden md:block w-[100px] lg:w-[220px] h-[1px] bg-[#181818]"></div>
       </div>
 
       {loadingTicket ? (
@@ -267,14 +310,18 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                 className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 ref={index === messages.length - 1 ? lastMessageRef : null}
               >
-                <div className="space-y-2 max-w-[80%]">
+                <div
+                  className={`flex flex-col items-${
+                    isUser ? "end" : "start"
+                  } space-y-1 max-w-[80%]`}
+                >
                   {/* Message Content */}
                   {mes.content && (
                     <div
                       className={`py-3 px-4 text-[16px] font-medium rounded-xl shadow-md ${
                         isUser
                           ? "bg-[#f0f0f0] text-[#181818] text-end"
-                          : "bg-[#023E8A] text-white "
+                          : "bg-[#023E8A] text-white text-start"
                       }`}
                       style={{ maxWidth: "fit-content" }}
                     >
@@ -282,11 +329,12 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                     </div>
                   )}
 
-                  {/* Attachment */}
+                  {/* Image Attachment */}
                   {mes.attachment && (
                     <div
-                      className={`mt-2 ${isUser ? "text-right" : "text-left"}`}
-                      style={{ maxWidth: "100%" }}
+                      className={`flex ${
+                        isUser ? "justify-end" : "justify-start"
+                      }`}
                     >
                       <img
                         src={mes.attachment}
@@ -297,8 +345,9 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                     </div>
                   )}
 
+                  {/* Timestamp */}
                   <span
-                    className={`block text-sm font-light text-[#67696D] ${
+                    className={`block text-[12px] font-light text-[#67696D] ${
                       isUser ? "text-right" : "text-left"
                     }`}
                   >
@@ -316,15 +365,13 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
         className="sticky bottom-0 rounded-b-[24px] bg-[#fff]"
       >
         {ticket?.status == "resolved" ? (
-          <div className="">
-            <p className="text-center p-4  text-[14px] lg:text-[24px] font-[500] text-[#181818] ">
-              This Ticket has been marked as resolved
-            </p>
+          <div className="text-center p-4 text-[14px] lg:text-[24px] font-[500] text-[#181818]">
+            This Ticket has been marked as resolved
           </div>
         ) : (
           <div className="p-4 flex items-center gap-4 w-full">
             {loadingTicket ? (
-              <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px] "></div>
+              <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px]"></div>
             ) : (
               <>
                 <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
@@ -340,14 +387,16 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                     className="flex-1 outline-none bg-transparent"
                     value={formik.values.message}
                     onChange={formik.handleChange}
-                    disabled={!isAdmin}
+                    disabled={!isAdmin || isSubmitting}
                   />
                 </div>
                 <button
                   type="submit"
-                  disabled={!isAdmin}
-                  className={`p-3 bg-[#023E8A] flex space-x-2 rounded-[8px] items-center ${
-                    !isAdmin
+                  disabled={
+                    !isAdmin || ticket?.status === "resolved" || isSubmitting
+                  }
+                  className={`p-3 rounded-[8px] items-center flex space-x-1 ${
+                    !isAdmin || ticket?.status === "resolved" || isSubmitting
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#023E8A] text-white"
                   }`}
@@ -357,7 +406,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
                   ) : (
                     <img src="/assets/icons/white-send.svg" alt="Send" />
                   )}
-
                   <span className="text-[#fff] font-[500] text-[20px]">
                     Send
                   </span>
@@ -367,17 +415,6 @@ const Chat = ({ ticket, loadingTicket, isAdmin }: any) => {
           </div>
         )}
       </form>
-
-      {/* Modal for Image */}
-      {modalImage && (
-        <Modal onClose={() => setModalImage(null)}>
-          <img
-            src={modalImage}
-            alt="Modal Attachment"
-            className="w-full h-auto max-w-[800px] max-h-[90vh] rounded-lg mx-auto"
-          />
-        </Modal>
-      )}
     </div>
   );
 };

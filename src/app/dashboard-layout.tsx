@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LogOut, ChevronDown, X } from "lucide-react";
 import { navItems } from "@/components/data";
+import { useMyRoles } from "@/hooks/api/roles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar - hidden on mobile */}
-      <div className="w-64 bg-[#EBECED] border-r border-gray-200 hidden md:flex flex-col h-screen">
+      <div className="w-64 z-50 bg-[#EBECED] border-r border-gray-200 hidden md:flex flex-col h-screen">
         <div className="p-6">
           <Link href="/" className="text-blue-700 text-xl font-semibold">
             TravelMate
@@ -187,6 +188,7 @@ interface NavbarProps {
 }
 
 const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
+  const { loading, data } = useMyRoles({ modalVisible: true });
   return (
     <div className="p-4 md:p-6">
       <header className="flex items-center justify-between p-4 md:p-6">
@@ -199,7 +201,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           <div className="relative cursor-pointer">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full w-[140px]">
+                <button className="flex items-center gap-2 rounded-full w-[auto] outline-none focus:outline-none">
                   <div>
                     <Image
                       src="/assets/images/nav-user.svg"
@@ -211,7 +213,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <span className="font-medium text-[16px] text-[#181818] leading-[100%]">
-                      Admin
+                      {data?.name}
                     </span>
                     <ChevronDown className="h-4 w-4 text-[#181818]" />
                   </div>
@@ -222,17 +224,14 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
                 className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
               >
                 <DropdownMenuItem className="w-full text-center px-[2px] py-2 hover:bg-gray-200">
-                  Support Agent
-                </DropdownMenuItem>
-                <DropdownMenuItem className="w-full text-center px-[2px] py-2 hover:bg-gray-200">
-                  Contact Manager
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        <div className="flex space-x-3 items-center lg:hidden">
+        <div className="flex space-x-3 items-center md:hidden">
           <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
             <img src="/assets/icons/Bell.svg" alt="" />
           </div>

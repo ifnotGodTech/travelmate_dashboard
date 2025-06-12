@@ -137,6 +137,10 @@ export const useGetUsers = () => {
     if (previousPageUrl) fetchUsers(previousPageUrl, true);
   };
 
+  const refetch = () => {
+    fetchUsers(undefined, true);
+  };
+
   return {
     users,
     loadNext,
@@ -150,6 +154,7 @@ export const useGetUsers = () => {
     // expose setters for date filters
     setDateJoinedAfter,
     setDateJoinedBefore,
+    refetch, // Expose the refetch method
   };
 };
 
@@ -280,6 +285,55 @@ export const useDeactivateUser = () => {
   };
 
   return { deactivating, onDeactivateUser, isSuccess };
+};
+
+export const useReactivateUser = () => {
+  const [reactivating, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const onReactivateUser = async ({
+    payload,
+    userId,
+    successCallback,
+  }: {
+    payload: { email: string; reason?: string; additional_note?: string };
+    userId: any;
+    successCallback?: () => void;
+  }) => {
+    setLoading(true);
+    setIsSuccess(false);
+
+    const data = {
+      additional_reason: payload.additional_note,
+      reason_choices: payload.reason,
+    };
+
+    try {
+      const res = await UserService.reactivateUser({ userId, data });
+      const {
+        message = res.data.Message || "🚀 User Reactivated successfully",
+        description = "",
+      } = res.data || {};
+
+      showSuccessToast({ message, description });
+
+      try {
+        successCallback?.();
+      } catch (callbackError) {
+        console.error("Error in successCallback:", callbackError);
+      }
+
+      setIsSuccess(true);
+    } catch (error: any) {
+      showErrorToast({
+        message: "unable to deactivate user at the moment",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { reactivating, onReactivateUser, isSuccess };
 };
 
 export const useExportCSV = () => {

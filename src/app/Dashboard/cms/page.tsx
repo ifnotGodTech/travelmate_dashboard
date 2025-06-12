@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import EditDialog from "@/components/molecues/cms/EditDialog";
+import { useGetAllServices } from "@/hooks/api/cms";
 import Link from "next/link";
 const page = () => {
   return (
@@ -10,130 +12,110 @@ const page = () => {
   );
 };
 
-interface UserHistory {
-  Service: string;
-  Fee: string;
-  Rate: string;
-  Description: string;
-}
-
-const serviceData: UserHistory[] = [
-  {
-    Service: "Flights",
-    Fee: "Set by airline",
-    Rate: "N200,000",
-    Description: "Fee added to airline base fare",
-  },
-  {
-    Service: "Hotels",
-    Fee: "Set by hotel",
-    Rate: "N20,000",
-    Description: "Fee added to airline base fare",
-  },
-  {
-    Service: "Cars",
-    Fee: "Set by company",
-    Rate: "N10,000",
-    Description: "Fee added to airline base fare",
-  },
-];
-
 const CmsContent = () => {
-  const router = useRouter();
+  const { loading, data, refresh } = useGetAllServices({});
+
   return (
     <div className="p-4">
       <div className="space-y-6">
-        <h1 className="text-[20px] font-[600] text-[#181818]">Services</h1>
+        <h1 className="lg:text-[20px] text-[16px] font-semibold text-[#181818]">
+          Service Commission Settings
+        </h1>
 
-        <div className="rounded-[20px] space-y-[40px] p-0 lg:p-6 bg-[#fff]">
-          <table className="w-full border-collapse table-fixed">
-            <thead>
-              <tr>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
-                  Service
-                </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
-                  Fee
-                </th>
-                <th className="w-1/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px]">
-                  Rate
-                </th>
-                <th className="w-2/5 text-left text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] hidden lg:table-cell">
-                  Description
-                </th>
-                <th className="w-1/5 text-l text-[12px] lg:text-[16px] font-[600] text-[#181818] py-[16px] text-e ">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {serviceData.map((item, index) => (
-                <tr key={index}>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[600] text-[#181818] text-left">
-                      {item.Service}
-                    </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.Fee}
-                    </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left">
-                      {item.Rate}
-                    </span>
-                  </td>
-                  <td className="py-[16px] hidden lg:table-cell">
-                    <span className="text-[12px] lg:text-[16px] font-[400] text-[#181818] text-left truncate max-w-none">
-                      {item.Description}
-                    </span>
-                  </td>
-                  <td className="py-[16px]">
-                    <div
-                      className="flex items-center cursor-pointer"
-                      onClick={() => {
-                        if (item.Service === "Cars") {
-                          router.push("/Dashboard/cms/change-rate/cars");
-                        } else {
-                          router.push("/Dashboard/cms/change-rate");
-                        }
-                      }}
-                    >
-                      <img
-                        src="/assets/icons/mode_edit.svg"
-                        alt="Edit"
-                        className="cursor-pointer lg:hidden "
-                      />
-                      <button className="py-2 px-4 rounded-lg bg-[#023E8A] cursor-pointer text-white text-sm font-semibold transition-all hidden lg:block">
-                        Edit
-                      </button>
-                    </div>
-                  </td>
+        <div className="space-y-[40px]">
+          <div className="border border-gray-300 rounded-lg">
+            <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-white">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-[12px] lg:text-[16px] font-[500] text-[#181818] "
+                  >
+                    Service
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-[12px] lg:text-[16px] font-[500] text-[#181818] "
+                  >
+                    Commission (%)
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-[12px] lg:text-[16px] font-[500] text-[#181818] "
+                  >
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-4">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : data && data.length > 0 ? (
+                  data.map((service: any, index: number) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-gray-100 [&>*]:px-6 [&>*]:py-3"
+                    >
+                      <td className="text-[12px] lg:text-[16px] font-[400] text-[#181818] capitalize">
+                        {service.service_type}
+                      </td>
+                      <td className="text-[12px] lg:text-[16px] font-[400] text-[#181818] capitalize">
+                        {service.percentage}
+                      </td>
+                      <td>
+                        <div className="flex space-x-2 items-center cursor-pointer">
+                          <img
+                            src="/assets/icons/mode_edit.svg"
+                            alt="Edit"
+                            className="w-4 h-4 lg:w-5 lg:h-5"
+                          />
+                          <EditDialog
+                            serviceId={service.id}
+                            refresh={refresh}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="text-center py-4">
+                      No data available.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-          <div className="w-full h-[1px] bg-[#EBECED] "></div>
+          <div className="w-full h-[1px] bg-[#EBECED]"></div>
 
-          <div className="p-4">
-            <div className="p-8 lg:p-10 lg:space-y-4 rounded-[8px] bg-[#CCD8E8] ">
-              <h1 className="text-[16px] font-[500] text-[#023E8A] ">
-                How Agency Rates Work
+          <div className="p-[12px] flex space-x-[10px] bg-[#CCD8E833] border-[#023E8A] border rounded-lg items-start">
+            <img src="/assets/icons/in-fo.svg" alt="Info" />
+            <div>
+              <h1 className="text-[16px] font-medium text-[#023E8A]">
+                How Service Commission Works
               </h1>
-
-              <p className="text-[14px] lg:text-sm leading-[25px] font-[600] text-[#181818] ">
-                These fees represent the markup your agency adds to the base
-                fees charged by service providers. For example, if an airline
-                charges N500,000 for a flight and your agency rate is N50,000,
-                the customer will see N550,000 at their own end.
+              <p className="text-[14px] lg:text-sm leading-[25px] font-medium text-[#181818]">
+                When the third party provider returns a base price, we add your
+                commission percentage on top. Example: Hotel costs $500 from the
+                third party provider → 10% commission → Customer pays $550 → You
+                keep $50.
               </p>
             </div>
           </div>
-          <div className="w-full h-[1px] bg-[#EBECED] "></div>
+
+          <div className="w-full h-[1px] bg-[#EBECED]"></div>
+
           <div className="lg:px-12 py-3 cursor-pointer w-full bg-[#D5EBDF] rounded-lg text-center">
-            <Link href="/Dashboard/cms/legal" className="uppercase text-[#2D9C5E]  w-full ">
+            <Link
+              href="/Dashboard/cms/legal"
+              className="uppercase text-[#2D9C5E]"
+            >
               Go to Information Policies
             </Link>
           </div>

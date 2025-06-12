@@ -6,17 +6,33 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "./Button";
+
 export const SuccessModal = ({
   onClose,
   title,
   description,
+  dlink = "",
+  refetch,
 }: {
   onClose: () => void;
   title: string;
   description: string;
+  dlink?: string;
+  refetch?: () => void;
 }) => {
+  const router = useRouter();
+
+  const handleRedirect = async () => {
+    await router.push(dlink || "/Dashboard/support");
+
+    onClose();
+    if (refetch) {
+      refetch();
+    }
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="w-full lg:min-w-[800px] p-[40px]">
@@ -34,9 +50,9 @@ export const SuccessModal = ({
           <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
             {description}
           </DialogDescription>
-          <Link href="/Dashboard/support" className="w-full">
+          <div className="w-full" onClick={handleRedirect}>
             <Button title="GO BACK TO DASHBOARD" variant="blue" full />
-          </Link>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

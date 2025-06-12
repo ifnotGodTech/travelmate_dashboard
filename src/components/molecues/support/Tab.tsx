@@ -41,7 +41,7 @@ const TicketTable: React.FC = () => {
         onValueChange={(value) => setActiveTab(value)}
         className="space-y-[40px]"
       >
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-col lg:flex-row gap-4">
           <TabsList className="lg:w-[436px] w-full bg-[#EBECED] rounded-[12px] flex justify-between items-center h-[64px]">
             <TabsTrigger
               value="ticket"
@@ -64,7 +64,7 @@ const TicketTable: React.FC = () => {
           </TabsList>
 
           {activeTab !== "faq" && (
-            <div className="hidden lg:flex gap-6">
+            <div className="hidden lg:flex gap-6 ">
               {activeTab === "chat" ? (
                 <div
                   className="p-4 rounded-[8px] bg-[#023E8A] text-[20px] font-[500] text-[#fff] cursor-pointer"
@@ -136,7 +136,7 @@ const TicketTable: React.FC = () => {
       </Tabs>
 
       {activeTab !== "faq" && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 flex justify-around py-3 px-4 shadow-lg z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 flex justify-around py-3 px-4 shadow-lg z-20">
           {activeTab === "chat" ? (
             <button
               onClick={() => router.push("/Dashboard/support/chats")}
