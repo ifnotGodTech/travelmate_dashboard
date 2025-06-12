@@ -45,26 +45,38 @@ const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const validateInvitation = async () => {
-      try {
-        const response = await axios.get(
-          `${env.api.admin}/invitations/validate/`,
-          { params: { token } }
-        );
-        console.log(response);
-        setEmail(response.data.email);
-      } catch (error: any) {
-        console.log(error);
-        showErrorToast({ message: error?.response?.data?.message });
-        setIsValidToken(false);
-      }
-    };
+    const mock = true;
 
-    if (token) {
-      validateInvitation();
-    } else {
+    if (!token) {
       showErrorToast({ message: "Missing invitation token" });
       setIsValidToken(false);
+      return;
+    }
+
+    if (mock) {
+      setTimeout(() => {
+        setEmail("fakemail@example.com");
+        setIsValidToken(true); 
+        setLoading(false);
+      }, 1000);
+    } else {
+      const validateInvitation = async () => {
+        try {
+          const response = await axios.get(
+            `${env.api.admin}/invitations/validate/`,
+            { params: { token } }
+          );
+          setEmail(response.data.email);
+          setIsValidToken(true);
+        } catch (error: any) {
+          showErrorToast({ message: error?.response?.data?.message });
+          setIsValidToken(false);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      validateInvitation();
     }
   }, [token]);
 
@@ -101,7 +113,11 @@ const LoginComponent = () => {
   }
 
   if (isValidToken === null) {
-    return <div><Loading/></div>; 
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
   }
   return (
     <>

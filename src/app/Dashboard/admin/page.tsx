@@ -189,7 +189,7 @@ const AdminRolesPage: React.FC = () => {
         error.response?.data || error.message
       );
       showErrorToast({ message: "Failed to update role" });
-    }finally {
+    } finally {
       setIsSaveLoading(false);
     }
   };
@@ -221,7 +221,7 @@ const AdminRolesPage: React.FC = () => {
         created_by: "",
         invited_users: [],
       });
-      setIsCreateRoleOpen(false)
+      setIsCreateRoleOpen(false);
     } else {
       try {
         setIsSaveLoading(true);
@@ -459,7 +459,7 @@ const AdminRolesPage: React.FC = () => {
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
               <h2
                 className="text-lg font-medium pb-6 cursor-pointer px-2"
-                onClick={() => router.push("/accept-invite")}
+                onClick={() => router.push("/invitation/accept")}
               >
                 Manage access control for your travel agency dashboard
               </h2>
@@ -588,7 +588,7 @@ const AdminRolesPage: React.FC = () => {
                     </Button>
 
                     <Button
-                    disabled={isSaveLoading}
+                      disabled={isSaveLoading}
                       type="submit"
                       className="bg-[#CCD8E8] hover:bg-blue-100 text-[#023E8A] cursor-pointer flex gap-3 items-center w-full"
                     >
