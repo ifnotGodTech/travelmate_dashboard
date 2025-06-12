@@ -45,21 +45,12 @@ const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const mock = true;
-
     if (!token) {
       showErrorToast({ message: "Missing invitation token" });
       setIsValidToken(false);
       return;
     }
-
-    if (mock) {
-      setTimeout(() => {
-        setEmail("fakemail@example.com");
-        setIsValidToken(true); 
-        setLoading(false);
-      }, 1000);
-    } else {
+    else {
       const validateInvitation = async () => {
         try {
           const response = await axios.get(
