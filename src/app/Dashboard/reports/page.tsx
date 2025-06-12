@@ -43,11 +43,17 @@ type Summary = {
   total_revenue: number;
   revenue_growth_percentage: number;
 };
-
+type Breakdown = {
+  label: string;
+  flight_bookings: number;
+  car_bookings: number;
+  flight_revenue: number;
+  car_revenue: number;
+};
 export default function ReportsPage() {
   const APP_STATE = useAuthContext();
   const isSuperadmin = APP_STATE?.user?.isSuperuser;
-  
+
   const [activeTab, setActiveTab] = useState("overview");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -55,8 +61,7 @@ export default function ReportsPage() {
 
   const [overviewData, setOverviewData] = useState<Summary>();
   const [revenueBookingsData, setRevenueBookingsData] = useState();
-  const [bookingTrendsData, setBookingTrendsData] = useState();
-  const [userActivitiesData, setUserActivitiesData] = useState();
+  const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
 
   const [selectedOption, setSelectedOption] = useState("This Month");
 
@@ -74,13 +79,44 @@ export default function ReportsPage() {
     return `N${value.toLocaleString()}`; // Format smaller values
   };
 
-  // FETCH ALL SUMMARY DATA FOR ADMINS
+  const generateQueryParams = () => {
+    const now = new Date();
+    const baseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
 
+    switch (selectedOption) {
+      case "This Week":
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        return `${baseUrl}&start=${
+          startOfWeek.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=week`;
+
+      case "This Month":
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return `${baseUrl}&start=${
+          startOfMonth.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=month`;
+
+      case "Last 3 Months":
+        return `${baseUrl}&months=3`;
+
+      case "This Year":
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        return `${baseUrl}&start=${
+          startOfYear.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=year`;
+
+      default:
+        return `${baseUrl}&months=6`; // fallback
+    }
+  };
+
+  //FETCH DATA
   const fetchAdminData = async () => {
     try {
       setIsLoading(true);
       const [bookingbreakdown, bookingscombined, summary] = await Promise.all([
-        axios.get(`${env.api.admin}/reports/bookings/breakdown/`, {
+        axios.get(generateQueryParams(), {
           headers: {
             Authorization: `Bearer ${APP_STATE.accessToken}`,
           },
@@ -99,19 +135,20 @@ export default function ReportsPage() {
       setRevenueBookingsData(bookingscombined.data);
       setOverviewData(summary.data);
       setBookingTrendsData(bookingbreakdown.data);
-      // setUserActivitiesData(bookingcount.data);
+      console.log(bookingbreakdown.data);
     } catch (error) {
       showErrorToast({ message: "Error displaying data" });
     } finally {
       setIsLoading(false);
     }
   };
+
   //EXPORT DATA AS XLSL FORMAT
   const exportData = async () => {
     try {
       setIsLoadingExport(true);
       const response = await axios.get(`${env.api.admin}/reports/export/`, {
-        responseType: "blob", // Important for file download
+        responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -120,42 +157,59 @@ export default function ReportsPage() {
       document.body.appendChild(link);
       link.click();
       showSuccessToast({ message: "Download starting" });
-    } catch (error) {
-      showErrorToast({ message: "Error exporting data" });
+    } catch (error: any) {
+      showErrorToast({
+        message: error?.response?.data?.message || "Error exporting data",
+      });
+      console.log(error?.response?.data?.message);
     } finally {
       setIsLoadingExport(false);
     }
   };
 
   // //FILTER DATA BASED ON TIME PERIOD OR DURATIONS
-  //  const filteredData = useMemo(() => {
-  //   if (!revenueBookingsData) return [];
-  //   const now = new Date();
-  //   return revenueBookingsData.filter((item) => {
-  //     const createdAt = new Date(item.month);
-  //     if (selectedOption === "This Week") {
-  //       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-  //       return createdAt >= startOfWeek;
-  //     } else if (selectedOption === "This Month") {
-  //       return (
-  //         createdAt.getMonth() === now.getMonth() &&
-  //         createdAt.getFullYear() === now.getFullYear()
-  //       );
-  //     } else if (selectedOption === "Last 3 Months") {
-  //       const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
-  //       return createdAt >= threeMonthsAgo;
-  //     } else if (selectedOption === "This Year") {
-  //       return createdAt.getFullYear() === now.getFullYear();
-  //     }
-  //     return true;
-  //   });
-  // }, [revenueBookingsData, selectedOption]);
+  const filteredData = useMemo(() => {
+    if (!bookingTrendsData) return [];
+    const now = new Date();
+    return bookingTrendsData?.filter((item) => {
+      const createdAt = new Date(item.label);
+      if (selectedOption === "This Week") {
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        return createdAt >= startOfWeek;
+      } else if (selectedOption === "This Month") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      } else if (selectedOption === "Last 3 Months") {
+        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+        return createdAt >= threeMonthsAgo;
+      } else if (selectedOption === "This Year") {
+        return createdAt.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }, [bookingTrendsData, selectedOption]);
+
+  const processedData = useMemo(() => {
+    if (!filteredData) return [];
+    return filteredData.map((item) => ({
+      ...item,
+      total_bookings: item.car_bookings + item.flight_bookings,
+      total_revenue: item.flight_revenue + item.car_revenue,
+    }));
+  }, [filteredData]);
 
   useEffect(() => {
     fetchAdminData();
   }, [isSuperadmin]);
 
-
+  const periodFilter = [
+    "This Week",
+    "This Month",
+    "Last 3 Months",
+    "This Year",
+  ];
   const SkeletonLoader = () => (
     <div className="animate-pulse">
       <div className="grid gap-4 md:grid-cols-3 mb-8">
@@ -187,14 +241,18 @@ export default function ReportsPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline">
-                    This Month <ChevronDown className="ml-2 h-4 w-4" />
+                    {selectedOption} <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>This Week</DropdownMenuItem>
-                  <DropdownMenuItem>This Month</DropdownMenuItem>
-                  <DropdownMenuItem>Last 3 Months</DropdownMenuItem>
-                  <DropdownMenuItem>This Year</DropdownMenuItem>
+                  {periodFilter.map((time) => (
+                    <DropdownMenuItem
+                      key={time}
+                      onClick={() => setSelectedOption(time)}
+                    >
+                      {time}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -213,7 +271,11 @@ export default function ReportsPage() {
 
             {/* Metric Cards */}
 
-            <div className="grid gap-4 md:grid-cols-3 mb-8">
+            <div
+              className={`grid gap-4 ${
+                isSuperadmin ? `md:grid-cols-3` : `md:grid-cols-2`
+              } mb-8`}
+            >
               <Card className="bg-green-50 w-full">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2">
@@ -254,25 +316,27 @@ export default function ReportsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-orange-50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Total Revenue
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold">
-                      {formatCurrency(overviewData?.total_revenue ?? 0)}
-                    </span>
-                    <span className="ml-2 text-sm text-orange-600">
-                      {overviewData?.revenue_growth_percentage ?? 0}% from last
-                      month
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+              {isSuperadmin && (
+                <Card className="bg-orange-50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Total Revenue
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-2xl font-bold">
+                        {formatCurrency(overviewData?.total_revenue ?? 0)}
+                      </span>
+                      <span className="ml-2 text-sm text-orange-600">
+                        {overviewData?.revenue_growth_percentage ?? 0}% from
+                        last month
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Charts */}
@@ -304,13 +368,15 @@ export default function ReportsPage() {
                     <Users className="h-4 w-4" />
                     User Activities
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="revenue-analysis"
-                    className="flex items-center gap-2"
-                  >
-                    <DollarSign className="h-4 w-4" />
-                    Revenue Analysis
-                  </TabsTrigger>
+                  {isSuperadmin && (
+                    <TabsTrigger
+                      value="revenue-analysis"
+                      className="flex items-center gap-2"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      Revenue Analysis
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </div>
               <Card>
@@ -324,13 +390,18 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
+                        {filteredData.length === 0 && (
+                          <div className="text-center mt-[15%] text-lg font-bold">
+                            Nothing to see here
+                          </div>
+                        )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={revenueBookingsData}>
+                          <BarChart data={processedData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
                             />
-                            <XAxis dataKey="month" />
+                            <XAxis dataKey="label" />
                             <YAxis tickFormatter={formatCurrency} />
                             <Tooltip
                               formatter={(value) =>
@@ -342,13 +413,13 @@ export default function ReportsPage() {
                               }}
                             />
                             <Bar
-                              dataKey="bookings"
+                              dataKey="total_bookings"
                               fill="#1e40af"
                               name="Booking"
                             />
                             {isSuperadmin && (
                               <Bar
-                                dataKey="revenue"
+                                dataKey="total_revenue"
                                 fill="#f97316"
                                 name="Revenue"
                               />
@@ -368,14 +439,19 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
+                        {filteredData.length === 0 && (
+                          <div className="text-center mt-[15%] text-lg font-bold">
+                            Nothing to see here
+                          </div>
+                        )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={bookingTrendsData}>
+                          <LineChart data={filteredData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
                             />
-                            <XAxis dataKey="month" />
-                            <YAxis tickFormatter={formatCurrency} />
+                            <XAxis dataKey="label" />
+                            <YAxis />
                             <Tooltip
                               formatter={(value) =>
                                 formatCurrency(Number(value))
@@ -429,20 +505,19 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
+                        {processedData.length === 0 && (
+                          <div className="text-center mt-[15%] text-lg font-bold">
+                            Nothing to see here
+                          </div>
+                        )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart
-                            data={
-                              isSuperadmin
-                                ? revenueBookingsData
-                                : userActivitiesData
-                            }
-                          >
+                          <LineChart data={processedData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
                             />
-                            <XAxis dataKey="month" />
-                            <YAxis tickFormatter={formatCurrency} />
+                            <XAxis dataKey="label" />
+                            <YAxis />
                             <Tooltip
                               formatter={(value) =>
                                 formatCurrency(Number(value))
@@ -454,7 +529,7 @@ export default function ReportsPage() {
                             />
                             <Line
                               type="monotone"
-                              dataKey="bookings"
+                              dataKey="total_bookings"
                               stroke="#f97316"
                               name="User Activities"
                               strokeWidth={2}
@@ -475,13 +550,18 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
+                        {processedData.length === 0 && (
+                          <div className="text-center mt-[15%] text-lg font-bold">
+                            Nothing to see here
+                          </div>
+                        )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={revenueBookingsData}>
+                          <LineChart data={processedData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
                             />
-                            <XAxis dataKey="month" />
+                            <XAxis dataKey="label" />
                             <YAxis tickFormatter={formatCurrency} />
                             <Tooltip
                               formatter={(value) =>
@@ -494,7 +574,7 @@ export default function ReportsPage() {
                             />
                             <Line
                               type="monotone"
-                              dataKey={isSuperadmin ? "revenue" : "bookings"}
+                              dataKey="total_revenue"
                               stroke="#eab308"
                               name="Revenue"
                               strokeWidth={2}

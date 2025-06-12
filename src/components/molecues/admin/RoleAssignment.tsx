@@ -26,17 +26,20 @@ interface Role {
   // person: string;
   is_superuser: boolean;
   created_by: string;
+  invited_users: any[];
 }
 interface RoleAssignmentProps {
   roles: Role[]; // Array of roles to display
   onCreateRoleOpen: () => void; // Callback to open Create Role modal
   onAddMemberOpen: () => void;
   isLoading?: boolean;
+  revokeInvite: (id: string, email: string) => void;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
   onAddMemberOpen,
   roles,
   isLoading,
+  revokeInvite,
 }) => {
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
@@ -76,13 +79,28 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredRoles = roles.filter((role) => {
+    const query = searchQuery.toLowerCase();
+    const isRoleNameMatch = role.name.toLowerCase().includes(query);
+    const isAssignedUserMatch = role?.assigned_users?.some((user) =>
+      user.name.toLowerCase().includes(query)
+    );
+    return isRoleNameMatch || isAssignedUserMatch;
+  });
+
   return (
     <>
       <div className="p-4 lg:p-0">
         <div className="flex justify-between items-center md:gap-32 gap-6">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search roles..." className="pl-9 rounded-4xl" />
+            <Input
+              placeholder="Search roles..."
+              className="pl-9 rounded-4xl"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <Button
             className="bg-[#023E8A] hover:bg-blue-800 cursor-pointer"
@@ -95,33 +113,59 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
         {isLoading ? (
           <Loading />
         ) : (
-          roles.map((role, index) => (
-            <div key={index} className="space-y-4 pt-5">
+          filteredRoles.map((role, index) => (
+            <div key={index} className="space-y-3 pt-5">
               <div>
                 <h3 className="text-lg font-medium">{role.name || ""}</h3>
                 <p className="text-muted-foreground text-sm pt-2 py-3">
                   {role.description || ""}
                 </p>
                 <p className="pt-2 text-[16px]">
-                  Assigned users ({role.assigned_users.length})
+                  Assigned users ({role.assigned_users?.length})
                 </p>
               </div>
-              {role.assigned_users.map((assigned, i) => (
+              {role.assigned_users?.map((assigned, i) => (
                 <div
-                  className="space-y-2 flex justify-between w-full items-center"
+                  className=" flex justify-between w-full items-center"
                   key={i}
                 >
-                  <p className="font-medium">{assigned.name || ""}</p>
+                  <p className="font-medium">
+                    {assigned?.name || assigned?.email}
+                  </p>
 
                   {role.name !== "Super Admin" && (
                     <Button
                       variant="link"
-                      className="text-red-600 hover:text-red-800 p-0"
+                      className={`text-red-600
+                       hover:text-red-800 p-0`}
                       onClick={() => handleRemoveUser(role.id)} //
                     >
                       Remove
                     </Button>
                   )}
+                </div>
+              ))}
+              {role.invited_users?.map((invited, i) => (
+                <div
+                  className=" flex justify-between w-full items-center"
+                  key={i}
+                >
+                  <p className="font-medium">{invited.name || ""}</p>
+                  <Button
+                    variant="link"
+                    className={`text-blue-600
+                      hover:text-blue-800 p-0`}
+                  >
+                    Invited
+                  </Button>
+                  <Button
+                    onClick={() => revokeInvite(role.id, invited.email)}
+                    variant="link"
+                    className={` text-green-600
+                      hover:text-green-800 p-0`}
+                  >
+                   Revoke Invite
+                  </Button>
                 </div>
               ))}
               <Button

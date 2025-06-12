@@ -48,7 +48,8 @@ const LoginComponent = () => {
     const validateInvitation = async () => {
       try {
         const response = await axios.get(
-          `${env.api.admin}/invitations/validate/`
+          `${env.api.admin}/invitations/validate/`,
+          { params: { token } }
         );
         console.log(response);
         setEmail(response.data.email);
@@ -88,6 +89,20 @@ const LoginComponent = () => {
     }
   };
 
+  if (isValidToken === false) {
+    return (
+      <div className="text-center">
+        <h2 className="text-xl font-bold text-red-600">
+          Invalid or Expired Token
+        </h2>
+        <p>Please contact the administrator for a new invitation.</p>
+      </div>
+    );
+  }
+
+  if (isValidToken === null) {
+    return <div><Loading/></div>; 
+  }
   return (
     <>
       <div className="text-center flex flex-col gap-2 lg:py-12 pt-12 pb-2 font-bold">
@@ -133,7 +148,7 @@ const LoginComponent = () => {
               <Form className="space-y-10">
                 <div className="flex flex-col gap-2">
                   <p className="font-bold">Email Address</p>
-                  <p>elvisigbeigbor@gmail.com</p>
+                  <p>{email || "emailaddress.com"}</p>
                 </div>
 
                 <Inputs />
