@@ -351,7 +351,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
                       isUser ? "text-right" : "text-left"
                     }`}
                   >
-                    {format(new Date(mes.timestamp), "p")}
+                    {format(new Date(mes.timestamp), "do MMMM : h:mmaaa")}
                   </span>
                 </div>
               </div>

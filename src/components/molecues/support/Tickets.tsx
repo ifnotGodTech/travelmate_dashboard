@@ -27,6 +27,10 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // Add state to track previous values for comparison
+  const [prevSearchTerm, setPrevSearchTerm] = useState(searchTerm);
+  const [prevDate, setPrevDate] = useState(date);
+
   const {
     tickets: fetchedTickets,
     loadNext,
@@ -49,6 +53,13 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
     },
   });
 
+  // Function to trigger full reload
+  const triggerFullReload = () => {
+    setTickets([]); // Reset tickets array
+    setIsInitialLoad(true); // Reset initial load flag
+    setIsLoadingMore(false); // Reset loading more state
+  };
+
   useEffect(() => {
     const filters: any = {};
     filters.status = statusFilter === "all" ? "" : statusFilter;
@@ -58,8 +69,16 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
     if (date) {
       filters.date = date as string;
     }
+
+    // Check if searchTerm or date has changed from previous values
+    if (searchTerm !== prevSearchTerm || date !== prevDate) {
+      triggerFullReload();
+      setPrevSearchTerm(searchTerm);
+      setPrevDate(date);
+    }
+
     setFilters(filters);
-  }, [statusFilter, searchTerm, date, setFilters]);
+  }, [statusFilter, searchTerm, date, setFilters, prevSearchTerm, prevDate]);
 
   useEffect(() => {
     if (fetchedTickets && fetchedTickets.length > 0) {
@@ -71,9 +90,20 @@ export const TicketTabContent: React.FC<any> = ({ searchTerm, date }) => {
 
   const handleTabChange = (value: string) => {
     setStatusFilter(value);
-    setFilters({ status: value === "all" ? "" : value });
-    setTickets([]); // Reset tickets when filter changes
-    setIsInitialLoad(true); // Reset initial load flag
+
+    // Trigger full reload when filter changes
+    triggerFullReload();
+
+    // Set filters to trigger data refetch
+    const filters: any = {};
+    filters.status = value === "all" ? "" : value;
+    if (searchTerm) {
+      filters.search = searchTerm;
+    }
+    if (date) {
+      filters.date = date as string;
+    }
+    setFilters(filters);
   };
 
   const handleViewDetails = (ticket: any) => {
