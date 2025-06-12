@@ -33,9 +33,19 @@ export const MessageTabContent: React.FC<any> = ({
   const [statusFilter, setStatusFilter] = useState<string>(
     selectedOption || ""
   );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Add state to track previous values for comparison
+  const [prevSearchTerm, setPrevSearchTerm] = useState(searchTerm);
+  const [prevSelectedEndDate, setPrevSelectedEndDate] =
+    useState(selectedEndDate);
+  const [prevSelectedStartDate, setPrevSelectedStartDate] =
+    useState(selectedStartDate);
+  const [prevDate, setPrevDate] = useState(date);
 
   const {
-    chats,
+    chats: fetchedChats,
     loadNext,
     loading,
     error: chatError,
@@ -43,6 +53,8 @@ export const MessageTabContent: React.FC<any> = ({
     setFilters,
     isFetchingNextPage,
   } = useGetAllChat();
+
+  const [chats, setChats] = useState<any[]>([]); // Maintain local chat state
 
   console.log({ selectedEndDate, selectedStartDate });
 
@@ -52,6 +64,13 @@ export const MessageTabContent: React.FC<any> = ({
   });
 
   const { claiming, onClaiming } = useClaimChat();
+
+  // Function to trigger full reload
+  const triggerFullReload = () => {
+    setChats([]); // Reset chats array
+    setIsInitialLoad(true); // Reset initial load flag
+    setIsLoadingMore(false); // Reset loading more state
+  };
 
   useEffect(() => {
     const filters: any = {};
@@ -73,6 +92,20 @@ export const MessageTabContent: React.FC<any> = ({
       filters.date = date as string;
     }
 
+    // Check if any filter prop has changed from previous values
+    if (
+      searchTerm !== prevSearchTerm ||
+      selectedEndDate !== prevSelectedEndDate ||
+      selectedStartDate !== prevSelectedStartDate ||
+      date !== prevDate
+    ) {
+      triggerFullReload();
+      setPrevSearchTerm(searchTerm);
+      setPrevSelectedEndDate(selectedEndDate);
+      setPrevSelectedStartDate(selectedStartDate);
+      setPrevDate(date);
+    }
+
     setFilters(filters);
   }, [
     statusFilter,
@@ -81,7 +114,19 @@ export const MessageTabContent: React.FC<any> = ({
     selectedEndDate,
     date,
     setFilters,
+    prevSearchTerm,
+    prevSelectedEndDate,
+    prevSelectedStartDate,
+    prevDate,
   ]);
+
+  useEffect(() => {
+    if (fetchedChats && fetchedChats.length > 0) {
+      setChats(fetchedChats);
+      setIsLoadingMore(false);
+      setIsInitialLoad(false);
+    }
+  }, [fetchedChats]);
 
   const handleViewDetails = (chat: any) => {
     setSelectedTicket(chat);
@@ -103,7 +148,36 @@ export const MessageTabContent: React.FC<any> = ({
 
   const handleTabChange = (value: string) => {
     setStatusFilter(value === "all" ? "" : value);
-    setFilters({ status: value === "all" ? "" : value });
+
+    // Trigger full reload when filter changes
+    triggerFullReload();
+
+    // Set filters to trigger data refetch
+    const filters: any = {};
+    filters.status = value === "all" ? "" : value;
+
+    if (searchTerm) {
+      filters.search = searchTerm;
+    }
+
+    if (selectedStartDate) {
+      filters.created_after = selectedStartDate;
+    }
+
+    if (selectedEndDate) {
+      filters.created_before = selectedEndDate;
+    }
+
+    if (date) {
+      filters.date = date as string;
+    }
+
+    setFilters(filters);
+  };
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    loadNext();
   };
 
   const styling =
@@ -138,129 +212,121 @@ export const MessageTabContent: React.FC<any> = ({
             </TabsTrigger>
           </TabsList>
 
-          {loading && chats.length === 0 ? (
-            <Skeleton />
+          {loading && chats.length === 0 && isInitialLoad ? (
+            <div className="h-[200px] flex justify-center items-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : chats.length === 0 && !loading ? (
+            <div className="h-[40px] flex justify-center items-center">
+              <p className="text-[20px] font-[500] text-[#181818]">
+                No data found
+              </p>
+            </div>
           ) : (
-            <>
-              {chats.length === 0 ? (
-                <div className="h-[40px] flex justify-center items-center">
-                  <p className="text-[20px] font-[500] text-[#181818]">
-                    No data found
-                  </p>
-                </div>
-              ) : (
-                <div className="lg:px-[24px] px-[4px]">
-                  <div className="overflow-x-auto">
-                    <Table className="border-none border-collapse min-w-[600px]">
-                      <TableHeader>
-                        <TableRow className="items-center border-none hover:bg-none">
-                          <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
-                            Message Preview
-                          </TableCell>
-                          <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
-                            Customer
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Created at
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Status
-                          </TableCell>
-                          <TableCell className="font-semibold border-none whitespace-nowrap">
-                            Action
-                          </TableCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {chats.map((chat, index) => (
-                          <TableRow
-                            key={`${chat.id}-${index}`}
-                            className="items-center cursor-pointer border-none"
+            <div className="lg:px-[24px] px-[4px]">
+              <div className="overflow-x-auto">
+                <Table className="border-none border-collapse min-w-[600px]">
+                  <TableHeader>
+                    <TableRow className="items-center border-none hover:bg-none">
+                      <TableCell className="font-semibold border-none min-w-[200px] whitespace-nowrap">
+                        Message Preview
+                      </TableCell>
+                      <TableCell className="font-semibold border-none min-w-[180px] whitespace-nowrap">
+                        Customer
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Created at
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Status
+                      </TableCell>
+                      <TableCell className="font-semibold border-none whitespace-nowrap">
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chats.map((chat, index) => (
+                      <TableRow
+                        key={`${chat.id}-${index}`}
+                        className="items-center cursor-pointer border-none"
+                      >
+                        <TableCell className="border-none min-w-[200px] whitespace-nowrap">
+                          <div className="flex items-center space-x-4">
+                            <div className="space-y-[8px]">
+                              <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
+                                {chat.title}
+                              </h2>
+                              <p className="text-[#9B9EA4] text-[12px]">
+                                {"Chat--00" + chat.id}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="border-none min-w-[180px] whitespace-nowrap">
+                          <div className="space-y-2">
+                            <p className="text-[#181818] text-[14px] font-[500] capitalize">
+                              {chat.user_info.first_name || "---"}{" "}
+                              {chat.user_info.last_name || "---"}
+                            </p>
+                            <p className="text-[#9B9EA4] text-[12px]">
+                              {chat.user_info.email || "---"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="table-cell border-none whitespace-nowrap">
+                          <div className="space-y-2">
+                            <p className="text-[#181818] text-[14px] font-[500]">
+                              {format(parseISO(chat.created_at), "dd/MM/yyyy")}
+                            </p>
+                            <p className="text-[#9B9EA4] text-[12px]">
+                              <span>{getRelativeTime(chat.created_at)}</span>
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="border-none whitespace-nowrap">
+                          <span
+                            className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
+                              chat.status === "WAITING"
+                                ? "bg-[#CCD8E8] text-[#181818]"
+                                : chat.status === "ACTIVE"
+                                ? "bg-[#EFB60880]/50  text-[#181818]"
+                                : chat.status === "resolved"
+                                ? "bg-[#2D9C5E80]/50  text-[#181818]"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
                           >
-                            <TableCell className="border-none min-w-[200px] whitespace-nowrap">
-                              <div className="flex items-center space-x-4">
-                                <div className="space-y-[8px]">
-                                  <h2 className="font-medium text-[#181818] text-[14px] lg:text-[16px]">
-                                    {chat.title}
-                                  </h2>
-                                  <p className="text-[#9B9EA4] text-[12px]">
-                                    {"Chat--00" + chat.id}
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="border-none min-w-[180px] whitespace-nowrap">
-                              <div className="space-y-2">
-                                <p className="text-[#181818] text-[14px] font-[500] capitalize">
-                                  {chat.user_info.first_name || "---"}{" "}
-                                  {chat.user_info.last_name || "---"}
-                                </p>
-                                <p className="text-[#9B9EA4] text-[12px]">
-                                  {chat.user_info.email || "---"}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="table-cell border-none whitespace-nowrap">
-                              <div className="space-y-2">
-                                <p className="text-[#181818] text-[14px] font-[500]">
-                                  {format(
-                                    parseISO(chat.created_at),
-                                    "dd/MM/yyyy"
-                                  )}
-                                </p>
-                                <p className="text-[#9B9EA4] text-[12px]">
-                                  <span>
-                                    {getRelativeTime(chat.created_at)}
-                                  </span>
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="border-none whitespace-nowrap">
-                              <span
-                                className={`px-4 py-3 rounded-md text-[10px] lg:text-[12px] ${
-                                  chat.status === "WAITING"
-                                    ? "bg-[#CCD8E8] text-[#181818]"
-                                    : chat.status === "ACTIVE"
-                                    ? "bg-[#EFB60880]/50  text-[#181818]"
-                                    : chat.status === "resolved"
-                                    ? "bg-[#2D9C5E80]/50  text-[#181818]"
-                                    : "bg-gray-100 text-gray-600"
-                                }`}
-                              >
-                                {chat.status.replace("_", " ").toUpperCase()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="border-none whitespace-nowrap">
-                              <ChatTableDropdown
-                                parentWidth={180}
-                                onViewDetails={() => handleOpenClaimModal(chat)}
-                                onViewMessage={() => handleViewDetails(chat)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
-            </>
+                            {chat.status.replace("_", " ").toUpperCase()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="border-none whitespace-nowrap">
+                          <ChatTableDropdown
+                            parentWidth={180}
+                            onViewDetails={() => handleOpenClaimModal(chat)}
+                            onViewMessage={() => handleViewDetails(chat)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           )}
 
-          {nextPageUrl && !loading && (
+          {nextPageUrl && (
             <div className="flex justify-center mt-4">
               <button
                 className="bg-[#EBECED] cursor-pointer rounded-[8px] px-[40px] py-[16px] flex items-center"
-                onClick={loadNext}
-                disabled={loading}
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
               >
-                <p className="text-[#023E8A] text-[14px]">Load more</p>
+                {isLoadingMore ? (
+                  <div className="w-5 h-5 border-2 border-[#023E8A] border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <p className="text-[#023E8A] text-[14px]">Load more</p>
+                )}
               </button>
-            </div>
-          )}
-          {loading && (
-            <div className="flex justify-center mt-4">
-              <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
         </Tabs>
