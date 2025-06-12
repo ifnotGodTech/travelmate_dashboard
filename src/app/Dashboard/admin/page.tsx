@@ -20,6 +20,7 @@ import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import Loading from "./loading";
+import { LoaderCircleIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -47,6 +48,9 @@ const AdminRolesPage: React.FC = () => {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
+  const [isInviteLoading, setIsInviteLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
@@ -54,8 +58,10 @@ const AdminRolesPage: React.FC = () => {
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [successDeleteModal, setSuccessDeleteModal] = useState(false);
 
   const [activeTab, setActiveTab] = useState("role-management");
 
@@ -151,6 +157,7 @@ const AdminRolesPage: React.FC = () => {
   //EDIR ADMIN ROLES AND PERMISSIONS
   const UpdateRole = async (roleId: string, updatedRole: Role) => {
     try {
+      setIsSaveLoading(true);
       const response = await axios.patch(
         `${env.api.superadmin}roles/${roleId}/`,
         updatedRole,
@@ -173,7 +180,6 @@ const AdminRolesPage: React.FC = () => {
             : role
         )
       );
-      await fetchAllRoles();
       showSuccessToast({
         message: "Role updated successfully",
       });
@@ -183,8 +189,11 @@ const AdminRolesPage: React.FC = () => {
         error.response?.data || error.message
       );
       showErrorToast({ message: "Failed to update role" });
+    }finally {
+      setIsSaveLoading(false);
     }
   };
+
   //CREATE NEW ROLE OR SAVE
   const saveRole = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -212,8 +221,10 @@ const AdminRolesPage: React.FC = () => {
         created_by: "",
         invited_users: [],
       });
+      setIsCreateRoleOpen(false)
     } else {
       try {
+        setIsSaveLoading(true);
         const response = await axios.post(
           `${env.api.superadmin}roles/`,
           {
@@ -234,6 +245,8 @@ const AdminRolesPage: React.FC = () => {
       } catch (err) {
         console.log("Error Creating new Role", err);
         showErrorToast({ message: "An error occurred" });
+      } finally {
+        setIsSaveLoading(false);
       }
     }
 
@@ -279,6 +292,30 @@ const AdminRolesPage: React.FC = () => {
     setIsCreateRoleOpen(true);
   };
 
+  //DELETE ROLES
+  const confirmDeleteRole = async () => {
+    try {
+      setIsDeleteLoading(true);
+      await axios.delete(`${env.api.superadmin}roles/${roleToDelete}/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setAdminDetails((prev) =>
+        prev.filter((role) => role.id !== roleToDelete)
+      );
+      setShowConfirmModal(false);
+      setSuccessDeleteModal(true); // Show success modal
+      showSuccessToast({ message: "Role deleted successfully!" });
+    } catch (error: any) {
+      showErrorToast({
+        message:
+          error?.response?.data?.message || "Error deleting Role, try again",
+      });
+    } finally {
+      setIsDeleteLoading(false);
+    }
+  };
   // INVITE NEW MEMBER
   const inviteMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -289,6 +326,7 @@ const AdminRolesPage: React.FC = () => {
       return;
     }
     try {
+      setIsInviteLoading(true);
       await axios.post(
         `${env.api.superadmin}roles/${id}/invite/`,
         {
@@ -303,14 +341,20 @@ const AdminRolesPage: React.FC = () => {
       );
       setIsAddMemberOpen(false);
       setSuccessModal(true);
-      setAdminDetails((prev) => [
-        ...prev,
-        {
-          name: newMember.name,
-          email: newMember.email,
-          role: newMember.role,
-        },
-      ]);
+      setAdminDetails((prev) =>
+        prev.map((role) =>
+          role.id === id
+            ? {
+                ...role,
+                invited_users: [
+                  ...role.invited_users,
+                  { name: newMember.name, email: newMember.email },
+                ],
+              }
+            : role
+        )
+      );
+
       console.log(adminDetails);
       setIsInvited(true);
     } catch (error: any) {
@@ -320,9 +364,10 @@ const AdminRolesPage: React.FC = () => {
       });
     } finally {
       setSelectedOption("");
+      setIsInviteLoading(false);
     }
   };
-//REVOKE INVITATION OF ADMINS AND SUPERADMINS
+  //REVOKE INVITATION OF ADMINS AND SUPERADMINS
   const revokeInvite = async (id: string, email: string) => {
     try {
       await axios.post(
@@ -336,18 +381,18 @@ const AdminRolesPage: React.FC = () => {
           },
         }
       );
-        setAdminDetails((prev) =>
-      prev.map((role) =>
-        role.id === id
-          ? {
-              ...role,
-              invited_users: role.invited_users.filter(
-                (user) => user.email !== email
-              ),
-            }
-          : role
-      )
-    );
+      setAdminDetails((prev) =>
+        prev.map((role) =>
+          role.id === id
+            ? {
+                ...role,
+                invited_users: role.invited_users.filter(
+                  (user) => user.email !== email
+                ),
+              }
+            : role
+        )
+      );
     } catch (error: any) {
       console.log("error revoking invite", error);
       showErrorToast({
@@ -445,6 +490,14 @@ const AdminRolesPage: React.FC = () => {
                     onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
                     isLoading={isLoading}
                     onStartEdit={handleEditRole}
+                    roleToDelete={roleToDelete}
+                    setRoleToDelete={setRoleToDelete}
+                    showConfirmModal={showConfirmModal}
+                    setShowConfirmModal={setShowConfirmModal}
+                    successDeleteModal={successDeleteModal}
+                    setSuccessDeleteModal={setSuccessDeleteModal}
+                    confirmDeleteRole={confirmDeleteRole}
+                    isDeleteLoading={isDeleteLoading}
                   />
                 </TabsContent>
 
@@ -535,10 +588,20 @@ const AdminRolesPage: React.FC = () => {
                     </Button>
 
                     <Button
+                    disabled={isSaveLoading}
                       type="submit"
                       className="bg-[#CCD8E8] hover:bg-blue-100 text-[#023E8A] cursor-pointer flex gap-3 items-center w-full"
                     >
-                      <Download className="w-5" />
+                      {isSaveLoading ? (
+                        <LoaderCircleIcon
+                          stroke="#023E8A"
+                          style={{
+                            animation: "spin 1s linear infinite",
+                          }}
+                        />
+                      ) : (
+                        <Download className="w-5" />
+                      )}
                       <span className="text-[#023E8A]">
                         {isEditing ? "UPDATE ROLE" : "SAVE ROLE"}
                       </span>
@@ -625,9 +688,18 @@ const AdminRolesPage: React.FC = () => {
                     </Button>
 
                     <Button
+                      disabled={isInviteLoading}
                       type="submit"
-                      className="bg-[#023E8A] border-blue-100 hover:bg-blue-100 text-white cursor-pointer"
+                      className="bg-[#023E8A] border-blue-100 hover:bg-blue-500 text-white cursor-pointer"
                     >
+                      {isInviteLoading && (
+                        <LoaderCircleIcon
+                          stroke="#023E8A"
+                          style={{
+                            animation: "spin 1s linear infinite",
+                          }}
+                        />
+                      )}
                       Add Member
                     </Button>
                   </div>
@@ -652,9 +724,9 @@ const AdminRolesPage: React.FC = () => {
                   />
 
                   <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
-                    You have successfully added a new Admin. An invitation email
-                    has been sent to {newMember.email || "them"} to set up their
-                    account.
+                    You have successfully invited a new Admin. An invitation
+                    email has been sent to {newMember.email || "them"} to set up
+                    their account.
                   </DialogDescription>
                 </div>
               </DialogContent>

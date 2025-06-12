@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import env from "@/config/env";
 import { showErrorToast } from "@/utils/toasters";
-import Loading from "../Dashboard/admin/loading";
+import Loading from "@/app/Dashboard/admin/loading";
 
 const page = () => (
   <Suspense
