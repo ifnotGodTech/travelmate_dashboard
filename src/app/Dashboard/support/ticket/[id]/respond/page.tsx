@@ -65,7 +65,7 @@ const page = () => {
             <div className="hidden lg:flex space-x-4">
               {!ticket?.escalated && (
                 <button
-                  className={`flex-1 rounded-[8px] border font-medium py-2 ${
+                  className={`rounded-[8px] border font-medium py-2 px-4 ${
                     isAdmin
                       ? "border-[#D72638] text-[#D72638]"
                       : "border-gray-500 text-gray-700 cursor-not-allowed"
@@ -83,7 +83,7 @@ const page = () => {
                 </button>
               )}
               <button
-                className={`flex-1 rounded-[8px] text-white font-medium px-4 py-2 w-full ${
+                className={`rounded-[8px] text-white font-medium px-4 py-2 ${
                   isAdmin ? "bg-[#023E8A]" : "bg-gray-500 cursor-not-allowed"
                 }`}
                 onClick={() => setShowConfirmModal(true)}
