@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -80,14 +80,17 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const filteredRoles = roles.filter((role) => {
+
+const filteredRoles = useMemo(() => {
+  return roles.filter((role) => {
     const query = searchQuery.toLowerCase();
     const isRoleNameMatch = role.name.toLowerCase().includes(query);
     const isAssignedUserMatch = role?.assigned_users?.some((user) =>
-      user.name.toLowerCase().includes(query)
+      (user.name || "").toLowerCase().includes(query)
     );
     return isRoleNameMatch || isAssignedUserMatch;
   });
+}, [roles, searchQuery]);
 
   return (
     <>

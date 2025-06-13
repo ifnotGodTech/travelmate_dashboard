@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import env from "@/config/env";
 import { showErrorToast } from "@/utils/toasters";
-import Loading from "../Dashboard/admin/loading";
+import Loading from "@/app/Dashboard/admin/loading";
 
 const page = () => (
   <Suspense
@@ -45,26 +45,29 @@ const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const validateInvitation = async () => {
-      try {
-        const response = await axios.get(
-          `${env.api.admin}/invitations/validate/`,
-          { params: { token } }
-        );
-        console.log(response);
-        setEmail(response.data.email);
-      } catch (error: any) {
-        console.log(error);
-        showErrorToast({ message: error?.response?.data?.message });
-        setIsValidToken(false);
-      }
-    };
-
-    if (token) {
-      validateInvitation();
-    } else {
+    if (!token) {
       showErrorToast({ message: "Missing invitation token" });
       setIsValidToken(false);
+      return;
+    }
+    else {
+      const validateInvitation = async () => {
+        try {
+          const response = await axios.get(
+            `${env.api.admin}/invitations/validate/`,
+            { params: { token } }
+          );
+          setEmail(response.data.email);
+          setIsValidToken(true);
+        } catch (error: any) {
+          showErrorToast({ message: error?.response?.data?.message });
+          setIsValidToken(false);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      validateInvitation();
     }
   }, [token]);
 
@@ -101,7 +104,11 @@ const LoginComponent = () => {
   }
 
   if (isValidToken === null) {
-    return <div><Loading/></div>; 
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
   }
   return (
     <>
