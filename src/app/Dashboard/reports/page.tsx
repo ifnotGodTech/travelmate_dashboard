@@ -50,6 +50,11 @@ type Breakdown = {
   flight_revenue: number;
   car_revenue: number;
 };
+type Combined = {
+  label: string;
+  bookings: number;
+  revenue: number;
+};
 export default function ReportsPage() {
   const APP_STATE = useAuthContext();
   const isSuperadmin = APP_STATE?.user?.isSuperuser;
@@ -60,7 +65,9 @@ export default function ReportsPage() {
   const [isLoadingExport, setIsLoadingExport] = useState(false);
 
   const [overviewData, setOverviewData] = useState<Summary>();
-  const [revenueBookingsData, setRevenueBookingsData] = useState();
+  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>(
+    []
+  );
   const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
 
   const [selectedOption, setSelectedOption] = useState("This Month");
@@ -81,63 +88,91 @@ export default function ReportsPage() {
 
   const generateQueryParams = () => {
     const now = new Date();
-    const baseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
-
+    const breakdownBaseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
+    const combinedBaseUrl = `${env.api.admin}/reports/bookings/combined/?group_by=day`;
+    const summaryBaseUrl = `${env.api.admin}/reports/summary/?`;
+    let params = { breakdown: "", combined: "", summary: "" };
     switch (selectedOption) {
       case "This Week":
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        return `${baseUrl}&start=${
+        params.breakdown = `${breakdownBaseUrl}&start=${
           startOfWeek.toISOString().split("T")[0]
         }&end=${now.toISOString().split("T")[0]}&period=week`;
-
+        params.summary = `${summaryBaseUrl}&start=${
+          startOfWeek.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=week`;
+        params.combined = `${combinedBaseUrl}&start=${
+          startOfWeek.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=week`;
+        break;
       case "This Month":
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return `${baseUrl}&start=${
+        params.breakdown = `${breakdownBaseUrl}&start=${
           startOfMonth.toISOString().split("T")[0]
         }&end=${now.toISOString().split("T")[0]}&period=month`;
+        params.summary = `${summaryBaseUrl}&start=${
+          startOfMonth.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=month`;
+        params.combined = `${combinedBaseUrl}&start=${
+          startOfMonth.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=month`;
+        break;
 
       case "Last 3 Months":
-        return `${baseUrl}&months=3`;
+        params.breakdown = `${breakdownBaseUrl}&months=3`;
+        params.summary = `${summaryBaseUrl}&months=3`;
+        params.combined = `${combinedBaseUrl}&months=3`;
+        break;
 
       case "This Year":
         const startOfYear = new Date(now.getFullYear(), 0, 1);
-        return `${baseUrl}&start=${
+        params.breakdown = `${breakdownBaseUrl}&start=${
           startOfYear.toISOString().split("T")[0]
         }&end=${now.toISOString().split("T")[0]}&period=year`;
+        params.summary = `${summaryBaseUrl}&start=${
+          startOfYear.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=year`;
+        params.combined = `${combinedBaseUrl}&start=${
+          startOfYear.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=year`;
+        break;
 
       default:
-        return `${baseUrl}&months=6`; // fallback
+        params.breakdown = `${breakdownBaseUrl}&months=6`;
+        params.summary = `${summaryBaseUrl}&months=6`;
+        params.combined = `${combinedBaseUrl}&months=6`;
+        break;
     }
+    return params;
   };
 
   //FETCH DATA
   const fetchAdminData = async () => {
+    const { breakdown, summary } = generateQueryParams();
     try {
       setIsLoading(true);
-      const [bookingbreakdown, bookingscombined, summary] = await Promise.all([
-        axios.get(generateQueryParams(), {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-        axios.get(`${env.api.admin}/reports/bookings/combined/`, {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-        axios.get(`${env.api.admin}/reports/summary/`, {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-      ]);
+      const [bookingbreakdown, bookingscombined, summaryResponse] =
+        await Promise.all([
+          axios.get(breakdown, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+          axios.get(`${env.api.admin}/reports/bookings/combined/`, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+          axios.get(summary, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+        ]);
       setRevenueBookingsData(bookingscombined.data);
-      setOverviewData(summary.data);
+      setOverviewData(summaryResponse.data);
       setBookingTrendsData(bookingbreakdown.data);
-      console.log(bookingbreakdown.data);
-    } catch (error) {
-      showErrorToast({ message: "Error displaying data" });
+      console.log(bookingscombined.data); 
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Error displaying data",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +203,30 @@ export default function ReportsPage() {
   };
 
   // //FILTER DATA BASED ON TIME PERIOD OR DURATIONS
-  const filteredData = useMemo(() => {
+  const filteredCombinedData = useMemo(() => {
+    if (!revenueBookingsData) return [];
+    const now = new Date();
+    return revenueBookingsData?.filter((item) => {
+      const createdAt = new Date(item.label);
+      if (selectedOption === "This Week") {
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        return createdAt >= startOfWeek;
+      } else if (selectedOption === "This Month") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      } else if (selectedOption === "Last 3 Months") {
+        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+        return createdAt >= threeMonthsAgo;
+      } else if (selectedOption === "This Year") {
+        return createdAt.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }, [revenueBookingsData, selectedOption]);
+
+    const filteredData = useMemo(() => {
     if (!bookingTrendsData) return [];
     const now = new Date();
     return bookingTrendsData?.filter((item) => {
@@ -202,7 +260,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchAdminData();
-  }, [isSuperadmin]);
+  }, [isSuperadmin, selectedOption]);
 
   const periodFilter = [
     "This Week",
@@ -289,8 +347,7 @@ export default function ReportsPage() {
                       {overviewData?.total_users ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-green-600">
-                      {overviewData?.user_growth_percentage ?? 0}% from last
-                      month
+                      {overviewData?.user_growth_percentage ?? 0}% from {selectedOption}
                     </span>
                   </div>
                 </CardContent>
@@ -309,8 +366,7 @@ export default function ReportsPage() {
                       {overviewData?.total_bookings ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-blue-600">
-                      {overviewData?.booking_growth_percentage ?? 0}% from last
-                      month
+                      {overviewData?.booking_growth_percentage ?? 0}% from {selectedOption}
                     </span>
                   </div>
                 </CardContent>
@@ -331,7 +387,7 @@ export default function ReportsPage() {
                       </span>
                       <span className="ml-2 text-sm text-orange-600">
                         {overviewData?.revenue_growth_percentage ?? 0}% from
-                        last month
+                        {selectedOption}
                       </span>
                     </div>
                   </CardContent>
@@ -390,13 +446,13 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
-                        {filteredData.length === 0 && (
+                        {filteredCombinedData.length === 0 && (
                           <div className="text-center mt-[15%] text-lg font-bold">
                             Nothing to see here
                           </div>
                         )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={processedData}>
+                          <BarChart data={filteredCombinedData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
@@ -413,13 +469,13 @@ export default function ReportsPage() {
                               }}
                             />
                             <Bar
-                              dataKey="total_bookings"
+                              dataKey="bookings"
                               fill="#1e40af"
                               name="Booking"
                             />
                             {isSuperadmin && (
                               <Bar
-                                dataKey="total_revenue"
+                                dataKey="revenue"
                                 fill="#f97316"
                                 name="Revenue"
                               />
