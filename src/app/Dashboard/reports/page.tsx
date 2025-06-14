@@ -593,7 +593,7 @@ export default function ReportsPage() {
                               className="stroke-muted"
                             />
                             <XAxis dataKey="label" />
-                            <YAxis tickFormatter={formatCurrency} />
+                            <YAxis />
                             <Tooltip
                               formatter={(value) =>
                                 formatCurrency(Number(value))
@@ -605,29 +605,25 @@ export default function ReportsPage() {
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin
-                                  ? "flight_revenue"
-                                  : "flight_bookings"
-                              }
+                              dataKey=
+                                   "flight_bookings"
+                              
                               stroke="#f97316"
                               name="Flights"
                               strokeWidth={2}
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin ? "car_revenue" : "car_bookings"
-                              }
+                              dataKey="car_bookings"
+                              
                               stroke="#22c55e"
                               name="Hotels"
                               strokeWidth={2}
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin ? "car_revenue" : "car_bookings"
-                              }
+                              dataKey= "car_bookings"
+                              
                               stroke="#1e40af"
                               name="Cars"
                               strokeWidth={2}
