@@ -48,7 +48,7 @@ const AdminRolesPage: React.FC = () => {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isPermissionLoading, setIsPermissionLoading] = useState(true)
+  const [isPermissionLoading, setIsPermissionLoading] = useState(true);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [isInviteLoading, setIsInviteLoading] = useState(false);
@@ -177,13 +177,26 @@ const AdminRolesPage: React.FC = () => {
                 description: response.data.description,
                 current_permission_group_slugs:
                   response.data.current_permission_group_slugs,
+                  assigned_users: response.data.assigned_users,
+                  invited_users: response.data.invited_users
               }
+              
             : role
         )
       );
+      setRoleDetails((prev) => ({
+        ...prev,
+        permissions: response.data.current_permission_group_slugs,
+      }));
+
       showSuccessToast({
         message: "Role updated successfully",
       });
+      console.log("Before Update:", roleDetails.permissions);
+      console.log(
+        "After Update:",
+        response.data.current_permission_group_slugs
+      );
     } catch (error: any) {
       console.error(
         "Error updating role:",
@@ -248,10 +261,9 @@ const AdminRolesPage: React.FC = () => {
         showErrorToast({ message: "An error occurred" });
       } finally {
         setIsSaveLoading(false);
+        setRoleDetails({ id: "", name: "", description: "", permissions: [] });
       }
     }
-
-    setRoleDetails({ id: "", name: "", description: "", permissions: [] });
     setIsCreateRoleOpen(false);
     setIsEditing(false);
     setEditingRoleId(null);
@@ -291,6 +303,7 @@ const AdminRolesPage: React.FC = () => {
     setEditingRoleId(role.id);
     setIsEditing(true);
     setIsCreateRoleOpen(true);
+    console.log(roleDetails);
   };
 
   //DELETE ROLES
@@ -458,9 +471,7 @@ const AdminRolesPage: React.FC = () => {
         ) : (
           <>
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-              <h2
-                className="text-lg font-medium pb-6 cursor-pointer px-2"
-              >
+              <h2 className="text-lg font-medium pb-6 cursor-pointer px-2">
                 Manage access control for your travel agency dashboard
               </h2>
               <Tabs
