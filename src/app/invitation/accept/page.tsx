@@ -87,6 +87,7 @@ const LoginComponent = () => {
       showErrorToast({
         message: error?.response?.data?.message || "Something went wrong",
       });
+      console.log(error?.response?.data?.message)
     } finally {
       setLoading(false);
     }

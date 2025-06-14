@@ -70,7 +70,7 @@ export default function ReportsPage() {
   );
   const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
 
-  const [selectedOption, setSelectedOption] = useState("This Month");
+  const [selectedOption, setSelectedOption] = useState("This Week");
 
   // if (!APP_STATE?.user) return <Loading />;
   // if (!APP_STATE?.accessToken) {
@@ -126,16 +126,10 @@ export default function ReportsPage() {
         break;
 
       case "This Year":
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        params.breakdown = `${breakdownBaseUrl}&start=${
-          startOfYear.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=year`;
-        params.summary = `${summaryBaseUrl}&start=${
-          startOfYear.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=year`;
-        params.combined = `${combinedBaseUrl}&start=${
-          startOfYear.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=year`;
+        // const startOfYear = new Date(now.getFullYear(), 0, 1);
+        params.breakdown = `${breakdownBaseUrl}&period=year`;
+        params.summary = `${summaryBaseUrl}&period=year`;
+        params.combined = `${combinedBaseUrl}&period=year`;
         break;
 
       default:
@@ -149,7 +143,7 @@ export default function ReportsPage() {
 
   //FETCH DATA
   const fetchAdminData = async () => {
-    const { breakdown, summary } = generateQueryParams();
+    const { breakdown, summary, combined } = generateQueryParams();
     try {
       setIsLoading(true);
       const [bookingbreakdown, bookingscombined, summaryResponse] =
@@ -157,17 +151,16 @@ export default function ReportsPage() {
           axios.get(breakdown, {
             headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
           }),
-          axios.get(`${env.api.admin}/reports/bookings/combined/`, {
+          axios.get(combined, {
             headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
           }),
           axios.get(summary, {
             headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
           }),
         ]);
-      setRevenueBookingsData(bookingscombined.data);
+      setRevenueBookingsData(bookingscombined.data.results);
       setOverviewData(summaryResponse.data);
-      setBookingTrendsData(bookingbreakdown.data);
-      console.log(bookingscombined.data); 
+      setBookingTrendsData(bookingbreakdown.data.results);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
@@ -184,6 +177,9 @@ export default function ReportsPage() {
       setIsLoadingExport(true);
       const response = await axios.get(`${env.api.admin}/reports/export/`, {
         responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${APP_STATE.accessToken}`,
+        },
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -206,7 +202,7 @@ export default function ReportsPage() {
   const filteredCombinedData = useMemo(() => {
     if (!revenueBookingsData) return [];
     const now = new Date();
-    return revenueBookingsData?.filter((item) => {
+    let filtered = revenueBookingsData?.filter((item) => {
       const createdAt = new Date(item.label);
       if (selectedOption === "This Week") {
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -224,12 +220,54 @@ export default function ReportsPage() {
       }
       return true;
     });
+    if (selectedOption === "This Year") {
+      // Aggregate by month
+      const monthlyData: { [key: string]: Combined } = {};
+      filtered.forEach((item) => {
+        const date = new Date(item.label);
+        const monthKey = date.toLocaleString("en-US", { month: "long" });
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            label: monthKey,
+            bookings: 0,
+            revenue: 0,
+          };
+        }
+        monthlyData[monthKey].bookings += item.bookings;
+        monthlyData[monthKey].revenue += item.revenue;
+      });
+      return Object.values(monthlyData).sort((a, b) => {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        return months.indexOf(a.label) - months.indexOf(b.label);
+      });
+    }
+
+    return filtered.map((item) => ({
+      ...item,
+      label:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : item.label,
+    }));
   }, [revenueBookingsData, selectedOption]);
 
-    const filteredData = useMemo(() => {
+  const filteredData = useMemo(() => {
     if (!bookingTrendsData) return [];
     const now = new Date();
-    return bookingTrendsData?.filter((item) => {
+    let filtered = bookingTrendsData?.filter((item) => {
       const createdAt = new Date(item.label);
       if (selectedOption === "This Week") {
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -247,6 +285,52 @@ export default function ReportsPage() {
       }
       return true;
     });
+    if (selectedOption === "This Year") {
+      // Aggregate by month
+      const monthlyData: { [key: string]: Breakdown } = {};
+      filtered.forEach((item) => {
+        const date = new Date(item.label);
+        const monthKey = date.toLocaleString("en-US", { month: "long" });
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            label: monthKey,
+            flight_bookings: 0,
+            car_bookings: 0,
+            flight_revenue: 0,
+            car_revenue: 0,
+          };
+        }
+        monthlyData[monthKey].flight_bookings += item.flight_bookings;
+        monthlyData[monthKey].car_bookings += item.car_bookings;
+        monthlyData[monthKey].flight_revenue += item.flight_revenue;
+        monthlyData[monthKey].car_revenue += item.car_revenue;
+      });
+      return Object.values(monthlyData).sort((a, b) => {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        return months.indexOf(a.label) - months.indexOf(b.label);
+      });
+    }
+
+    return filtered.map((item) => ({
+      ...item,
+      label:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : item.label,
+    }));
   }, [bookingTrendsData, selectedOption]);
 
   const processedData = useMemo(() => {
@@ -347,7 +431,8 @@ export default function ReportsPage() {
                       {overviewData?.total_users ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-green-600">
-                      {overviewData?.user_growth_percentage ?? 0}% from {selectedOption}
+                      {overviewData?.user_growth_percentage ?? 0}% from last
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -366,7 +451,8 @@ export default function ReportsPage() {
                       {overviewData?.total_bookings ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-blue-600">
-                      {overviewData?.booking_growth_percentage ?? 0}% from {selectedOption}
+                      {overviewData?.booking_growth_percentage ?? 0}% from last
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -387,7 +473,7 @@ export default function ReportsPage() {
                       </span>
                       <span className="ml-2 text-sm text-orange-600">
                         {overviewData?.revenue_growth_percentage ?? 0}% from
-                        {selectedOption}
+                        last period
                       </span>
                     </div>
                   </CardContent>
@@ -507,7 +593,7 @@ export default function ReportsPage() {
                               className="stroke-muted"
                             />
                             <XAxis dataKey="label" />
-                            <YAxis />
+                            <YAxis tickFormatter={formatCurrency} />
                             <Tooltip
                               formatter={(value) =>
                                 formatCurrency(Number(value))
