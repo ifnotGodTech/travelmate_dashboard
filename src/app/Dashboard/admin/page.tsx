@@ -177,10 +177,9 @@ const AdminRolesPage: React.FC = () => {
                 description: response.data.description,
                 current_permission_group_slugs:
                   response.data.current_permission_group_slugs,
-                  assigned_users: response.data.assigned_users,
-                  invited_users: response.data.invited_users
+                assigned_users: response.data.assigned_users,
+                invited_users: response.data.invited_users,
               }
-              
             : role
         )
       );
@@ -202,7 +201,9 @@ const AdminRolesPage: React.FC = () => {
         "Error updating role:",
         error.response?.data || error.message
       );
-      showErrorToast({ message: "Failed to update role" });
+      showErrorToast({
+        message: error?.response?.data?.message || "Failed to update role",
+      });
     } finally {
       setIsSaveLoading(false);
     }
@@ -256,9 +257,11 @@ const AdminRolesPage: React.FC = () => {
         showSuccessToast({
           message: "Created new role successfully!",
         });
-      } catch (err) {
+      } catch (err: any) {
         console.log("Error Creating new Role", err);
-        showErrorToast({ message: "An error occurred" });
+        showErrorToast({
+          message: err?.response?.data?.message || "An error occurred",
+        });
       } finally {
         setIsSaveLoading(false);
         setRoleDetails({ id: "", name: "", description: "", permissions: [] });
@@ -519,6 +522,7 @@ const AdminRolesPage: React.FC = () => {
                     isLoading={isLoading}
                     onAddMemberOpen={() => setIsAddMemberOpen(true)}
                     revokeInvite={revokeInvite}
+                    setAdminDetails={setAdminDetails}
                   />
                 </TabsContent>
               </Tabs>

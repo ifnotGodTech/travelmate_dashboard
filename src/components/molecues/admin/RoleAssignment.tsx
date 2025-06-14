@@ -34,12 +34,14 @@ interface RoleAssignmentProps {
   onAddMemberOpen: () => void;
   isLoading?: boolean;
   revokeInvite: (id: string, email: string) => void;
+  setAdminDetails: React.Dispatch<React.SetStateAction<Role[]>>;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
   onAddMemberOpen,
   roles,
   isLoading,
   revokeInvite,
+  setAdminDetails,
 }) => {
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
@@ -70,7 +72,20 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
           },
         }
       );
+      const updatedRoles = roles.map((role) =>
+        role.id === roleId
+          ? {
+              ...role,
+              assigned_users: role.assigned_users.filter(
+                (user) => !emailsToRemove.includes(user.email)
+              ),
+            }
+          : role
+      );
+
       setShowSuccessRemoveModal(true);
+      // Update the roles state
+      setAdminDetails(updatedRoles);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
@@ -81,16 +96,16 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
 
-const filteredRoles = useMemo(() => {
-  return roles.filter((role) => {
-    const query = searchQuery.toLowerCase();
-    const isRoleNameMatch = role.name.toLowerCase().includes(query);
-    const isAssignedUserMatch = role?.assigned_users?.some((user) =>
-      (user.name || "").toLowerCase().includes(query)
-    );
-    return isRoleNameMatch || isAssignedUserMatch;
-  });
-}, [roles, searchQuery]);
+  const filteredRoles = useMemo(() => {
+    return roles.filter((role) => {
+      const query = searchQuery.toLowerCase();
+      const isRoleNameMatch = role.name.toLowerCase().includes(query);
+      const isAssignedUserMatch = role?.assigned_users?.some((user) =>
+        (user.name || "").toLowerCase().includes(query)
+      );
+      return isRoleNameMatch || isAssignedUserMatch;
+    });
+  }, [roles, searchQuery]);
 
   return (
     <>
@@ -167,7 +182,7 @@ const filteredRoles = useMemo(() => {
                     className={` text-green-600
                       hover:text-green-800 p-0`}
                   >
-                   Revoke Invite
+                    Revoke Invite
                   </Button>
                 </div>
               ))}
