@@ -48,6 +48,7 @@ const AdminRolesPage: React.FC = () => {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isPermissionLoading, setIsPermissionLoading] = useState(true)
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [isInviteLoading, setIsInviteLoading] = useState(false);
@@ -103,7 +104,7 @@ const AdminRolesPage: React.FC = () => {
   // FETCH PERMISSIONS TO CREATE NEW ROLE
   const fetchPermissions = async () => {
     try {
-      setIsLoading(true);
+      setIsPermissionLoading(true);
       const response = await axios.get(
         `${env.api.superadmin}permissions/groups`,
         {
@@ -128,7 +129,7 @@ const AdminRolesPage: React.FC = () => {
           errData?.detail?.[0] || errData?.messages?.[0] || error.message,
       });
     } finally {
-      setIsLoading(false);
+      setIsPermissionLoading(false);
     }
   };
 
@@ -459,7 +460,6 @@ const AdminRolesPage: React.FC = () => {
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
               <h2
                 className="text-lg font-medium pb-6 cursor-pointer px-2"
-                onClick={() => router.push("/invitation/accept")}
               >
                 Manage access control for your travel agency dashboard
               </h2>
@@ -557,7 +557,7 @@ const AdminRolesPage: React.FC = () => {
                   </div>
                   <div className="space-y-6 pt-4">
                     <h3 className="text-sm font-medium">Permissions</h3>
-                    {isLoading && <Loading />}
+                    {isPermissionLoading && <Loading />}
                     {availablePermissions.map((perm, id) => (
                       <div
                         key={perm.slug}
