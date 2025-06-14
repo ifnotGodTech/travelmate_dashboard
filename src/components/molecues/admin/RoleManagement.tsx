@@ -22,7 +22,7 @@ interface Role {
   name: string;
   description: string;
   assigned_users: any[]; // Array of assigned users
-  current_permission_group_slugs: string[]; // Optional property for permissions
+  current_permission_group_slugs: any[];
   is_superuser: boolean;
   created_by: string;
   invited_users: any[];

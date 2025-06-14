@@ -339,6 +339,7 @@ export default function ReportsPage() {
       ...item,
       total_bookings: item.car_bookings + item.flight_bookings,
       total_revenue: item.flight_revenue + item.car_revenue,
+      count: filteredData.length
     }));
   }, [filteredData]);
 
@@ -655,11 +656,9 @@ export default function ReportsPage() {
                               className="stroke-muted"
                             />
                             <XAxis dataKey="label" />
-                            <YAxis />
+                            <YAxis dataKey="count"/>
                             <Tooltip
-                              formatter={(value) =>
-                                formatCurrency(Number(value))
-                              }
+                             
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",

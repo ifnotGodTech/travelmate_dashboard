@@ -28,17 +28,23 @@ import {
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
 import { Download, XCircle } from "lucide-react";
+
+interface User {
+  name: string;
+  email: string;
+}
+
 interface Role {
   id: string;
   name: string;
   description: string;
-  assigned_users: any[];
+  assigned_users: User[];
   current_permission_group_slugs: string[];
-  // person: string;
   is_superuser: boolean;
   created_by: string;
-  invited_users: any[];
+  invited_users: User[];
 }
+
 type Permissions = {
   slug: string;
   name: string;
@@ -46,6 +52,7 @@ type Permissions = {
 
 const AdminRolesPage: React.FC = () => {
   const router = useRouter();
+  const { accessToken } = useAuthContext();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isPermissionLoading, setIsPermissionLoading] = useState(true);
@@ -67,15 +74,9 @@ const AdminRolesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("role-management");
 
   const [adminDetails, setAdminDetails] = useState<Role[]>([]);
-
-  const { accessToken } = useAuthContext();
-
+  const [availablePermissions, setAvailablePermissions] = useState<Permissions[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isInvited, setIsInvited] = useState(false);
-
-  const [availablePermissions, setAvailablePermissions] = useState<
-    Permissions[]
-  >([]);
 
   const [roleDetails, setRoleDetails] = useState<{
     id: string;
@@ -100,33 +101,26 @@ const AdminRolesPage: React.FC = () => {
     email: "",
     role: "",
   });
+
   const admins = adminDetails.filter((admin) => admin.name !== "Super Admin");
+
   // FETCH PERMISSIONS TO CREATE NEW ROLE
   const fetchPermissions = async () => {
     try {
       setIsPermissionLoading(true);
-      const response = await axios.get(
-        `${env.api.superadmin}permissions/groups`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken || ""}`,
-          },
-        }
-      );
+      const response = await axios.get(`${env.api.superadmin}permissions/groups`, {
+        headers: {
+          Authorization: `Bearer ${accessToken || ""}`,
+        },
+      });
       setAvailablePermissions(
         Array.isArray(response.data.results) ? response.data.results : []
       );
     } catch (error: any) {
-      console.error(
-        "Error fetching permissions:",
-        error.response?.data || error.message
-      );
-      setAvailablePermissions([]); // Ensure array on error
-      const errData = error.response?.data;
-
+      console.error("Error fetching permissions:", error.response?.data || error.message);
+      setAvailablePermissions([]);
       showErrorToast({
-        message:
-          errData?.detail?.[0] || errData?.messages?.[0] || error.message,
+        message: error.response?.data?.detail?.[0] || error.response?.data?.messages?.[0] || error.message,
       });
     } finally {
       setIsPermissionLoading(false);
@@ -148,20 +142,25 @@ const AdminRolesPage: React.FC = () => {
       );
     } catch (error: any) {
       showErrorToast({
-        message:
-          error?.response?.data.messages?.message || error?.messages?.message,
+        message: error?.response?.data.messages?.message || error?.messages?.message,
       });
     } finally {
       setIsLoading(false);
     }
   };
-  //EDIR ADMIN ROLES AND PERMISSIONS
-  const UpdateRole = async (roleId: string, updatedRole: Role) => {
+
+  // UPDATE ADMIN ROLES AND PERMISSIONS
+  const UpdateRole = async (roleId: string, updatedRole: Partial<Role>) => {
     try {
       setIsSaveLoading(true);
+      const payload = {
+        name: updatedRole.name,
+        description: updatedRole.description,
+        permission_group_slugs: updatedRole.current_permission_group_slugs, 
+      };
       const response = await axios.patch(
         `${env.api.superadmin}roles/${roleId}/`,
-        updatedRole,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -176,42 +175,35 @@ const AdminRolesPage: React.FC = () => {
                 name: response.data.name,
                 description: response.data.description,
                 current_permission_group_slugs:
-                  response.data.current_permission_group_slugs,
-                  assigned_users: response.data.assigned_users,
-                  invited_users: response.data.invited_users
+                  response.data.current_permission_group_slugs || [],
+                assigned_users: response.data.assigned_users || [],
+                invited_users: response.data.invited_users || [],
               }
-              
             : role
         )
       );
       setRoleDetails((prev) => ({
         ...prev,
-        permissions: response.data.current_permission_group_slugs,
+        permissions: response.data.current_permission_group_slugs || [],
       }));
-
       showSuccessToast({
         message: "Role updated successfully",
       });
       console.log("Before Update:", roleDetails.permissions);
-      console.log(
-        "After Update:",
-        response.data.current_permission_group_slugs
-      );
+      console.log("After Update:", response.data.current_permission_group_slugs);
     } catch (error: any) {
-      console.error(
-        "Error updating role:",
-        error.response?.data || error.message
-      );
-      showErrorToast({ message: "Failed to update role" });
+      console.error("Error updating role:", error.response?.data || error.message);
+      showErrorToast({
+        message: error?.response?.data?.message || "Failed to update role",
+      });
     } finally {
       setIsSaveLoading(false);
     }
   };
 
-  //CREATE NEW ROLE OR SAVE
+  // CREATE NEW ROLE OR SAVE
   const saveRole = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (
       !roleDetails.name ||
       roleDetails.name.trim() === "" ||
@@ -223,19 +215,15 @@ const AdminRolesPage: React.FC = () => {
       });
       return;
     }
-
     if (isEditing && editingRoleId) {
       await UpdateRole(editingRoleId, {
-        id: editingRoleId,
         name: roleDetails.name,
         description: roleDetails.description,
         current_permission_group_slugs: roleDetails.permissions,
-        assigned_users: [],
-        is_superuser: false,
-        created_by: "",
-        invited_users: [],
       });
       setIsCreateRoleOpen(false);
+      setIsEditing(false);
+      setEditingRoleId(null);
     } else {
       try {
         setIsSaveLoading(true);
@@ -256,17 +244,16 @@ const AdminRolesPage: React.FC = () => {
         showSuccessToast({
           message: "Created new role successfully!",
         });
-      } catch (err) {
+      } catch (err: any) {
         console.log("Error Creating new Role", err);
-        showErrorToast({ message: "An error occurred" });
+        showErrorToast({
+          message: err?.response?.data?.message || "An error occurred",
+        });
       } finally {
         setIsSaveLoading(false);
         setRoleDetails({ id: "", name: "", description: "", permissions: [] });
       }
     }
-    setIsCreateRoleOpen(false);
-    setIsEditing(false);
-    setEditingRoleId(null);
   };
 
   useEffect(() => {
@@ -279,10 +266,12 @@ const AdminRolesPage: React.FC = () => {
     const { name, value } = e.target;
     setRoleDetails((prev) => ({ ...prev, [name]: value }));
   };
+
   const handleNewInvite = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewMember((prev) => ({ ...prev, [name]: value }));
   };
+
   // Handle permission checkbox changes
   const handlePermissionChange = (id: string, checked: boolean) => {
     setRoleDetails((prev) => ({
@@ -292,21 +281,21 @@ const AdminRolesPage: React.FC = () => {
         : prev.permissions.filter((permId) => permId !== id),
     }));
   };
-  //EDIT ADMIN ROLES
+
+  // EDIT ADMIN ROLES
   const handleEditRole = (role: Role) => {
     setRoleDetails({
       id: role.id,
       name: role.name,
       description: role.description,
-      permissions: role.current_permission_group_slugs,
+      permissions: role.current_permission_group_slugs || [],
     });
     setEditingRoleId(role.id);
     setIsEditing(true);
     setIsCreateRoleOpen(true);
-    console.log(roleDetails);
   };
 
-  //DELETE ROLES
+  // DELETE ROLES
   const confirmDeleteRole = async () => {
     try {
       setIsDeleteLoading(true);
@@ -315,21 +304,19 @@ const AdminRolesPage: React.FC = () => {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-      setAdminDetails((prev) =>
-        prev.filter((role) => role.id !== roleToDelete)
-      );
+      setAdminDetails((prev) => prev.filter((role) => role.id !== roleToDelete));
       setShowConfirmModal(false);
-      setSuccessDeleteModal(true); // Show success modal
+      setSuccessDeleteModal(true);
       showSuccessToast({ message: "Role deleted successfully!" });
     } catch (error: any) {
       showErrorToast({
-        message:
-          error?.response?.data?.message || "Error deleting Role, try again",
+        message: error?.response?.data?.message || "Error deleting Role, try again",
       });
     } finally {
       setIsDeleteLoading(false);
     }
   };
+
   // INVITE NEW MEMBER
   const inviteMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -368,8 +355,6 @@ const AdminRolesPage: React.FC = () => {
             : role
         )
       );
-
-      console.log(adminDetails);
       setIsInvited(true);
     } catch (error: any) {
       console.log(error);
@@ -381,7 +366,8 @@ const AdminRolesPage: React.FC = () => {
       setIsInviteLoading(false);
     }
   };
-  //REVOKE INVITATION OF ADMINS AND SUPERADMINS
+
+  // REVOKE INVITATION OF ADMINS AND SUPERADMINS
   const revokeInvite = async (id: string, email: string) => {
     try {
       await axios.post(
@@ -416,15 +402,13 @@ const AdminRolesPage: React.FC = () => {
       });
     }
   };
+
   const AdminRolesSkeletonLoader = () => {
     return (
       <div className="flex min-h-screen bg-background rounded-lg">
         <main className="w-full">
           <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-            {/* Header Skeleton */}
             <div className="h-6 bg-gray-300 rounded-md w-3/4 mb-6 animate-pulse"></div>
-
-            {/* Tabs Skeleton */}
             <div className="flex border-b mb-6">
               {[1, 2].map((_, index) => (
                 <div
@@ -433,10 +417,7 @@ const AdminRolesPage: React.FC = () => {
                 ></div>
               ))}
             </div>
-
-            {/* Content Skeleton */}
             <div className="space-y-6">
-              {/* Role Management Section */}
               <div className="space-y-4">
                 {[1, 2, 3].map((_, index) => (
                   <div
@@ -445,8 +426,6 @@ const AdminRolesPage: React.FC = () => {
                   ></div>
                 ))}
               </div>
-
-              {/* Role Assignments Section */}
               <div className="space-y-4">
                 {[1, 2, 3].map((_, index) => (
                   <div
@@ -464,14 +443,13 @@ const AdminRolesPage: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-background rounded-lg">
-      {/* Main Content */}
       <main className="w-full">
         {isLoading ? (
           <AdminRolesSkeletonLoader />
         ) : (
           <>
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
-              <h2 className="text-lg font-medium pb-6 cursor-pointer px-2">
+              <h2 className="text-lg font-medium pb-6 px-2">
                 Manage access control for your travel agency dashboard
               </h2>
               <Tabs
@@ -486,7 +464,6 @@ const AdminRolesPage: React.FC = () => {
                   >
                     Role Management
                   </TabsTrigger>
-
                   <TabsTrigger
                     value="role-assignments"
                     className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2 cursor-pointer"
@@ -494,7 +471,6 @@ const AdminRolesPage: React.FC = () => {
                     Role Assignments
                   </TabsTrigger>
                 </TabsList>
-
                 <TabsContent value="role-management" className="space-y-4">
                   <RoleManagement
                     roles={adminDetails}
@@ -511,7 +487,6 @@ const AdminRolesPage: React.FC = () => {
                     isDeleteLoading={isDeleteLoading}
                   />
                 </TabsContent>
-
                 <TabsContent value="role-assignments" className="space-y-8">
                   <RoleAssignment
                     onCreateRoleOpen={() => setIsCreateRoleOpen(true)}
@@ -519,11 +494,11 @@ const AdminRolesPage: React.FC = () => {
                     isLoading={isLoading}
                     onAddMemberOpen={() => setIsAddMemberOpen(true)}
                     revokeInvite={revokeInvite}
+                    setAdminDetails={setAdminDetails}
                   />
                 </TabsContent>
               </Tabs>
             </div>
-            {/* Create Role Dialog */}
             <Dialog
               open={isCreateRoleOpen}
               onOpenChange={(open) => {
@@ -570,10 +545,7 @@ const AdminRolesPage: React.FC = () => {
                     <h3 className="text-sm font-medium">Permissions</h3>
                     {isPermissionLoading && <Loading />}
                     {availablePermissions.map((perm, id) => (
-                      <div
-                        key={perm.slug}
-                        className="flex items-center space-x-2"
-                      >
+                      <div key={perm.slug} className="flex items-center space-x-2">
                         <Checkbox
                           className="cursor-pointer"
                           id={String(id)}
@@ -588,16 +560,14 @@ const AdminRolesPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-
                   <div className="flex justify-between items-center w-full gap-4 mt-7">
                     <Button
                       variant="outline"
                       onClick={() => setIsCreateRoleOpen(false)}
-                      className="bg-[#FFE2D2]  hover:bg-orange-100 text-[#FF6F1E] cursor-pointer flex gap-3 items-center w-full"
+                      className="bg-[#FFE2D2] hover:bg-orange-100 text-[#FF6F1E] cursor-pointer flex gap-3 items-center w-full"
                     >
-                      <XCircle className="w-5" /> <span> CANCEL</span>
+                      <XCircle className="w-5" /> <span>CANCEL</span>
                     </Button>
-
                     <Button
                       disabled={isSaveLoading}
                       type="submit"
@@ -606,9 +576,7 @@ const AdminRolesPage: React.FC = () => {
                       {isSaveLoading ? (
                         <LoaderCircleIcon
                           stroke="#023E8A"
-                          style={{
-                            animation: "spin 1s linear infinite",
-                          }}
+                          style={{ animation: "spin 1s linear infinite" }}
                         />
                       ) : (
                         <Download className="w-5" />
@@ -621,14 +589,10 @@ const AdminRolesPage: React.FC = () => {
                 </form>
               </DialogContent>
             </Dialog>
-
-            {/* Invite New Membver Dialog  */}
             <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
               <DialogContent>
                 <DialogHeader className="border-b pb-2">
-                  <DialogTitle className="text-center">
-                    Invite New Member
-                  </DialogTitle>
+                  <DialogTitle className="text-center">Invite New Member</DialogTitle>
                 </DialogHeader>
                 <form className="flex flex-col gap-4" onSubmit={inviteMember}>
                   <div className="flex flex-col gap-3">
@@ -656,9 +620,7 @@ const AdminRolesPage: React.FC = () => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent items-center cursor-pointer">
-                          <span className="text-sm">
-                            {selectedOption || "Select Role"}
-                          </span>
+                          <span className="text-sm">{selectedOption || "Select Role"}</span>
                           <img
                             src="/assets/icons/arrow-down.svg"
                             alt=""
@@ -678,7 +640,6 @@ const AdminRolesPage: React.FC = () => {
                               setSelectedOption(user.name);
                               setNewMember((prev) => ({
                                 ...prev,
-                                // name: user.n,
                                 role: user.name,
                               }));
                             }}
@@ -693,11 +654,10 @@ const AdminRolesPage: React.FC = () => {
                     <Button
                       variant="outline"
                       onClick={() => setIsAddMemberOpen(false)}
-                      className=" border-[#023E8A] text-[#023E8A] cursor-pointer"
+                      className="border-[#023E8A] text-[#023E8A] cursor-pointer"
                     >
                       Cancel
                     </Button>
-
                     <Button
                       disabled={isInviteLoading}
                       type="submit"
@@ -706,9 +666,7 @@ const AdminRolesPage: React.FC = () => {
                       {isInviteLoading && (
                         <LoaderCircleIcon
                           stroke="#023E8A"
-                          style={{
-                            animation: "spin 1s linear infinite",
-                          }}
+                          style={{ animation: "spin 1s linear infinite" }}
                         />
                       )}
                       Add Member
@@ -717,23 +675,19 @@ const AdminRolesPage: React.FC = () => {
                 </form>
               </DialogContent>
             </Dialog>
-
-            {/* COnfirm Modal for Inviing new Member  */}
             <Dialog open={successModal} onOpenChange={setSuccessModal}>
-              <DialogContent className="w-full lg:max-w-md max-w-sm p-8 ">
-                <div className="space-y-[40px] flex flex-col items-center  ">
+              <DialogContent className="w-full lg:max-w-md max-w-sm p-8">
+                <div className="space-y-[40px] flex flex-col items-center">
                   <DialogHeader className="text-center">
                     <DialogTitle className="text-xl font-[500] text-[#181818]">
                       Admin Added Successfully!
                     </DialogTitle>
                   </DialogHeader>
-
                   <img
                     src="/assets/images/Blue-check.svg"
                     alt="Success"
-                    className="w-24 h-24 "
+                    className="w-24 h-24"
                   />
-
                   <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-[500]">
                     You have successfully invited a new Admin. An invitation
                     email has been sent to {newMember.email || "them"} to set up
@@ -748,4 +702,5 @@ const AdminRolesPage: React.FC = () => {
     </div>
   );
 };
+
 export default AdminRolesPage;

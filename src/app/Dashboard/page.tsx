@@ -85,8 +85,9 @@ const page = () => {
       isSuperadmin && setRevenue(revenue.data);
       setUsers(user.data);
       setAllBookings(allBookings.data)
+      console.log(allBookings)
     } catch (error: any) {
-      showErrorToast({ message: error.response?.data || error.message });
+      showErrorToast({ message: error?.response?.data?.message || error?.message });
     } finally {
       setLoading(false);
     }
