@@ -460,7 +460,6 @@ const AdminRolesPage: React.FC = () => {
             <div className="rounded-lg bg-card md:px-5 px-0 pt-5">
               <h2
                 className="text-lg font-medium pb-6 cursor-pointer px-2"
-                onClick={() => router.push("/invitation/accept")}
               >
                 Manage access control for your travel agency dashboard
               </h2>
