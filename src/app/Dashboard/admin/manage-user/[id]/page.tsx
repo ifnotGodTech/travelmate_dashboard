@@ -261,10 +261,14 @@ const ManageUsers = () => {
                               </p>
                             ) : (
                               usersAssignedToOtherRoles
-                                .filter((user) =>
-                                  user.name
-                                    .toLowerCase()
-                                    .includes(searchQuery.toLowerCase())
+                                .filter(
+                                  (user) =>
+                                    user.email
+                                      .toLowerCase()
+                                      .includes(searchQuery.toLowerCase()) ||
+                                    user.email
+                                      .toLowerCase()
+                                      .includes(searchQuery.toLowerCase())
                                 )
                                 .map((user) => (
                                   <div
@@ -285,7 +289,7 @@ const ManageUsers = () => {
                                       />
 
                                       <div>
-                                        <p>{user.name || "Name"}</p>
+                                        <p>{user.name || "Unkownn user"}</p>
                                         <p className="text-muted-foreground">
                                           {user.email}
                                         </p>
