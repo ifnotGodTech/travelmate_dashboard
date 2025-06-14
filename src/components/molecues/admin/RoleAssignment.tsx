@@ -46,6 +46,9 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
   const route = useRouter();
+  const [loadingRemove, setLoadingRemove] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const ManageUsers = (roleId: string) => {
     const role = roles.find((r) => r.id === roleId);
@@ -58,11 +61,12 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
     );
   };
 
-  const handleRemoveUser = async (roleId: string) => {
+  const handleRemoveUser = async (roleId: string, userEmail: string) => {
     const emailsToRemove = roles
       .filter((role) => String(role.id) === String(roleId))
       .flatMap((role) => role.assigned_users.map((user) => user.email.trim()));
     try {
+      setLoadingRemove((prev) => ({ ...prev, [userEmail]: true }));
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
         { email: emailsToRemove.join(",") },
@@ -91,6 +95,8 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
       showErrorToast({
         message: error?.response?.data?.message || "Failed to remove users.",
       });
+    } finally {
+      setLoadingRemove((prev) => ({ ...prev, [userEmail]: false }));
     }
   };
 
@@ -155,10 +161,11 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                     <Button
                       variant="link"
                       className={`text-red-600
-                       hover:text-red-800 p-0`}
-                      onClick={() => handleRemoveUser(role.id)} //
+                       hover:text-red-800 p-0 cursor-pointer`}
+                      onClick={() => handleRemoveUser(role.id, assigned?.email)}
+                      disabled={loadingRemove[assigned.email]}
                     >
-                      Remove
+                      {loadingRemove[assigned.email] ? "Removing" : "Remove"}
                     </Button>
                   )}
                 </div>
