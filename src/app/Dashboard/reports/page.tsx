@@ -50,6 +50,11 @@ type Breakdown = {
   flight_revenue: number;
   car_revenue: number;
 };
+type Combined = {
+  label: string;
+  bookings: number;
+  revenue: number;
+};
 export default function ReportsPage() {
   const APP_STATE = useAuthContext();
   const isSuperadmin = APP_STATE?.user?.isSuperuser;
@@ -60,10 +65,12 @@ export default function ReportsPage() {
   const [isLoadingExport, setIsLoadingExport] = useState(false);
 
   const [overviewData, setOverviewData] = useState<Summary>();
-  const [revenueBookingsData, setRevenueBookingsData] = useState();
+  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>(
+    []
+  );
   const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
 
-  const [selectedOption, setSelectedOption] = useState("This Month");
+  const [selectedOption, setSelectedOption] = useState("This Week");
 
   // if (!APP_STATE?.user) return <Loading />;
   // if (!APP_STATE?.accessToken) {
@@ -81,63 +88,84 @@ export default function ReportsPage() {
 
   const generateQueryParams = () => {
     const now = new Date();
-    const baseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
-
+    const breakdownBaseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
+    const combinedBaseUrl = `${env.api.admin}/reports/bookings/combined/?group_by=day`;
+    const summaryBaseUrl = `${env.api.admin}/reports/summary/?`;
+    let params = { breakdown: "", combined: "", summary: "" };
     switch (selectedOption) {
       case "This Week":
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        return `${baseUrl}&start=${
+        params.breakdown = `${breakdownBaseUrl}&start=${
           startOfWeek.toISOString().split("T")[0]
         }&end=${now.toISOString().split("T")[0]}&period=week`;
-
+        params.summary = `${summaryBaseUrl}&start=${
+          startOfWeek.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=week`;
+        params.combined = `${combinedBaseUrl}&start=${
+          startOfWeek.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=week`;
+        break;
       case "This Month":
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return `${baseUrl}&start=${
+        params.breakdown = `${breakdownBaseUrl}&start=${
           startOfMonth.toISOString().split("T")[0]
         }&end=${now.toISOString().split("T")[0]}&period=month`;
+        params.summary = `${summaryBaseUrl}&start=${
+          startOfMonth.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=month`;
+        params.combined = `${combinedBaseUrl}&start=${
+          startOfMonth.toISOString().split("T")[0]
+        }&end=${now.toISOString().split("T")[0]}&period=month`;
+        break;
 
       case "Last 3 Months":
-        return `${baseUrl}&months=3`;
+        params.breakdown = `${breakdownBaseUrl}&months=3`;
+        params.summary = `${summaryBaseUrl}&months=3`;
+        params.combined = `${combinedBaseUrl}&months=3`;
+        break;
 
       case "This Year":
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        return `${baseUrl}&start=${
-          startOfYear.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=year`;
+        // const startOfYear = new Date(now.getFullYear(), 0, 1);
+        params.breakdown = `${breakdownBaseUrl}&period=year`;
+        params.summary = `${summaryBaseUrl}&period=year`;
+        params.combined = `${combinedBaseUrl}&period=year`;
+        break;
 
       default:
-        return `${baseUrl}&months=6`; // fallback
+        params.breakdown = `${breakdownBaseUrl}&months=6`;
+        params.summary = `${summaryBaseUrl}&months=6`;
+        params.combined = `${combinedBaseUrl}&months=6`;
+        break;
     }
+    return params;
   };
 
   //FETCH DATA
   const fetchAdminData = async () => {
+    const { breakdown, summary, combined } = generateQueryParams();
     try {
       setIsLoading(true);
-      const [bookingbreakdown, bookingscombined, summary] = await Promise.all([
-        axios.get(generateQueryParams(), {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-        axios.get(`${env.api.admin}/reports/bookings/combined/`, {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-        axios.get(`${env.api.admin}/reports/summary/`, {
-          headers: {
-            Authorization: `Bearer ${APP_STATE.accessToken}`,
-          },
-        }),
-      ]);
-      setRevenueBookingsData(bookingscombined.data);
-      setOverviewData(summary.data);
-      setBookingTrendsData(bookingbreakdown.data);
-      console.log(bookingbreakdown.data);
-    } catch (error) {
-      showErrorToast({ message: "Error displaying data" });
+      const [bookingbreakdown, bookingscombined, summaryResponse] =
+        await Promise.all([
+          axios.get(breakdown, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+          axios.get(combined, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+          axios.get(summary, {
+            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
+          }),
+        ]);
+      setRevenueBookingsData(bookingscombined.data.results);
+      setOverviewData(summaryResponse.data);
+      setBookingTrendsData(bookingbreakdown.data.results);
+    } catch (error: any) {
+      console.log(error);
+      showErrorToast({
+        message: error?.response?.data?.message || "Error displaying data",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +177,9 @@ export default function ReportsPage() {
       setIsLoadingExport(true);
       const response = await axios.get(`${env.api.admin}/reports/export/`, {
         responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${APP_STATE.accessToken}`,
+        },
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -168,10 +199,10 @@ export default function ReportsPage() {
   };
 
   // //FILTER DATA BASED ON TIME PERIOD OR DURATIONS
-  const filteredData = useMemo(() => {
-    if (!bookingTrendsData) return [];
+  const filteredCombinedData = useMemo(() => {
+    if (!revenueBookingsData) return [];
     const now = new Date();
-    return bookingTrendsData?.filter((item) => {
+    let filtered = revenueBookingsData?.filter((item) => {
       const createdAt = new Date(item.label);
       if (selectedOption === "This Week") {
         const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -189,6 +220,117 @@ export default function ReportsPage() {
       }
       return true;
     });
+    if (selectedOption === "This Year") {
+      // Aggregate by month
+      const monthlyData: { [key: string]: Combined } = {};
+      filtered.forEach((item) => {
+        const date = new Date(item.label);
+        const monthKey = date.toLocaleString("en-US", { month: "long" });
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            label: monthKey,
+            bookings: 0,
+            revenue: 0,
+          };
+        }
+        monthlyData[monthKey].bookings += item.bookings;
+        monthlyData[monthKey].revenue += item.revenue;
+      });
+      return Object.values(monthlyData).sort((a, b) => {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        return months.indexOf(a.label) - months.indexOf(b.label);
+      });
+    }
+
+    return filtered.map((item) => ({
+      ...item,
+      label:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : item.label,
+    }));
+  }, [revenueBookingsData, selectedOption]);
+
+  const filteredData = useMemo(() => {
+    if (!bookingTrendsData) return [];
+    const now = new Date();
+    let filtered = bookingTrendsData?.filter((item) => {
+      const createdAt = new Date(item.label);
+      if (selectedOption === "This Week") {
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        return createdAt >= startOfWeek;
+      } else if (selectedOption === "This Month") {
+        return (
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear()
+        );
+      } else if (selectedOption === "Last 3 Months") {
+        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
+        return createdAt >= threeMonthsAgo;
+      } else if (selectedOption === "This Year") {
+        return createdAt.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+    if (selectedOption === "This Year") {
+      // Aggregate by month
+      const monthlyData: { [key: string]: Breakdown } = {};
+      filtered.forEach((item) => {
+        const date = new Date(item.label);
+        const monthKey = date.toLocaleString("en-US", { month: "long" });
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            label: monthKey,
+            flight_bookings: 0,
+            car_bookings: 0,
+            flight_revenue: 0,
+            car_revenue: 0,
+          };
+        }
+        monthlyData[monthKey].flight_bookings += item.flight_bookings;
+        monthlyData[monthKey].car_bookings += item.car_bookings;
+        monthlyData[monthKey].flight_revenue += item.flight_revenue;
+        monthlyData[monthKey].car_revenue += item.car_revenue;
+      });
+      return Object.values(monthlyData).sort((a, b) => {
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        return months.indexOf(a.label) - months.indexOf(b.label);
+      });
+    }
+
+    return filtered.map((item) => ({
+      ...item,
+      label:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : item.label,
+    }));
   }, [bookingTrendsData, selectedOption]);
 
   const processedData = useMemo(() => {
@@ -197,12 +339,13 @@ export default function ReportsPage() {
       ...item,
       total_bookings: item.car_bookings + item.flight_bookings,
       total_revenue: item.flight_revenue + item.car_revenue,
+      count: filteredData.length
     }));
   }, [filteredData]);
 
   useEffect(() => {
     fetchAdminData();
-  }, [isSuperadmin]);
+  }, [isSuperadmin, selectedOption]);
 
   const periodFilter = [
     "This Week",
@@ -290,7 +433,7 @@ export default function ReportsPage() {
                     </span>
                     <span className="ml-2 text-sm text-green-600">
                       {overviewData?.user_growth_percentage ?? 0}% from last
-                      month
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -310,7 +453,7 @@ export default function ReportsPage() {
                     </span>
                     <span className="ml-2 text-sm text-blue-600">
                       {overviewData?.booking_growth_percentage ?? 0}% from last
-                      month
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -331,7 +474,7 @@ export default function ReportsPage() {
                       </span>
                       <span className="ml-2 text-sm text-orange-600">
                         {overviewData?.revenue_growth_percentage ?? 0}% from
-                        last month
+                        last period
                       </span>
                     </div>
                   </CardContent>
@@ -390,13 +533,13 @@ export default function ReportsPage() {
                       <Loading />
                     ) : (
                       <div className="h-[400px]">
-                        {filteredData.length === 0 && (
+                        {filteredCombinedData.length === 0 && (
                           <div className="text-center mt-[15%] text-lg font-bold">
                             Nothing to see here
                           </div>
                         )}
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={processedData}>
+                          <BarChart data={filteredCombinedData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               className="stroke-muted"
@@ -413,13 +556,13 @@ export default function ReportsPage() {
                               }}
                             />
                             <Bar
-                              dataKey="total_bookings"
+                              dataKey="bookings"
                               fill="#1e40af"
                               name="Booking"
                             />
                             {isSuperadmin && (
                               <Bar
-                                dataKey="total_revenue"
+                                dataKey="revenue"
                                 fill="#f97316"
                                 name="Revenue"
                               />
@@ -463,29 +606,25 @@ export default function ReportsPage() {
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin
-                                  ? "flight_revenue"
-                                  : "flight_bookings"
-                              }
+                              dataKey=
+                                   "flight_bookings"
+                              
                               stroke="#f97316"
                               name="Flights"
                               strokeWidth={2}
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin ? "car_revenue" : "car_bookings"
-                              }
+                              dataKey="car_bookings"
+                              
                               stroke="#22c55e"
                               name="Hotels"
                               strokeWidth={2}
                             />
                             <Line
                               type="monotone"
-                              dataKey={
-                                isSuperadmin ? "car_revenue" : "car_bookings"
-                              }
+                              dataKey= "car_bookings"
+                              
                               stroke="#1e40af"
                               name="Cars"
                               strokeWidth={2}
@@ -517,11 +656,9 @@ export default function ReportsPage() {
                               className="stroke-muted"
                             />
                             <XAxis dataKey="label" />
-                            <YAxis />
+                            <YAxis dataKey="count"/>
                             <Tooltip
-                              formatter={(value) =>
-                                formatCurrency(Number(value))
-                              }
+                             
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",

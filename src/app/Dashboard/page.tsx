@@ -45,7 +45,7 @@ const page = () => {
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const [activities, messages, revenue, bookings, user] = await Promise.all(
+      const [activities, messages, revenue, bookings, user, allBookings] = await Promise.all(
         [
           axios.get(env.api.dashboardactivities, {
             headers: {
@@ -72,6 +72,11 @@ const page = () => {
               Authorization: `Bearer ${APP_STATE.accessToken}`,
             },
           }),
+          axios.get(env.api.bookings,{
+            headers:{
+              Authorization: `Bearer ${APP_STATE.accessToken}`
+            }
+          })
         ]
       );
       setActivity(activities.data);
@@ -79,8 +84,10 @@ const page = () => {
       setBookings(bookings.data);
       isSuperadmin && setRevenue(revenue.data);
       setUsers(user.data);
+      setAllBookings(allBookings.data)
+      console.log(allBookings)
     } catch (error: any) {
-      showErrorToast({ message: error.response?.data || error.message });
+      showErrorToast({ message: error?.response?.data?.message || error?.message });
     } finally {
       setLoading(false);
     }
@@ -88,18 +95,6 @@ const page = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
-
-    useEffect(() => {
-    const getAdminRole = async () => {
-      try {
-        const response = await axios.get(`${env.api.admin}/me/roles/`);
-        console.log(response.data);
-      } catch (error: any) {
-        console.log(error);
-      }
-    };
-    getAdminRole()
   }, []);
 
   const generateWeeklyChartData = (bookings: BookingsProps[]) => {
@@ -114,7 +109,7 @@ const page = () => {
     }));
 
     // Sum up total_amounts per booking type per day
-    bookings.forEach((item) => {
+    allBookings.forEach((item) => {
       const date = new Date(item.created_at);
       const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -34,16 +34,21 @@ interface RoleAssignmentProps {
   onAddMemberOpen: () => void;
   isLoading?: boolean;
   revokeInvite: (id: string, email: string) => void;
+  setAdminDetails: React.Dispatch<React.SetStateAction<Role[]>>;
 }
 const RoleAssignment: FC<RoleAssignmentProps> = ({
   onAddMemberOpen,
   roles,
   isLoading,
   revokeInvite,
+  setAdminDetails,
 }) => {
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
   const route = useRouter();
+  const [loadingRemove, setLoadingRemove] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const ManageUsers = (roleId: string) => {
     const role = roles.find((r) => r.id === roleId);
@@ -56,11 +61,12 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
     );
   };
 
-  const handleRemoveUser = async (roleId: string) => {
+  const handleRemoveUser = async (roleId: string, userEmail: string) => {
     const emailsToRemove = roles
       .filter((role) => String(role.id) === String(roleId))
       .flatMap((role) => role.assigned_users.map((user) => user.email.trim()));
     try {
+      setLoadingRemove((prev) => ({ ...prev, [userEmail]: true }));
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
         { email: emailsToRemove.join(",") },
@@ -70,24 +76,42 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
           },
         }
       );
+      const updatedRoles = roles.map((role) =>
+        role.id === roleId
+          ? {
+              ...role,
+              assigned_users: role.assigned_users.filter(
+                (user) => !emailsToRemove.includes(user.email)
+              ),
+            }
+          : role
+      );
+
       setShowSuccessRemoveModal(true);
+      // Update the roles state
+      setAdminDetails(updatedRoles);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
         message: error?.response?.data?.message || "Failed to remove users.",
       });
+    } finally {
+      setLoadingRemove((prev) => ({ ...prev, [userEmail]: false }));
     }
   };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const filteredRoles = roles.filter((role) => {
-    const query = searchQuery.toLowerCase();
-    const isRoleNameMatch = role.name.toLowerCase().includes(query);
-    const isAssignedUserMatch = role?.assigned_users?.some((user) =>
-      user.name.toLowerCase().includes(query)
-    );
-    return isRoleNameMatch || isAssignedUserMatch;
-  });
+
+  const filteredRoles = useMemo(() => {
+    return roles.filter((role) => {
+      const query = searchQuery.toLowerCase();
+      const isRoleNameMatch = role.name.toLowerCase().includes(query);
+      const isAssignedUserMatch = role?.assigned_users?.some((user) =>
+        (user.name || "").toLowerCase().includes(query)
+      );
+      return isRoleNameMatch || isAssignedUserMatch;
+    });
+  }, [roles, searchQuery]);
 
   return (
     <>
@@ -137,10 +161,11 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                     <Button
                       variant="link"
                       className={`text-red-600
-                       hover:text-red-800 p-0`}
-                      onClick={() => handleRemoveUser(role.id)} //
+                       hover:text-red-800 p-0 cursor-pointer`}
+                      onClick={() => handleRemoveUser(role.id, assigned?.email)}
+                      disabled={loadingRemove[assigned.email]}
                     >
-                      Remove
+                      {loadingRemove[assigned.email] ? "Removing" : "Remove"}
                     </Button>
                   )}
                 </div>
@@ -164,7 +189,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                     className={` text-green-600
                       hover:text-green-800 p-0`}
                   >
-                   Revoke Invite
+                    Revoke Invite
                   </Button>
                 </div>
               ))}

@@ -7,8 +7,7 @@ import { FieldMetaProps } from "formik/dist/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import env from "@/config/env";
-import { showErrorToast } from "@/utils/toasters";
-import Loading from "../Dashboard/admin/loading";
+import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 
 const page = () => (
   <Suspense
@@ -43,28 +42,32 @@ const LoginComponent = () => {
   const [email, setEmail] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [successCreate, setSuccessCreate] = useState(false)
 
   useEffect(() => {
-    const validateInvitation = async () => {
-      try {
-        const response = await axios.get(
-          `${env.api.admin}/invitations/validate/`,
-          { params: { token } }
-        );
-        console.log(response);
-        setEmail(response.data.email);
-      } catch (error: any) {
-        console.log(error);
-        showErrorToast({ message: error?.response?.data?.message });
-        setIsValidToken(false);
-      }
-    };
-
-    if (token) {
-      validateInvitation();
-    } else {
+    if (!token) {
       showErrorToast({ message: "Missing invitation token" });
       setIsValidToken(false);
+      return;
+    } else {
+      const validateInvitation = async () => {
+        try {
+          setLoading(true);
+          const response = await axios.get(
+            `${env.api.admin}/invitations/validate/`,
+            { params: { token } }
+          );
+          setEmail(response.data.email);
+          setIsValidToken(true);
+        } catch (error: any) {
+          showErrorToast({ message: error?.response?.data?.message });
+          setIsValidToken(false);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      validateInvitation();
     }
   }, [token]);
 
@@ -79,11 +82,14 @@ const LoginComponent = () => {
         token,
         password: values.password1,
       });
-      router.push("/Dashboard");
+      setSuccessCreate(true)
+      showSuccessToast({message: "Password created successfully! You are now redirected to the Login page."})
+      setTimeout(() => router.push("/auth/login"), 3000);
     } catch (error: any) {
       showErrorToast({
         message: error?.response?.data?.message || "Something went wrong",
       });
+      console.log(error?.response?.data?.message);
     } finally {
       setLoading(false);
     }
@@ -101,7 +107,11 @@ const LoginComponent = () => {
   }
 
   if (isValidToken === null) {
-    return <div><Loading/></div>; 
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
   }
   return (
     <>
@@ -154,7 +164,7 @@ const LoginComponent = () => {
                 <Inputs />
 
                 <Button
-                  title="Sign in"
+                  title="Create Password"
                   variant={
                     validations.length &&
                     validations.lowercase &&
@@ -203,6 +213,12 @@ const LoginComponent = () => {
           );
         }}
       </Formik>
+      {successCreate && (
+        <div className="bg-[#D5EBDF80] text-black p-2 border-[#2D9C5E] border-2 rounded-xl m-3 mb-7">
+          Password Created Successfully, use this password when next you want to
+          Sign In
+        </div>
+      )}
     </>
   );
 };
@@ -322,5 +338,30 @@ const EyeClosedIcon = () => (
     <line x1="1" y1="1" x2="23" y2="23" />
   </svg>
 );
-
+const Loading = () => (
+  <div className="flex items-center justify-center h-screen bg-white">
+    <svg
+      className="animate-spin h-12 w-12 text-black"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      ></circle>
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 
+         5.291A7.962 7.962 0 014 12H0c0 3.042 
+         1.135 5.824 3 7.938l3-2.647z"
+      ></path>
+    </svg>
+  </div>
+);
 export default page;
