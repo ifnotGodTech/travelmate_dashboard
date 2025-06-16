@@ -62,38 +62,36 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
   };
 
   const handleRemoveUser = async (roleId: string, userEmail: string) => {
-    const emailsToRemove = roles
-      .filter((role) => String(role.id) === String(roleId))
-      .flatMap((role) => role.assigned_users.map((user) => user.email.trim()));
     try {
       setLoadingRemove((prev) => ({ ...prev, [userEmail]: true }));
+
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
-        { email: emailsToRemove.join(",") },
+        { email: userEmail }, // ← only send the one email
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         }
       );
+
       const updatedRoles = roles.map((role) =>
         role.id === roleId
           ? {
               ...role,
               assigned_users: role.assigned_users.filter(
-                (user) => !emailsToRemove.includes(user.email)
+                (user) => user.email !== userEmail
               ),
             }
           : role
       );
 
       setShowSuccessRemoveModal(true);
-      // Update the roles state
       setAdminDetails(updatedRoles);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
-        message: error?.response?.data?.message || "Failed to remove users.",
+        message: error?.response?.data?.message || "Failed to remove user.",
       });
     } finally {
       setLoadingRemove((prev) => ({ ...prev, [userEmail]: false }));
@@ -156,6 +154,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                   <p className="font-medium">
                     {assigned?.name || assigned?.email}
                   </p>
+                  <p className="">{assigned?.email}</p>
 
                   {role.name !== "Super Admin" && (
                     <Button

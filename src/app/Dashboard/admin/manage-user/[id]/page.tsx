@@ -4,12 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+import { LoaderCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -60,6 +55,7 @@ const ManageUsers = () => {
   const [selectedUserIdRemove, setSelectedUserIdRemove] = useState<number[]>(
     []
   );
+  const [isLoadRemove, setIsLoadRemove] = useState(false)
 
   const currentRole = roles.find((role) => String(role.id) === String(roleId));
 
@@ -140,7 +136,7 @@ const ManageUsers = () => {
           .map((user) => user.email.trim())
       );
     try {
-      setLoading(true);
+      setIsLoadRemove(true);
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
         { email: emailsToRemove.join(",") },
@@ -160,7 +156,7 @@ const ManageUsers = () => {
         message: error?.response?.data?.message || "Failed to remove users.",
       });
     } finally {
-      setLoading(false);
+      setIsLoadRemove(false);
     }
   };
   useEffect(() => {
@@ -467,6 +463,10 @@ const ManageUsers = () => {
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
+               {isLoadRemove && <LoaderCircleIcon
+                  stroke="#023E8A"
+                  style={{ animation: "spin 1s linear infinite" }}
+                />}
                 Yes, Proceed
               </Button>
             </div>

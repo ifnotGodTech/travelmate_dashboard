@@ -74,7 +74,9 @@ const AdminRolesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("role-management");
 
   const [adminDetails, setAdminDetails] = useState<Role[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<Permissions[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<
+    Permissions[]
+  >([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isInvited, setIsInvited] = useState(false);
 
@@ -108,19 +110,28 @@ const AdminRolesPage: React.FC = () => {
   const fetchPermissions = async () => {
     try {
       setIsPermissionLoading(true);
-      const response = await axios.get(`${env.api.superadmin}permissions/groups`, {
-        headers: {
-          Authorization: `Bearer ${accessToken || ""}`,
-        },
-      });
+      const response = await axios.get(
+        `${env.api.superadmin}permissions/groups`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken || ""}`,
+          },
+        }
+      );
       setAvailablePermissions(
         Array.isArray(response.data.results) ? response.data.results : []
       );
     } catch (error: any) {
-      console.error("Error fetching permissions:", error.response?.data || error.message);
+      console.error(
+        "Error fetching permissions:",
+        error.response?.data || error.message
+      );
       setAvailablePermissions([]);
       showErrorToast({
-        message: error.response?.data?.detail?.[0] || error.response?.data?.messages?.[0] || error.message,
+        message:
+          error.response?.data?.detail?.[0] ||
+          error.response?.data?.messages?.[0] ||
+          error.message,
       });
     } finally {
       setIsPermissionLoading(false);
@@ -142,7 +153,7 @@ const AdminRolesPage: React.FC = () => {
       );
     } catch (error: any) {
       showErrorToast({
-        message: error?.response?.data.messages?.message || error?.messages?.message,
+        message: error.response?.data?.detail?.[0] || error?.messages?.message,
       });
     } finally {
       setIsLoading(false);
@@ -156,7 +167,7 @@ const AdminRolesPage: React.FC = () => {
       const payload = {
         name: updatedRole.name,
         description: updatedRole.description,
-        permission_group_slugs: updatedRole.current_permission_group_slugs, 
+        permission_group_slugs: updatedRole.current_permission_group_slugs,
       };
       const response = await axios.patch(
         `${env.api.superadmin}roles/${roleId}/`,
@@ -190,9 +201,15 @@ const AdminRolesPage: React.FC = () => {
         message: "Role updated successfully",
       });
       console.log("Before Update:", roleDetails.permissions);
-      console.log("After Update:", response.data.current_permission_group_slugs);
+      console.log(
+        "After Update:",
+        response.data.current_permission_group_slugs
+      );
     } catch (error: any) {
-      console.error("Error updating role:", error.response?.data || error.message);
+      console.error(
+        "Error updating role:",
+        error.response?.data || error.message
+      );
       showErrorToast({
         message: error?.response?.data?.message || "Failed to update role",
       });
@@ -257,7 +274,9 @@ const AdminRolesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPermissions();
+    if (isCreateRoleOpen) {
+      fetchPermissions();
+    }
     fetchAllRoles();
   }, []);
 
@@ -304,13 +323,16 @@ const AdminRolesPage: React.FC = () => {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-      setAdminDetails((prev) => prev.filter((role) => role.id !== roleToDelete));
+      setAdminDetails((prev) =>
+        prev.filter((role) => role.id !== roleToDelete)
+      );
       setShowConfirmModal(false);
       setSuccessDeleteModal(true);
       showSuccessToast({ message: "Role deleted successfully!" });
     } catch (error: any) {
       showErrorToast({
-        message: error?.response?.data?.message || "Error deleting Role, try again",
+        message:
+          error?.response?.data?.message || "Error deleting Role, try again",
       });
     } finally {
       setIsDeleteLoading(false);
@@ -545,7 +567,10 @@ const AdminRolesPage: React.FC = () => {
                     <h3 className="text-sm font-medium">Permissions</h3>
                     {isPermissionLoading && <Loading />}
                     {availablePermissions.map((perm, id) => (
-                      <div key={perm.slug} className="flex items-center space-x-2">
+                      <div
+                        key={perm.slug}
+                        className="flex items-center space-x-2"
+                      >
                         <Checkbox
                           className="cursor-pointer"
                           id={String(id)}
@@ -592,7 +617,9 @@ const AdminRolesPage: React.FC = () => {
             <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
               <DialogContent>
                 <DialogHeader className="border-b pb-2">
-                  <DialogTitle className="text-center">Invite New Member</DialogTitle>
+                  <DialogTitle className="text-center">
+                    Invite New Member
+                  </DialogTitle>
                 </DialogHeader>
                 <form className="flex flex-col gap-4" onSubmit={inviteMember}>
                   <div className="flex flex-col gap-3">
@@ -620,7 +647,9 @@ const AdminRolesPage: React.FC = () => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="w-full p-2 py-3 rounded-[8px] space-x-4 mt-3 border-[#9b9ea4] border-[1px] flex justify-between bg-transparent items-center cursor-pointer">
-                          <span className="text-sm">{selectedOption || "Select Role"}</span>
+                          <span className="text-sm">
+                            {selectedOption || "Select Role"}
+                          </span>
                           <img
                             src="/assets/icons/arrow-down.svg"
                             alt=""
