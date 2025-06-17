@@ -596,9 +596,7 @@ export default function ReportsPage() {
                             <XAxis dataKey="label" />
                             <YAxis />
                             <Tooltip
-                              formatter={(value) =>
-                                formatCurrency(Number(value))
-                              }
+                              
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",
