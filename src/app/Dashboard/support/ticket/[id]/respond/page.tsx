@@ -51,8 +51,6 @@ const page = () => {
   return (
     <>
       <div className="space-y-6 pb-[72px] min-h-[100vh] ">
-        {" "}
-        {/* Add padding to account for sticky buttons */}
         <div className="flex justify-between items-center">
           <img
             src="/assets/icons/arrow-back.svg"

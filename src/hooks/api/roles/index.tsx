@@ -15,7 +15,7 @@ export function useGetAllEscalationLevel({
     setLoading(true);
     try {
       const res = await RolesService.getRoles();
-      setData(res.data);
+      setData(res.data.results);
     } catch (error) {
       console.error("Error fetching escalation levels:", error);
     } finally {

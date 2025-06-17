@@ -146,6 +146,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
       });
     },
   });
+  console.log(Leveldata)
 
   return (
     <>
