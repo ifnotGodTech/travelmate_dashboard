@@ -55,7 +55,7 @@ const ManageUsers = () => {
   const [selectedUserIdRemove, setSelectedUserIdRemove] = useState<number[]>(
     []
   );
-  const [isLoadRemove, setIsLoadRemove] = useState(false)
+  const [isLoadRemove, setIsLoadRemove] = useState(false);
 
   const currentRole = roles.find((role) => String(role.id) === String(roleId));
 
@@ -91,7 +91,10 @@ const ManageUsers = () => {
   }, []);
 
   const usersAssignedToOtherRoles = roles
-    .filter((role) => String(role.id) !== String(roleId))
+    .filter(
+      (role) =>
+        String(role.id) !== String(roleId) && role.name !== "Super Admin"
+    )
     .flatMap((role) =>
       role.assigned_users.map((user) => ({
         ...user,
@@ -266,9 +269,9 @@ const ManageUsers = () => {
                                       .toLowerCase()
                                       .includes(searchQuery.toLowerCase())
                                 )
-                                .map((user) => (
+                                .map((user, index) => (
                                   <div
-                                    key={user.id}
+                                    key={index}
                                     className="flex justify-between w-full lg:items-center items-start py-2 border-b"
                                   >
                                     <div className="flex justify-normal items-center gap-10">
@@ -445,9 +448,8 @@ const ManageUsers = () => {
               </DialogHeader>
               <DialogDescription className="lg:text-base text-[12px] text-gray-700 text-left px-4 font-[500]">
                 You are about to remove the selected users from{" "}
-                {currentRole?.name}
-                role. They will no longer have access to these role permissions.
-                Do you want to proceed?
+                {currentRole?.name} role. They will no longer have access to
+                these role permissions. Do you want to proceed?
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 justify-end pt-5">
@@ -463,10 +465,12 @@ const ManageUsers = () => {
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
-               {isLoadRemove && <LoaderCircleIcon
-                  stroke="#023E8A"
-                  style={{ animation: "spin 1s linear infinite" }}
-                />}
+                {isLoadRemove && (
+                  <LoaderCircleIcon
+                    stroke="#ffffff"
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                )}
                 Yes, Proceed
               </Button>
             </div>

@@ -261,6 +261,7 @@ const AdminRolesPage: React.FC = () => {
         showSuccessToast({
           message: "Created new role successfully!",
         });
+         setIsCreateRoleOpen(false);
       } catch (err: any) {
         console.log("Error Creating new Role", err);
         showErrorToast({
@@ -274,9 +275,7 @@ const AdminRolesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isCreateRoleOpen) {
-      fetchPermissions();
-    }
+    fetchPermissions();
     fetchAllRoles();
   }, []);
 

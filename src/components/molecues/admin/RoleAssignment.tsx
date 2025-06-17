@@ -67,7 +67,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
 
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
-        { email: userEmail }, // ← only send the one email
+        { email: userEmail },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -148,13 +148,15 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
               </div>
               {role.assigned_users?.map((assigned, i) => (
                 <div
-                  className=" flex justify-between w-full items-center"
+                  className=" flex justify-between w-full lg:items-center align-top lg:align-middle"
                   key={i}
                 >
-                  <p className="font-medium">
-                    {assigned?.name || assigned?.email}
-                  </p>
-                  <p className="">{assigned?.email}</p>
+                  <div className="flex flex-col justify-normal ">
+                    <p className="font-medium">
+                      {assigned?.name || assigned?.email}
+                    </p>
+                    <p className="text-slate-600">{assigned?.email}</p>
+                  </div>
 
                   {role.name !== "Super Admin" && (
                     <Button
@@ -162,7 +164,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                       className={`text-red-600
                        hover:text-red-800 p-0 cursor-pointer`}
                       onClick={() => handleRemoveUser(role.id, assigned?.email)}
-                      disabled={loadingRemove[assigned.email]}
+                      disabled={loadingRemove[assigned?.email]}
                     >
                       {loadingRemove[assigned.email] ? "Removing" : "Remove"}
                     </Button>
