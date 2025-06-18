@@ -23,8 +23,16 @@ const TicketTable: React.FC = () => {
     undefined
   );
 
-  // Track active tab
-  const [activeTab, setActiveTab] = useState("ticket");
+  // Track active tab with localStorage persistence
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    // Load saved tab from localStorage or default to "ticket"
+    return localStorage.getItem("activeTab") || "ticket";
+  });
+
+  // Save the active tab to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
 
   // Reset filters when the active tab changes
   useEffect(() => {
@@ -36,7 +44,6 @@ const TicketTable: React.FC = () => {
   return (
     <div className="pb-20 lg:pb-0">
       <Tabs
-        defaultValue="ticket"
         value={activeTab}
         onValueChange={(value) => setActiveTab(value)}
         className="space-y-[40px]"
