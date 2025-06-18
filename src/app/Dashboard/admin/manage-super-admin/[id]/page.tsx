@@ -43,14 +43,16 @@ import axios from "axios";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast } from "@/utils/toasters";
+import { LoaderCircleIcon } from "lucide-react";
 
 const ManageSuperAdmin = () => {
   const { accessToken } = useAuthContext();
+
   const [defaultTab, setDefaultTab] = useState("addNewUser");
   const route = useRouter();
 
-  const [loading, setLoading] = useState(false);
-  const [loadingInvite, setLoadingInvite] = useState(false);
+  const [isLoadInvite, setIsLoadInvite] = useState(false);
+  const [isLoadTransfer, setIsLoadTransfer] = useState(false);
 
   const [roles, setRoles] = useState<Role[]>([]);
 
@@ -78,15 +80,16 @@ const ManageSuperAdmin = () => {
     email: "",
   });
 
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get(`${env.api.superadmin}roles/`);
+      setRoles(response.data.results || []);
+    } catch (error) {
+      // handle error
+    }
+  };
+
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await axios.get(`${env.api.superadmin}roles/`);
-        setRoles(response.data.results || []);
-      } catch (error) {
-        // handle error
-      }
-    };
     fetchRoles();
   }, []);
 
@@ -94,7 +97,7 @@ const ManageSuperAdmin = () => {
 
   const transferSuperAdminRole = async () => {
     try {
-      setLoading(true);
+      setIsLoadTransfer(true);
       await axios.post(
         `${env.api.superadmin}superadmins/transfer/`,
         {
@@ -113,19 +116,23 @@ const ManageSuperAdmin = () => {
           },
         }
       );
+      await fetchRoles();
+      setShowConfirmModal(false);
       setShowSuccessModal(true);
+      setTimeout(() => route.push("/auth/login"), 3000);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
-        message: error?.response?.data?.message || "Failed to transfer role",
+        message: error?.response?.data?.message || "Cannot transfer role",
       });
     } finally {
-      setLoading(false);
+      setIsLoadTransfer(false);
     }
   };
 
   const InviteSuperAdmin = async () => {
     try {
+      setIsLoadInvite(true);
       await axios.post(
         `${env.api.superadmin}superadmins/invite/`,
         {
@@ -141,12 +148,16 @@ const ManageSuperAdmin = () => {
           },
         }
       );
+      await fetchRoles();
       setShowSuccessInviteModal(true);
+      setTimeout(() => route.push("/auth/login"), 3000);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
-        message: error?.response?.data?.message || "Failed to invite user",
+        message: error?.response?.data?.message || "Cannot Invite member",
       });
+    } finally {
+      setIsLoadInvite(false);
     }
   };
 
@@ -222,9 +233,6 @@ const ManageSuperAdmin = () => {
                   >
                     <div>
                       <DropdownMenuItem>
-                        {/* {loading ? (
-                          <Loading />
-                        ) : ( */}
                         <div className="w-full">
                           {adminRoles.length === 0 ? (
                             <p className="text-center text-gray-500">
@@ -315,22 +323,28 @@ const ManageSuperAdmin = () => {
                         align="start"
                         className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
                       >
-                        {adminRoles.map((role, index) => (
-                          <DropdownMenuItem
-                            key={index}
-                            className="w-full text-center px-4 py-2 hover:bg-gray-200"
-                            onClick={() => setSelectedRoleId(role.id)}
-                          >
-                            {role.name}
-                          </DropdownMenuItem>
-                        ))}
+                        {adminRoles.length === 0 ? (
+                          <p className="text-center text-gray-500">
+                            No roles available.
+                          </p>
+                        ) : (
+                          adminRoles.map((role, index) => (
+                            <DropdownMenuItem
+                              key={index}
+                              className="w-full text-center px-4 py-2 hover:bg-gray-200"
+                              onClick={() => setSelectedRoleId(role.id)}
+                            >
+                              {role.name}
+                            </DropdownMenuItem>
+                          ))
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
                 </div>
                 <Button
                   disabled={
-                    loading ||
+                    isLoadTransfer ||
                     selectedUserIds.length === 0 ||
                     !actionTransferOption ||
                     (changeRoleTransfer && !selectedRoleId)
@@ -452,7 +466,7 @@ const ManageSuperAdmin = () => {
                 </div>
                 <Button
                   disabled={
-                    loadingInvite ||
+                    isLoadInvite ||
                     selectedInviteRoleId?.length === 0 ||
                     !actionInviteOption ||
                     (changeRoleInvite && !selectedInviteRoleId)
@@ -493,10 +507,15 @@ const ManageSuperAdmin = () => {
               <Button
                 onClick={() => {
                   transferSuperAdminRole();
-                  setShowConfirmModal(false);
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
+                {isLoadTransfer && (
+                  <LoaderCircleIcon
+                    stroke="#ffffff"
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                )}
                 Yes, Proceed
               </Button>
             </div>
@@ -563,6 +582,12 @@ const ManageSuperAdmin = () => {
                 }}
                 className="bg-[#D72638] p-2 px-4 hover:bg-red-700 cursor-pointer"
               >
+                {isLoadInvite && (
+                  <LoaderCircleIcon
+                    stroke="#ffffff"
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                )}
                 Yes, Proceed
               </Button>
             </div>
@@ -576,7 +601,6 @@ const ManageSuperAdmin = () => {
         >
           <DialogContent className="w-full lg:max-w-sm max-w-sm p-8">
             <div className="flex flex-col items-center">
-              
               <DialogHeader className="text-center">
                 <DialogTitle className="text-xl font-[500] text-[#181818]">
                   Super Admin Invitation Sent Successfully!
@@ -589,12 +613,11 @@ const ManageSuperAdmin = () => {
               />
               <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
                 An invitation email has been sent to {newSuperAdmin.email} and
-                Your role has been changed to an Admin.
+                Your role has been changed to an  {adminRoles.find((role) => role.id === selectedInviteRoleId)?.name || "Admin"}.
               </DialogDescription>
             </div>
           </DialogContent>
         </Dialog>
-
       </main>
     </div>
   );

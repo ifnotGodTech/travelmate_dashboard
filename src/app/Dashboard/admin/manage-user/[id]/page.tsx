@@ -56,6 +56,7 @@ const ManageUsers = () => {
     []
   );
   const [isLoadRemove, setIsLoadRemove] = useState(false);
+  const [isLoadAdd, setIsLoadAdd] = useState(false)
 
   const currentRole = roles.find((role) => String(role.id) === String(roleId));
 
@@ -107,7 +108,7 @@ const ManageUsers = () => {
       .filter((user) => selectedUserIds.includes(user.id))
       .map((user) => user.email.trim());
     try {
-      setLoading(true);
+      setIsLoadAdd(true);
       await axios.post(
         `${env.api.superadmin}roles/${roleId}/assign/`,
         { email: emailsToAdd.join(",") },
@@ -126,7 +127,7 @@ const ManageUsers = () => {
         message: error?.response?.data?.message || "Failed to add users.",
       });
     } finally {
-      setLoading(false);
+      setIsLoadAdd(false);
     }
   };
 
@@ -407,6 +408,12 @@ const ManageUsers = () => {
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
+                 {isLoadAdd && (
+                  <LoaderCircleIcon
+                    stroke="#ffffff"
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                )}
                 Yes, Proceed
               </Button>
             </div>
