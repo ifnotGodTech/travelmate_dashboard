@@ -41,21 +41,27 @@ const page = () => {
     },
   });
 
-  if (loadingTicket) {
-    return <LoadingState />;
-  }
+  // if (loadingTicket) {
+  //   return;
+  // }
 
   return (
     <>
       <div>
         <ContentWrapper>
-          <div className="bg-[#fff] shadow-md lg:rounded-[20px]">
-            <EscalateDetails
-              data={ticket}
-              showModal={showModal}
-              setShowModal={setShowModal}
-            />
-          </div>
+          {loadingTicket ? (
+            <div className="flex justify-center items-center h-full w-full ">
+              <LoadingState />
+            </div>
+          ) : (
+            <div className="bg-[#fff] shadow-md lg:rounded-[20px]">
+              <EscalateDetails
+                data={ticket}
+                showModal={showModal}
+                setShowModal={setShowModal}
+              />
+            </div>
+          )}
         </ContentWrapper>
       </div>
 
@@ -146,7 +152,7 @@ const Selections = ({ id, showModal, setShowModal }: any) => {
       });
     },
   });
-  console.log(Leveldata)
+  console.log(Leveldata);
 
   return (
     <>
@@ -446,7 +452,19 @@ const TicketDetails = ({ ticket }: any) => {
 };
 
 const LoadingState = () => {
-  return <div className="">Loading</div>;
+  return (
+    <div className="">
+      <div className="w-full h-[70vh] bg-gray-300 rounded-[20px] animate-pulse space-y-[20px]">
+        <div className="p-[40px] space-y-[24px]">
+          <div className="h-[20px] bg-gray-200 rounded w-[200px] animate-pulse"></div>
+          <div className="h-[30px] bg-gray-200 rounded w-[300px] animate-pulse"></div>
+          <div className="h-[20px] bg-gray-200 rounded w-[150px] animate-pulse"></div>
+          <div className="h-[20px] bg-gray-200 rounded w-full animate-pulse"></div>
+          <div className="h-[20px] bg-gray-200 rounded w-full animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default page;

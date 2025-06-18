@@ -104,6 +104,9 @@ const page = () => {
                 <span className="text-red-700">
                   | This is an escalated ticket{" "}
                 </span>
+              )}{" "}
+              {ticket?.status == "resolved" && (
+                <span className="text-[#2D9C5E]">| Resolved </span>
               )}
             </p>
             <h2 className="lgtext-[22px] text-[18px] font-semibold text-[#181818]">
@@ -113,7 +116,8 @@ const page = () => {
               <p className="text-[16px] font-semibold text-[#4E4F52]">
                 Customer:{" "}
                 <span className="font-medium">
-                  {ticket?.user.first_name} {ticket?.user.last_name}
+                  {ticket?.user.first_name || "N/A"}{" "}
+                  {ticket?.user.last_name || "N/A"}
                 </span>
               </p>
               <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
@@ -124,9 +128,28 @@ const page = () => {
               <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
               <p className="text-[16px] font-semibold text-[#4E4F52]">
                 Chat Status:{" "}
-                <span className="font-medium">{ticket?.status}</span>
+                <span className="font-medium uppercase ">{ticket?.status}</span>
               </p>
             </div>
+            {ticket?.escalated && (
+              <div className="flex space-x-3 items-center flex-wrap">
+                <p className="text-[16px] font-semibold text-[#4E4F52]">
+                  Escalated By:{" "}
+                  <span className="font-medium">
+                    {ticket?.escalated_by.first_name ||
+                      ticket?.escalated_by.email}{" "}
+                    ({"Customer support"})
+                  </span>
+                </p>
+                <div className="w-2 h-2 bg-[#9B9EA4] rounded-full"></div>
+                <p className="text-[16px] font-semibold text-[#4E4F52]">
+                  Escalated To:{" "}
+                  <span className="font-medium">
+                    {ticket?.escalation_role.name}
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
         )}
         <Chat
@@ -192,7 +215,12 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
   const [messages, setMessages] = useState(ticket?.messages || []);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Added state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // New state for attachment functionality
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMessages(ticket?.messages.results || []);
@@ -204,14 +232,90 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
     }
   }, [messages]);
 
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 10MB for example)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size must be less than 10MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert(
+          "Please select a valid file type (images, PDF, Word, Excel, or text files)"
+        );
+        return;
+      }
+
+      setSelectedFile(file);
+
+      // Create preview for images
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setFilePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview(null);
+      }
+    }
+  };
+
+  // Remove selected file
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Function to create FormData with message and file
+  const createMessagePayload = (message: string, file: File | null) => {
+    const formData = new FormData();
+
+    if (message.trim()) {
+      formData.append("content", message.trim());
+    }
+
+    if (file) {
+      formData.append("attachment", file);
+    }
+
+    return formData;
+  };
+
   const formik = useFormik({
     initialValues: {
       message: "",
     },
     validationSchema: Yup.object({
-      message: Yup.string().required("Message is required"),
+      message: Yup.string(), // Remove required validation
     }),
     onSubmit: async (values, { resetForm }) => {
+      // Check if there's either a message or an attachment
+      if (!values.message.trim() && !selectedFile) {
+        alert("Please enter a message or select a file to send");
+        return;
+      }
+
       if (
         !ticket?.claimed_admin?.id ||
         ticket?.claimed_admin?.id !== currentUser
@@ -225,28 +329,40 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         }
       }
 
-      setIsSubmitting(true); // Disable sending
+      setIsSubmitting(true);
 
-      onRespondToTicket({
-        TicketId: ticket?.id,
-        payload: { content: values.message },
-        successCallback: () => {
-          const newMessage = {
-            id: new Date().toISOString(),
-            content: values.message,
-            sender: { id: currentUser },
-            timestamp: new Date().toISOString(),
-          };
-          setMessages((prevMessages) => [...prevMessages, newMessage]);
-          resetForm();
-          setIsSubmitting(false); // Re-enable sending
-        },
-        errorCallback: (error: any) => {
-          setIsSubmitting(false); // Re-enable sending in case of error
-        },
-      });
+      try {
+        // Create FormData payload with message and file
+        const payload = createMessagePayload(values.message, selectedFile);
+
+        onRespondToTicket({
+          TicketId: ticket?.id,
+          payload,
+          successCallback: () => {
+            const newMessage = {
+              id: new Date().toISOString(),
+              content: values.message.trim() || null,
+              attachment: selectedFile
+                ? URL.createObjectURL(selectedFile)
+                : null, // Temporary preview URL
+              sender: { id: currentUser },
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prevMessages: any) => [...prevMessages, newMessage]);
+            resetForm();
+            removeSelectedFile();
+            setIsSubmitting(false);
+          },
+        });
+      } catch (error) {
+        setIsSubmitting(false);
+        alert("Failed to send message. Please try again.");
+      }
     },
   });
+
+  // Add validation context for attachment
+  formik.values.hasAttachment = !!selectedFile;
 
   return (
     <div className="w-full pt-[24px] border-[1px] border-[#CDCED1] bg-[#F5F5F5] rounded-[24px] space-y-[40px] flex flex-col">
@@ -334,12 +450,41 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
                         isUser ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <img
-                        src={mes.attachment}
-                        alt="Attachment"
-                        className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
-                        onClick={() => setModalImage(mes.attachment)}
-                      />
+                      {mes.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <img
+                          src={mes.attachment}
+                          alt="Attachment"
+                          className="w-[250px] h-auto rounded-lg shadow-lg cursor-pointer"
+                          onClick={() => setModalImage(mes.attachment)}
+                        />
+                      ) : (
+                        <div className="bg-white p-3 rounded-lg shadow-lg border max-w-[250px]">
+                          <div className="flex items-center space-x-2">
+                            <svg
+                              className="w-6 h-6 text-gray-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            <a
+                              href={mes.attachment}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium truncate"
+                            >
+                              {mes.attachment.split("/").pop() ||
+                                "Download File"}
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -367,49 +512,140 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
             This Ticket has been marked as resolved
           </div>
         ) : (
-          <div className="p-4 flex items-center gap-4 w-full">
-            {loadingTicket ? (
-              <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px]"></div>
-            ) : (
-              <>
-                <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
-                  <img
-                    src="/assets/icons/emoji.svg"
-                    alt="Emoji"
-                    className="cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    name="message"
-                    placeholder="Type a message..."
-                    className="flex-1 outline-none bg-transparent"
-                    value={formik.values.message}
-                    onChange={formik.handleChange}
-                    disabled={!isAdmin || isSubmitting}
-                  />
+          <div className="p-4 space-y-3">
+            {/* File Preview Section */}
+            {selectedFile && (
+              <div className="bg-gray-50 p-3 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {filePreview ? (
+                      <img
+                        src={filePreview}
+                        alt="Preview"
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeSelectedFile}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  type="submit"
-                  disabled={
-                    !isAdmin || ticket?.status === "resolved" || isSubmitting
-                  }
-                  className={`p-3 rounded-[8px] items-center flex space-x-1 ${
-                    !isAdmin || ticket?.status === "resolved" || isSubmitting
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-[#023E8A] text-white"
-                  }`}
-                >
-                  {responding ? (
-                    <div className="w-5 h-5 border-4 border-gray-100 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <img src="/assets/icons/white-send.svg" alt="Send" />
-                  )}
-                  <span className="text-[#fff] font-[500] text-[20px]">
-                    Send
-                  </span>
-                </button>
-              </>
+              </div>
             )}
+
+            {/* Input Section */}
+            <div className="flex items-center gap-4 w-full">
+              {loadingTicket ? (
+                <div className="w-full bg-[#f5f5f5] animate-pulse h-[20px]"></div>
+              ) : (
+                <>
+                  <div className="bg-[#EBECED] flex-1 p-3 border rounded-lg flex items-center space-x-4">
+                    <img
+                      src="/assets/icons/emoji.svg"
+                      alt="Emoji"
+                      className="cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      name="message"
+                      placeholder="Type a message..."
+                      className="flex-1 outline-none bg-transparent"
+                      value={formik.values.message}
+                      onChange={formik.handleChange}
+                      disabled={!isAdmin || isSubmitting}
+                    />
+
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      disabled={!isAdmin || isSubmitting}
+                    />
+
+                    {/* Attachment button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!isAdmin || isSubmitting}
+                      className={`${
+                        !isAdmin || isSubmitting
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-gray-200 cursor-pointer"
+                      } p-1 rounded transition-colors`}
+                    >
+                      <img
+                        src="/assets/icons/attach-ment.svg"
+                        alt="Attach"
+                        className=""
+                      />
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={
+                      !isAdmin || ticket?.status === "resolved" || isSubmitting
+                    }
+                    className={`p-3 rounded-[8px] items-center flex space-x-1 ${
+                      !isAdmin || ticket?.status === "resolved" || isSubmitting
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-[#023E8A] text-white"
+                    }`}
+                  >
+                    {responding ? (
+                      <div className="w-5 h-5 border-4 border-gray-100 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <img src="/assets/icons/white-send.svg" alt="Send" />
+                    )}
+                    <span className="text-[#fff] font-[500] text-[20px]">
+                      Send
+                    </span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </form>

@@ -220,13 +220,24 @@ const Session = ({
         <div className="flex justify-center items-center space-x-4 p-4">
           <div className="w-48 h-0.5 bg-black"></div>
           <div className="rounded-full border border-black py-2 px-4 text-black">
-            {chat?.claimed_by_info ? (
-              <>
-                Responding:{" "}
-                {chat.claimed_by_info.first_name || "---"}
-              </>
+            {loadingChat ? (
+              <span className="text-gray-500">Loading...</span>
             ) : (
-              "No admin claimed"
+              <div className=" text-[12px] lg:text-sm">
+                {chat?.claimed_by_info?.first_name ||
+                chat?.assigned_admin_info?.email ? (
+                  <>
+                    Responding:{" "}
+                    {chat?.claimed_by_info?.first_name ||
+                      chat?.claimed_by_info?.email ||
+                      chat?.assigned_admin_info?.first_name ||
+                      chat?.assigned_admin_info?.email ||
+                      "---"}
+                  </>
+                ) : (
+                  "No admin claimed"
+                )}
+              </div>
             )}
           </div>
           <div className="w-48 h-0.5 bg-black"></div>
@@ -321,24 +332,36 @@ const Session = ({
           ) : (
             <>
               <div className="bg-gray-200 flex-1 p-3 border rounded-lg flex items-center space-x-4">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 outline-none bg-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !isInputDisabled) {
-                      handleSend();
+                <div className="flex justify-between items-center w-full">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 w-full outline-none bg-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isInputDisabled) {
+                        handleSend();
+                      }
+                    }}
+                    disabled={
+                      isAdmin ||
+                      !canViewMessage ||
+                      chat?.status === "CLOSED" ||
+                      systemErrorMessage !== null
                     }
-                  }}
-                  disabled={
-                    isAdmin ||
-                    !canViewMessage ||
-                    chat?.status === "CLOSED" ||
-                    systemErrorMessage !== null
-                  }
-                />
+                  />
+                  <button
+                    type="button"
+                    className={`${"hover:bg-gray-200 cursor-pointer"} p-1 rounded transition-colors`}
+                  >
+                    <img
+                      src="/assets/icons/attach-ment.svg"
+                      alt="Attach"
+                      className=""
+                    />
+                  </button>
+                </div>
               </div>
               <button
                 onClick={handleSend}

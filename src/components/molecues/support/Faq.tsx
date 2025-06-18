@@ -97,17 +97,23 @@ export const FaqTabContent: React.FC<FaqTabContentProps> = ({
 
                 {categories.map((category) => (
                   <TabsContent key={category.id} value={category.name_display}>
-                    <Accordion type="single" collapsible>
-                      {category.faqs.map((faq) => (
-                        <AccordionItem
-                          key={faq.id}
-                          value={`${category.name_display}-faq-${faq.id}`}
-                        >
-                          <AccordionTrigger>{faq.question}</AccordionTrigger>
-                          <AccordionContent>{faq.answer}</AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
+                    {category.faqs.length === 0 ? (
+                      <div className="text-center text-gray-500 mt-2.5">
+                        No FAQs available in this category.
+                      </div>
+                    ) : (
+                      <Accordion type="single" collapsible>
+                        {category.faqs.map((faq) => (
+                          <AccordionItem
+                            key={faq.id}
+                            value={`${category.name_display}-faq-${faq.id}`}
+                          >
+                            <AccordionTrigger>{faq.question}</AccordionTrigger>
+                            <AccordionContent>{faq.answer}</AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    )}
                   </TabsContent>
                 ))}
               </Tabs>
@@ -122,14 +128,6 @@ export const FaqTabContent: React.FC<FaqTabContentProps> = ({
               variant="light-red"
               title="DELETE FAQ"
               icon="/assets/icons/delete.svg"
-              full
-            />
-          </Link>
-          <Link href="/Dashboard/support/faq/add-faq" className="w-full">
-            <Button
-              variant="light-blue"
-              title="ADD NEW FAQ"
-              icon="/assets/icons/blue-plus.svg"
               full
             />
           </Link>

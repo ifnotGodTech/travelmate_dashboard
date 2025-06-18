@@ -9,7 +9,6 @@ import {
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import Button from "@/components/reuseables/Button";
-import { SuccessModal } from "@/components/reuseables/SuccessModal";
 import { useAddFaq } from "@/hooks/api/faq";
 import { useRouter } from "next/navigation";
 
@@ -43,6 +42,7 @@ const Page = () => {
 };
 
 const AddComponent = () => {
+  const router = useRouter();
   const { isSuccess, loading, onAddFaq } = useAddFaq();
   const [showModal, setShowModal] = useState(false);
 
@@ -51,6 +51,7 @@ const AddComponent = () => {
       payload: values,
       successCallback: () => {
         setShowModal(true);
+        router.push("/Dashboard/support");
       },
     });
   };
@@ -138,15 +139,6 @@ const AddComponent = () => {
           )}
         </Formik>
       </div>
-
-      {/* Success Modal */}
-      {showModal && (
-        <SuccessModal
-          title="FAQ Added Successfully"
-          description="You have successfully added a new FAQ for customers."
-          onClose={() => setShowModal(false)}
-        />
-      )}
     </>
   );
 };
