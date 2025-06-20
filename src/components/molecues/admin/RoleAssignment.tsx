@@ -136,7 +136,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
           <Loading />
         ) : (
           filteredRoles.map((role, index) => (
-            <div key={index} className="space-y-3 pt-5">
+            <div key={index} className="space-y-3 pt-5 pb-12">
               <div>
                 <h3 className="text-lg font-medium">{role.name || ""}</h3>
                 <p className="text-muted-foreground text-sm pt-2 py-3">

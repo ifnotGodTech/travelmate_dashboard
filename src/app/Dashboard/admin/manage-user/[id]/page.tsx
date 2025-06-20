@@ -118,7 +118,8 @@ const ManageUsers = () => {
           },
         }
       );
-      setShowSuccessModal(true);
+      setShowConfirmModal(false)
+      setShowSuccessModal(true)
       setSelectedUserIds([]);
       await fetchRoles();
     } catch (error: any) {
@@ -404,7 +405,6 @@ const ManageUsers = () => {
               <Button
                 onClick={() => {
                   addUsersToRole();
-                  setShowConfirmModal(false);
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
