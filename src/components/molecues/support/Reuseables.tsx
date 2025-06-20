@@ -394,7 +394,7 @@ const ClaimedTicketSection = ({
       </div>
 
       <div className=" px-[16px] lg:px-[32px]">
-        <p className="font-[400] text-[16px] lg:text-[20px]">
+        <p className="font-[400] text-[12px] lg:text-[16px]">
           This chat is currently being handled by{" "}
           {ticketDetails?.claimed_admin?.first_name ||
             ticketDetails?.claimed_admin?.email}
@@ -851,11 +851,27 @@ export const EscalatedTicketChatModal: React.FC<
             <div className="">
               <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
               <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
-                You cannot view this message.
+                Access Restricted
               </h1>
               <p className="mt-4 text-gray-600">
-                You don't belong to the department the ticket was escalated to.
+                You don't have permission to claim or Edit this ticket. YOu can
+                only view.
               </p>
+
+              <div
+                className="p-4 mt-5 rounded-[8px] bg-[#023E8A] flex items-center space-x-3 justify-center cursor-pointer"
+                onClick={() =>
+                  router.push(
+                    `/Dashboard/support/ticket/${ticketDetails?.id}/respond`
+                  )
+                }
+              >
+                <>
+                  <span className="text-[#fff] text-[20px] font-[500]">
+                    View Chat Only
+                  </span>
+                </>
+              </div>
             </div>
           </div>
         ) : null}
@@ -914,9 +930,47 @@ export const EscalatedTicketDetailsDialog = ({
                 <DetailRow label="Category" value={ticketDetails?.category} />
                 <DetailRow label="Status" value={ticketDetails?.status} />
                 <DetailRow label="Created at" value={formattedDate} />
+                {ticketDetails?.escalated && (
+                  <DetailRow
+                    label="Escalated at"
+                    value={formatCreatedAt(ticketDetails?.escalated_at, 2)}
+                  />
+                )}
               </div>
             )}
           </div>
+          {ticketDetails?.claim_history?.results?.length > 0 && (
+            <>
+              <div className="border-[#9B9EA4] border-b-[1px]"></div>
+              <div className="px-[16px] lg:px-[32px] space-y-3">
+                <h2 className="text-[18px] font-[500] text-[#18181]">
+                  Previously handled by
+                </h2>
+                <div className="space-y-4">
+                  {ticketLoading ? (
+                    <Loading />
+                  ) : (
+                    <div className="space-y-2">
+                      {ticketDetails.claim_history.results.map(
+                        (claim: any, i: number) => (
+                          <p
+                            className="text-[14px] font-[400] text-[#343537]"
+                            key={i}
+                          >
+                            {`This chat was claimed by ${
+                              claim.claimed_admin?.first_name || "---"
+                            } ${
+                              claim.claimed_admin?.last_name || "---"
+                            } - ${formatCreatedAt(claim.timestamp, 2)}`}
+                          </p>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
           <div className="border-[#9B9EA4] border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">
             <h2 className="text-[18px] font-[500] text-[#18181]">
@@ -969,39 +1023,6 @@ export const EscalatedTicketDetailsDialog = ({
               )}
             </div>
           </div>
-
-          {ticketDetails?.claim_history?.results?.length > 0 && (
-            <>
-              <div className="border-[#9B9EA4] border-b-[1px]"></div>
-              <div className="px-[16px] lg:px-[32px] space-y-3">
-                <h2 className="text-[18px] font-[500] text-[#18181]">
-                  Claim History
-                </h2>
-                <div className="space-y-4">
-                  {ticketLoading ? (
-                    <Loading />
-                  ) : (
-                    <div className="space-y-2">
-                      {ticketDetails.claim_history.results.map(
-                        (claim: any, i: number) => (
-                          <p
-                            className="text-[14px] font-[400] text-[#343537]"
-                            key={i}
-                          >
-                            {`This chat was claimed by ${
-                              claim.claimed_admin?.first_name || "---"
-                            } ${
-                              claim.claimed_admin?.last_name || "---"
-                            } - ${formatCreatedAt(claim.timestamp, 2)}`}
-                          </p>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
 
           <div className="border-[#9B9EA4] border-b-[1px]"></div>
           <div className="px-[16px] lg:px-[32px] space-y-3">

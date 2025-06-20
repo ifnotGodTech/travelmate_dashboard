@@ -112,7 +112,7 @@ const Page = () => {
             open={showConfirmation}
             onOpenChange={() => setShowConfirmation(false)}
           >
-            <DialogContent className="w-full lg:min-w-[800px] p-[40px] space-y-10 rounded-[20px]">
+            <DialogContent className="w-full lg:min-w-[500px] p-[30px] space-y-5 rounded-[20px]">
               <DialogHeader>
                 <DialogTitle>Delete FAQ?</DialogTitle>
               </DialogHeader>
@@ -139,14 +139,6 @@ const Page = () => {
           </Dialog>
         )}
       </div>
-
-      {showModal && (
-        <SuccessModal
-          title="FAQ deleted Successfully"
-          description="You have successfully deleted a new FAQ for customers."
-          onClose={() => setShowModal(false)}
-        />
-      )}
     </>
   );
 };
@@ -169,7 +161,7 @@ const FaqTabContent: React.FC<{
               <TabsTrigger
                 key={category.id}
                 value={category.name_display}
-                className="p-2 bg-transparent shadow-transparent rounded-none border-b-[1px] border-transparent data-[state=active]:border-[#D72638]"
+                className="p-2 bg-transparent shadow-transparent rounded-none border-b-[1.5px] border-transparent data-[state=active]:border-[#D72638]"
               >
                 {category.name_display}
               </TabsTrigger>
@@ -177,25 +169,31 @@ const FaqTabContent: React.FC<{
           </TabsList>
           {categories.map((category) => (
             <TabsContent key={category.id} value={category.name_display}>
-              <Accordion type="single" collapsible>
-                {category.faqs.map((faq) => (
-                  <AccordionItem key={faq.id} value={`faq-${faq.id}`}>
-                    <AccordionTrigger>
-                      <div className="flex items-center space-x-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedFaqId === faq.id}
-                          onChange={(e) =>
-                            onSelectFaq(e.target.checked ? faq.id : null)
-                          }
-                        />
-                        <span>{faq.question}</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>{faq.answer}</AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              {category.faqs.length === 0 ? (
+                <div className="text-center text-gray-500 mt-2.5">
+                  No FAQs available in this category.
+                </div>
+              ) : (
+                <Accordion type="single" collapsible>
+                  {category.faqs.map((faq) => (
+                    <AccordionItem key={faq.id} value={`faq-${faq.id}`}>
+                      <AccordionTrigger>
+                        <div className="flex items-center space-x-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedFaqId === faq.id}
+                            onChange={(e) =>
+                              onSelectFaq(e.target.checked ? faq.id : null)
+                            }
+                          />
+                          <span>{faq.question}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>{faq.answer}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
             </TabsContent>
           ))}
         </Tabs>

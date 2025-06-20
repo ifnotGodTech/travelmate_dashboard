@@ -153,6 +153,7 @@ const Session = ({
   const name = `${chat?.user?.first_name || "---"} ${
     chat?.user?.last_name || "---"
   }`;
+
   const handleDownload = () => {
     fetch(modalImage)
       .then((response) => response.blob())
@@ -169,17 +170,45 @@ const Session = ({
       })
       .catch((err) => console.error("Failed to download image:", err));
   };
+
   const handleCloseModal = () => setModalImage(null);
 
   const handleImageClick = (url: string) => setModalImage(url);
 
-  // Extract system error message from liveMessages, if any
+  const handleAttachmentChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Mock upload logic - Replace with your upload API endpoint
+      fetch("/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          const payload = {
+            messageId: Date.now(),
+            message: "",
+            chatId: chat?.id,
+            attachment_url: data.url, // Use the uploaded file URL
+            attachment_type: file.type.startsWith("image") ? "image" : "other",
+          };
+
+          send(payload);
+        })
+        .catch((error) => console.error("Failed to upload attachment:", error));
+    }
+  };
+
   const systemErrorMessage = useMemo(() => {
     const errorMsgObj = liveMessages.find((msg: any) => msg.type === "error");
     return errorMsgObj ? errorMsgObj.message : null;
   }, [liveMessages]);
 
-  // Combine history + live messages, excluding session_info and error messages
   const allMessages = useMemo(() => {
     const history = chat?.messages || [];
     const live = liveMessages.filter(
@@ -190,8 +219,6 @@ const Session = ({
     );
     return [...history, ...live];
   }, [chat?.messages, liveMessages]);
-
-  console.log(allMessages);
 
   const handleSend = () => {
     if (input.trim()) {
@@ -214,24 +241,38 @@ const Session = ({
 
   const isInputDisabled =
     chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
+
   return (
     <>
       <div className="w-full pt-6 border border-gray-300 bg-gray-100 rounded-lg flex flex-col">
+        {/* Header Section */}
         <div className="flex justify-center items-center space-x-4 p-4">
           <div className="w-48 h-0.5 bg-black"></div>
           <div className="rounded-full border border-black py-2 px-4 text-black">
-            {chat?.claimed_by_info ? (
-              <>
-                Responding:{" "}
-                {chat.claimed_by_info.first_name || "---"}
-              </>
+            {loadingChat ? (
+              <span className="text-gray-500">Loading...</span>
             ) : (
-              "No admin claimed"
+              <div className="text-[12px] lg:text-sm">
+                {chat?.claimed_by_info?.first_name ||
+                chat?.assigned_admin_info?.email ? (
+                  <>
+                    Responding:{" "}
+                    {chat?.claimed_by_info?.first_name ||
+                      chat?.claimed_by_info?.email ||
+                      chat?.assigned_admin_info?.first_name ||
+                      chat?.assigned_admin_info?.email ||
+                      "---"}
+                  </>
+                ) : (
+                  "No admin claimed"
+                )}
+              </div>
             )}
           </div>
           <div className="w-48 h-0.5 bg-black"></div>
         </div>
 
+        {/* Message Section */}
         {loadingChat ? (
           <div className="text-center text-gray-500">Loading messages...</div>
         ) : (
@@ -263,7 +304,7 @@ const Session = ({
                     {/* Attachment */}
                     {mes.attachment_url && (
                       <div className="mt-2">
-                        {mes.attachment_type === "other" ? (
+                        {mes.attachment_type === "image" ? (
                           <img
                             src={mes.attachment_url}
                             alt="Attachment"
@@ -281,9 +322,7 @@ const Session = ({
                               isUser ? "ml-auto" : "mr-auto"
                             }`}
                           >
-                            <FileText className="w-5 h-5" />
                             <span>Download</span>
-                            <DownloadIcon className="w-5 h-5" />
                           </a>
                         )}
                       </div>
@@ -313,6 +352,7 @@ const Session = ({
           </div>
         )}
 
+        {/* Input Section */}
         <div className="p-4 border-t flex items-center gap-4">
           {chat?.status === "resolved" ? (
             <p className="text-center w-full text-gray-500">
@@ -321,24 +361,36 @@ const Session = ({
           ) : (
             <>
               <div className="bg-gray-200 flex-1 p-3 border rounded-lg flex items-center space-x-4">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 outline-none bg-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !isInputDisabled) {
-                      handleSend();
-                    }
-                  }}
-                  disabled={
-                    isAdmin ||
-                    !canViewMessage ||
-                    chat?.status === "CLOSED" ||
-                    systemErrorMessage !== null
-                  }
-                />
+                <div className="flex justify-between items-center w-full">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 w-full outline-none bg-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isInputDisabled) {
+                        handleSend();
+                      }
+                    }}
+                    disabled={isInputDisabled}
+                  />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="attachment-input"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={handleAttachmentChange}
+                    />
+                    <label
+                      htmlFor="attachment-input"
+                      className="cursor-pointer"
+                    >
+                      <img src="/assets/icons/attach-ment.svg" alt="Attach" />
+                    </label>
+                  </div>
+                </div>
               </div>
               <button
                 onClick={handleSend}
@@ -356,21 +408,22 @@ const Session = ({
         </div>
       </div>
 
+      {/* Modal for Image Preview */}
       {modalImage && (
         <div className="fixed inset-0 bg-black/50 bg-opacity-75 flex justify-center items-center z-50">
-          <div className="relative w-[auto] max-w-3xl max-h-[90vh]">
+          <div className="relative w-auto max-w-3xl max-h-[90vh]">
             <div className="absolute top-4 right-4 flex gap-2">
               <button
                 className="text-white bg-black bg-opacity-50 rounded-full p-2"
                 onClick={handleCloseModal}
               >
-                <X className="w-6 h-6" />
+                Close
               </button>
               <button
                 onClick={handleDownload}
                 className="text-white bg-black bg-opacity-50 rounded-full p-2"
               >
-                <DownloadIcon className="w-6 h-6" />
+                Download
               </button>
             </div>
             <img

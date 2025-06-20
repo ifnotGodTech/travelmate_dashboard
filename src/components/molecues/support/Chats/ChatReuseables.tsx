@@ -225,7 +225,7 @@ export const ClaimedChatSection = ({
   const { onClaiming, claiming } = useClaimChat();
   const currentUser = APP_STATE?.user?.user_id || "";
   const { loading, data } = useMyRoles({ modalVisible: !!chatDetails });
-  const canViewMessage = data?.name === "Support & Tickets";
+  const canViewMessage = !loading && data?.name === "Support & Tickets";
 
   const [notAuthorized, setNotAuthorized] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -269,12 +269,15 @@ export const ClaimedChatSection = ({
   }, [chatDetails, router, canViewMessage]);
 
   useEffect(() => {
+    if (loading) {
+      return;
+    }
     if (!canViewMessage) {
       setNotAuthorized(true);
     } else {
       setNotAuthorized(false);
     }
-  }, [canViewMessage]);
+  }, [loading, canViewMessage]);
 
   useEffect(() => {
     if (
@@ -318,12 +321,12 @@ export const ClaimedChatSection = ({
           <div className="absolute inset-0 bg-white/80 flex justify-center items-center rounded-2xl z-50 min-h-[400px]">
             <div className="w-12 h-12 border-4 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        ) : notAuthorized ? (
+        ) : notAuthorized && !loading ? (
           <NotAuthorizedModal
             ticketDetails={chatDetails}
             className="animate-fade-in"
           />
-        ) : (
+        ) : !loading ? (
           <>
             <div className="border-b-[1px] w-full border-[#BCBEC2]">
               <h2 className="font-[600] text-[16px] lg:text-[28px] px-[16px] lg:px-[32px] py-[8px] text-[#181818]">
@@ -371,7 +374,7 @@ export const ClaimedChatSection = ({
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -383,11 +386,11 @@ const NotAuthorizedModal = ({ ticketDetails }: any) => {
     <div className="text-center p-6 flex flex-col space-y-4 items-center justify-center min-h-[400px]">
       <AlertTriangle className="w-20 h-20 mx-auto text-red-500" />
       <h1 className="mt-4 text-[#181818] text-[20px] font-semibold">
-        You cannot view this message.
+        Access Restricted
       </h1>
       <p className="mt-4 text-gray-600">
-        You don't belong to the ticket and suport department <br /> you can only
-        view the message only.
+        You can view this chat but won't be able to send messages because you
+        don't have the required department permissions
       </p>
 
       <div
