@@ -323,6 +323,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         try {
           await onClaiming({
             TicketId: ticket?.id,
+            isShow: false,
           });
         } catch (error) {
           return;

@@ -419,9 +419,11 @@ export function useClaimTicket() {
   const onClaiming = async ({
     TicketId,
     successCallback,
+    isShow = true,
   }: {
     TicketId: string;
     successCallback?: () => void;
+    isShow?: boolean;
   }) => {
     setClaiming(true);
     setIsSuccess(false);
@@ -431,6 +433,9 @@ export function useClaimTicket() {
       const message = res.data?.detail || "Ticket claimed successfully";
       showSuccessToast({ message });
 
+      if (isShow) {
+        showSuccessToast({ message });
+      }
       if (successCallback) {
         successCallback();
       }
