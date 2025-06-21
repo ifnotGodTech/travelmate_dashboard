@@ -35,13 +35,6 @@ const page = () => {
   const [selectedOption, setSelectedOption] = useState("This week");
   const [allBookings, setAllBookings] = useState<BookingsProps[]>([])
 
-  const router = useRouter();
-  // if (!APP_STATE?.user || !APP_STATE?.accessToken) {
-  //   showErrorToast({ message: "You are not authorized to view this page" });
-  //   router.push("/login");
-  //   return null;
-  // }
-
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
