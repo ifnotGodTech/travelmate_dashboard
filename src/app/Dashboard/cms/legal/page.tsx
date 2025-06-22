@@ -132,6 +132,25 @@ const ContentTab = () => {
         ),
         partners: partnerRes.data.results?.map((item: any) => item.id),
       });
+      if (merged.length === 0) {
+        merged.push({
+          id: 0,
+          name: "car_rental",
+          description: "<p>Description for car rental category</p>",
+          partners: [
+            {
+              id: 0,
+              name: "Sample Partner",
+              logo: "",
+              description: "<p>Sample description for this partner</p>",
+              website: "https://example.com",
+              category: 0,
+              is_active: true,
+            },
+          ],
+        });
+      }
+      console.log(partnerCategoryRes.data)
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load content. Please try again later.");
@@ -205,7 +224,7 @@ const ContentTab = () => {
       ]);
       setIsEditing(false);
       setShowSuccessModal(true);
-    } catch (error:any) {
+    } catch (error: any) {
       console.error("Error updating content:", error);
       setError(error?.message || "Failed to display content please refresh!");
     } finally {
@@ -285,7 +304,7 @@ const ContentTab = () => {
           <button
             onClick={handleEditClick}
             className=" cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] leading-[100%] text-[#FFFFFF] hidden lg:block"
-            disabled= {isLoading}
+            disabled={isLoading}
           >
             {isEditing ? "Cancel" : "Edit"}
           </button>

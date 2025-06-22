@@ -1,5 +1,5 @@
 import React from "react";
-
+import Tiptap from "@/components/ui/Tiptap";
 type Partner = {
   id: number;
   name: string;
@@ -75,17 +75,19 @@ const Partner = ({
           {/* Category Description */}
           <div>
             {isEditing ? (
-              <textarea
-                className="w-full border border-gray-300 p-2 text-sm text-gray-700"
-                value={cat.description}
-                onChange={(e) =>
-                  handleCategoryChange(catIndex, "description", e.target.value)
+              <Tiptap
+                content={cat.description}
+                onChange={(value: string) =>
+                  handleCategoryChange(catIndex, "description", value)
                 }
               />
             ) : (
-              <p className="text-gray-700 leading-relaxed text-base">
-                {cat.description}
-              </p>
+              <p
+                className="text-gray-700 leading-relaxed text-base"
+                dangerouslySetInnerHTML={{
+                  __html: cat.description || "<p>No description available.</p>",
+                }}
+              ></p>
             )}
           </div>
 
@@ -119,15 +121,14 @@ const Partner = ({
                       <label className="block font-medium text-sm text-gray-700">
                         Name
                       </label>
-                      <input
-                        className="w-full border p-2"
-                        value={partner.name}
-                        onChange={(e) =>
+                      <Tiptap
+                        content={partner.name || "Unnamed Partner"}
+                        onChange={(value: string) =>
                           handlePartnerChange(
                             catIndex,
                             partnerIndex,
                             "name",
-                            e.target.value
+                            value
                           )
                         }
                       />
@@ -140,7 +141,7 @@ const Partner = ({
                       </label>
                       <input
                         className="w-full border p-2"
-                        value={partner.website}
+                        value={partner.website || "https://example.com"}
                         onChange={(e) =>
                           handlePartnerChange(
                             catIndex,
@@ -158,15 +159,16 @@ const Partner = ({
                     <label className="block font-medium text-sm text-gray-700">
                       Description
                     </label>
-                    <textarea
-                      className="w-full border p-2"
-                      value={partner.description}
-                      onChange={(e) =>
+                    <Tiptap
+                      content={
+                        partner.description || "No description provided."
+                      }
+                      onChange={(value: string) =>
                         handlePartnerChange(
                           catIndex,
                           partnerIndex,
                           "description",
-                          e.target.value
+                          value
                         )
                       }
                     />

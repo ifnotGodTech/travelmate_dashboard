@@ -1,8 +1,11 @@
-type PrivacyPolicy={
+import Tiptap from "@/components/ui/Tiptap";
+
+type PrivacyPolicy = {
   id: number;
   content: string;
   last_updated: string;
-}
+};
+
 type PrivacyProps = {
   isEditing: boolean;
   content: PrivacyPolicy[];
@@ -28,32 +31,29 @@ const Privacy = ({ isEditing, content, onContentChange }: PrivacyProps) => {
 
   return (
     <div>
-      {isEditing ? (
-        content.map((item) => (
-          <textarea
-            key={item.id}
-            value={item.content}
-            onChange={(e) => handleChange(item.id, e.target.value)}
-            className={`w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md ${isEditing? 'bg-[#CDCED1]': ""}`}
-            rows={8}
-          />
-        ))
-      ) : (
-        content.map((item) => (
-          <div
-            key={item.id}
-            className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px]"
-          >
-            <p className="pb-3">Last updated: {formatDate(item.last_updated)}</p>
-            {/* Split content by newline and render each line as a paragraph */}
-            {item.content.split("\n").map((line, index) => (
-              <p key={index} className="mb-3">
-                {line.trim()}
+      {isEditing
+        ? content.map((item) => (
+            <div key={item.id}  className={`w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md ${
+            isEditing ? "bg-[#CDCED1]" : ""
+          }`}>
+              <Tiptap content={item.content} onChange={(value: string) => handleChange(item.id, value)} />
+            </div>
+          ))
+        : content.map((item) => (
+            <div
+              key={item.id}
+              className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] mb-6"
+            >
+              <p className="pb-3">
+                Last updated: {formatDate(item.last_updated)}
               </p>
-            ))}
-          </div>
-        ))
-      )}
+              {item.content.split("\n").map((line, index) => (
+                <p key={index} className="mb-3">
+                  {line.trim()}
+                </p>
+              ))}
+            </div>
+          ))}
     </div>
   );
 };
