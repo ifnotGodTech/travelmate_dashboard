@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, ChevronDown, X } from "lucide-react";
 import { navItems } from "@/components/data";
 import { useMyRoles } from "@/hooks/api/roles";
+import { NotificationModal } from "@/components/reuseables/Notification";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,19 +189,49 @@ interface NavbarProps {
 }
 
 const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
+  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
   const { loading, data } = useMyRoles({ modalVisible: true });
+
+  const toggleModal = () => setIsModalVisible((prev) => !prev);
+
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 relative">
       <header className="flex items-center justify-between p-4 md:p-6">
         <div className="hidden lg:block">
           <h1 className="text-[28px] font-[600] text-[#181818]">
             {pageName === "CMS" ? "Content Management System" : pageName}
           </h1>
         </div>
-        <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px]">
-          <div className="relative cursor-pointer">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        <div className="flex space-x-6 relative">
+          <div
+            className="w-[56px] h-[56px] rounded-full relative flex items-center justify-center bg-[#fff] cursor-pointer"
+            onClick={toggleModal}
+          >
+            <div className="bg-[#D72638] absolute rounded-full w-[20px] h-[20px] flex items-center justify-center text-white text-xs font-bold top-0 right-0">
+              3
+            </div>
+            <img
+              src="/assets/icons/notifications.svg"
+              alt="Notifications"
+              className=""
+            />
+          </div>
+
+          {/* Notification Modal */}
+          {isModalVisible && (
+            <NotificationModal
+              onClose={() => setIsModalVisible(false)} // Pass close handler
+            />
+          )}
+
+          <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px]">
+            <div className="relative cursor-pointer">
+              {loading ? (
+                <div className="flex space-x-2 items-center ">
+                  <div className="h-5 w-5 rounded-full bg-gray-300"></div>
+                  <div className="w-[100px] h-[20px] rounded-[8px] bg-gray-300 animate-pulse"></div>
+                </div>
+              ) : (
                 <button className="flex items-center gap-2 rounded-full w-[auto] outline-none focus:outline-none">
                   <div>
                     <Image
@@ -215,31 +246,18 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
                     <span className="font-medium text-[16px] text-[#181818] leading-[100%]">
                       {data?.name}
                     </span>
-                    <ChevronDown className="h-4 w-4 text-[#181818]" />
                   </div>
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]"
-              >
-                <DropdownMenuItem className="w-full text-center px-[2px] py-2 hover:bg-gray-200">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
           </div>
-        </div>
-
-        <div className="flex space-x-3 items-center md:hidden">
-          <div className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer">
-            <img src="/assets/icons/Bell.svg" alt="" />
-          </div>
-          <div
-            className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer"
-            onClick={onMenuClick}
-          >
-            <img src="/assets/icons/Menu.svg" alt="Menu" />
+          <div className="flex space-x-3 items-center md:hidden">
+            <div
+              className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer"
+              onClick={onMenuClick}
+            >
+              <img src="/assets/icons/Menu.svg" alt="Menu" />
+            </div>
           </div>
         </div>
       </header>
