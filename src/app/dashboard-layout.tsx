@@ -189,7 +189,7 @@ interface NavbarProps {
 }
 
 const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
-  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const { loading, data } = useMyRoles({ modalVisible: true });
 
   const toggleModal = () => setIsModalVisible((prev) => !prev);
@@ -203,27 +203,30 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           </h1>
         </div>
         <div className="flex space-x-6 relative">
-          <div
-            className="w-[56px] h-[56px] rounded-full relative flex items-center justify-center bg-[#fff] cursor-pointer"
-            onClick={toggleModal}
-          >
-            <div className="bg-[#D72638] absolute rounded-full w-[20px] h-[20px] flex items-center justify-center text-white text-xs font-bold top-0 right-0">
-              3
+          <div className="relative">
+            <div
+              className="w-[56px] h-[56px] rounded-full flex items-center justify-center bg-[#fff] cursor-pointer"
+              onClick={toggleModal}
+            >
+              <div className="bg-[#D72638] absolute rounded-full w-[20px] h-[20px] flex items-center justify-center text-white text-xs font-bold top-0 right-0">
+                3
+              </div>
+              <img
+                src="/assets/icons/notifications.svg"
+                alt="Notifications"
+                className=""
+              />
             </div>
-            <img
-              src="/assets/icons/notifications.svg"
-              alt="Notifications"
-              className=""
-            />
+
+            {/* Notification Modal */}
+            {isModalVisible && (
+              <div className="absolute right-0">
+                <NotificationModal onClose={() => setIsModalVisible(false)} />
+              </div>
+            )}
           </div>
 
-          {/* Notification Modal */}
-          {isModalVisible && (
-            <NotificationModal
-              onClose={() => setIsModalVisible(false)} // Pass close handler
-            />
-          )}
-
+          {/* User Info */}
           <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px]">
             <div className="relative cursor-pointer">
               {loading ? (
@@ -251,6 +254,8 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
               )}
             </div>
           </div>
+
+          {/* Menu Button */}
           <div className="flex space-x-3 items-center md:hidden">
             <div
               className="w-10 h-10 bg-[#f5f5f5] rounded-full flex justify-center items-center cursor-pointer"

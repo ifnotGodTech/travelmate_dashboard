@@ -48,7 +48,7 @@ const page = () => {
   return (
     <>
       <div>
-        <ContentWrapper>
+        <ContentWrapper url="/Dashboard/support/ticket" >
           {loadingTicket ? (
             <div className="flex justify-center items-center h-full w-full ">
               <LoadingState />

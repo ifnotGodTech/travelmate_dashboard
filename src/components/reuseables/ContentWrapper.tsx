@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 type LayoutWrapperProps = {
   children: React.ReactNode;
+  url?: string;
 };
 
-const ContentWrapper = ({ children }: LayoutWrapperProps) => {
+const ContentWrapper = ({ children, url }: LayoutWrapperProps) => {
   const router = useRouter();
   return (
     <div className="max-screen-wrapper">
@@ -15,7 +16,7 @@ const ContentWrapper = ({ children }: LayoutWrapperProps) => {
         <div className="hidden w-full lg:block">
           <div className="mb-6 flex items-center gap-4">
             <button
-              onClick={() => router.back()}
+              onClick={url ? () => router.push(url) : () => router.back()}
               className="p-1 rounded-full hover:bg-gray-200"
             >
               <ArrowLeft className="h-6 w-6" />
