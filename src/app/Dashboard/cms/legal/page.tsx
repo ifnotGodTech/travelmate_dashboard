@@ -11,6 +11,7 @@ import Link from "next/link";
 import axios from "axios";
 import env from "@/config/env";
 import Loading from "../../admin/loading";
+import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 
 const page = () => {
   return (
@@ -62,10 +63,31 @@ type ContentTypes = {
 };
 
 const ContentTab = () => {
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("about");
+  const [editStates, setEditStates] = useState({
+    about: false,
+    privacy: false,
+    terms: false,
+    partner: false,
+  });
+
+  type TabKey = keyof typeof editStates; // "about" | "privacy" | "terms" | "partner"
+  const [activeTab, setActiveTab] = useState<TabKey>("about");
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingUpdate, setIsLoadingUpdate] = useState<boolean>(false);
+  const [showAddPartnersModal, setShowAddPartnersModal] = useState(false);
+
+  const [isLoadingAboutUpdate, setIsLoadingAboutUpdate] =
+    useState<boolean>(false);
+  const [isLoadingPrivacyUpdate, setIsLoadingPrivacyUpdate] =
+    useState<boolean>(false);
+  const [isLoadingTermsUpdate, setIsLoadingTermsUpdate] =
+    useState<boolean>(false);
+  const [isLoadingPartnerUpdate, setIsLoadingPartnerUpdate] =
+    useState<boolean>(false);
+  const [isLoadingPartnerCategoryUpdate, setIsLoadingPartnerCategoryUpdate] =
+    useState<boolean>(false);
+
   const [error, setError] = useState<string | null>(null);
 
   const [contents, setContents] = useState<ContentTypes>({
@@ -150,7 +172,7 @@ const ContentTab = () => {
           ],
         });
       }
-      console.log(partnerCategoryRes.data)
+      console.log(partnerCategoryRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load content. Please try again later.");
@@ -163,90 +185,133 @@ const ContentTab = () => {
     fetchData();
   }, []);
 
-  const updateContent = async () => {
-    setIsLoading(true);
+  const updateAboutContent = async () => {
+    setIsLoadingAboutUpdate(true);
     setError(null);
     try {
-      const patchPartnerCategories = contents.partnerCategory
-        .filter((item) => item && item.id)
-        .map((item) =>
-          axios.patch(`${env.api.partnercategories}/${item.id}/`, {
-            name: item.name,
-            description: item.description,
-          })
-        );
-
-      const allPartners = contents.partnerCategory
-        .filter((cat) => cat && cat.partners)
-        .flatMap((cat) => cat.partners);
-
-      const patchPartners = allPartners
-        .filter((partner) => partner && partner.id)
-        .map((partner) =>
-          axios.patch(`${env.api.partners}/${partner.id}/`, {
-            name: partner.name,
-            description: partner.description,
-            logo: partner.logo,
-            website: partner.website,
-            category: partner.category,
-            is_active: partner.is_active,
-          })
-        );
-
-      const postPartners = allPartners
-        .filter((partner) => !partner.id) // Handle new partners without an ID
-        .map((partner) =>
-          axios.post(`${env.api.partners}/`, {
-            name: partner.name,
-            description: partner.description,
-            logo: partner.logo,
-            website: partner.website,
-            category: partner.category,
-            is_active: partner.is_active,
-          })
-        );
-
-      await Promise.all([
-        axios.patch(`${env.api.aboutus}/${contentIds.about}/`, {
+      if (!editStates.about) {
+        await axios.post(`${env.api.aboutus}/`, {
           content: contents.about,
-        }),
+        });
+        showSuccessToast({
+          message: "About content added successfully!",
+        });
+      } else {
+        await axios.patch(`${env.api.aboutus}/${contentIds.about}/`, {
+          content: contents.about,
+        });
+        setEditStates((prev) => ({ ...prev, about: false }));
+        showSuccessToast({
+          message: "About content updated successfully!",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating about content:", error);
+      showErrorToast({
+        message:
+          error?.response?.data?.detail ||
+          "Failed to update about content. Please try again!",
+      });
+    } finally {
+      setIsLoadingAboutUpdate(false);
+    }
+  };
+
+  const updatePrivacyContent = async () => {
+    setIsLoadingPrivacyUpdate(true);
+    setError(null);
+    try {
+      if (!editStates.privacy) {
+        await axios.post(`${env.api.privacypolicy}/`, {
+          content: contents.privacy,
+        });
+        showSuccessToast({
+          message: "Privacy content added successfully!",
+        });
+      } else {
         axios.patch(`${env.api.privacypolicy}/${contentIds.privacy}/`, {
           content: contents.privacy[0].content,
           last_updated: contents.privacy[0].last_updated,
         }),
+          setEditStates((prev) => ({ ...prev, privacy: false }));
+        showSuccessToast({
+          message: "Privacy content updated successfully!",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating privacy content:", error);
+      showErrorToast({
+        message:
+          error?.response?.data?.detail ||
+          "Failed to update privacy content. Please try again!",
+      });
+    } finally {
+      setIsLoadingPrivacyUpdate(false);
+    }
+  };
+
+  const updateTermsContent = async () => {
+    setIsLoadingTermsUpdate(true);
+    setError(null);
+    try {
+      if (!editStates.terms) {
+        await axios.post(`${env.api.termsofuse}/`, {
+          content: contents.terms,
+        });
+        showSuccessToast({
+          message: "Terms of use content added successfully!",
+        });
+      } else {
         axios.patch(`${env.api.termsofuse}/${contentIds.terms}/`, {
           content: contents.terms[0].content,
           last_updated: contents.terms[0].updated_at,
         }),
-        ...patchPartnerCategories,
-        ...patchPartners,
-        ...postPartners,
-      ]);
-      setIsEditing(false);
-      setShowSuccessModal(true);
+          setEditStates((prev) => ({ ...prev, terms: false }));
+        showSuccessToast({
+          message: "Terms of use content updated successfully!",
+        });
+      }
     } catch (error: any) {
-      console.error("Error updating content:", error);
-      setError(error?.message || "Failed to display content please refresh!");
+      console.error("Error updating terms of use content:", error);
+      showErrorToast({
+        message:
+          error?.response?.data?.detail ||
+          "Failed to update terms of use content. Please try again!",
+      });
     } finally {
-      setIsLoading(false);
+      setIsLoadingTermsUpdate(false);
     }
   };
 
-  const deletePartners = async (id: number) => {
+  const deletePartners = async (categoryId: number, partnerId: number) => {
     try {
-      await axios.delete(`${env.api.partnercategories}/${id}/`);
+      await axios.delete(`${env.api.partners}/${partnerId}/`);
       fetchData();
     } catch (error) {
-      console.error("Error deleting partners:", error);
-      setError("Failed to delete partners. Please try again.");
+      console.error("Error deleting partner:", error);
+      setError("Failed to delete partner. Please try again.");
     }
   };
-  const handleEditClick = (): void => {
-    setIsEditing(!isEditing);
-    if (isEditing) {
-      // Reset contents to original if canceling
+
+  const toggleEdit = (section: keyof typeof editStates) => {
+    setEditStates((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+    // Optionally: refetch to reset content when cancelling
+    if (editStates[section]) {
       fetchData();
     }
+  };
+
+  const cancelAllEdits = () => {
+    setEditStates({
+      about: false,
+      privacy: false,
+      terms: false,
+      partner: false,
+    });
+    fetchData();
   };
 
   const handleContentAboutChange = (
@@ -286,9 +351,9 @@ const ContentTab = () => {
     }));
   };
 
-  const handleConfirmChanges = (): void => {
-    updateContent();
-  };
+  // const handleConfirmChanges = (): void => {
+  //   updateContent();
+  // };
 
   const handleCloseModal = () => {
     setShowSuccessModal(false);
@@ -301,15 +366,39 @@ const ContentTab = () => {
           <p className="font-[600] text-[14px] lg:text-[20px] text-[#181818] leading-[100%] ">
             Manage Information and Policies
           </p>
-          <button
-            onClick={handleEditClick}
-            className=" cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] leading-[100%] text-[#FFFFFF] hidden lg:block"
-            disabled={isLoading}
-          >
-            {isEditing ? "Cancel" : "Edit"}
-          </button>
+          {activeTab !== "partner" ? (
+            <button
+              onClick={() => {
+                setEditStates((prev) => ({
+                  ...prev,
+                  [activeTab]: !prev[activeTab],
+                }));
+                if (editStates[activeTab]) fetchData();
+              }}
+              className="cursor-pointer py-2 px-4 rounded-[4px] bg-[#023E8A] font-[600] text-[16px] text-[#FFFFFF]"
+            >
+              {editStates[activeTab] ? "Cancel" : "Edit"}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                // setEditingPartner(null);
+                setShowAddPartnersModal(true);
+              }}
+              className="bg-[#023E8A] text-white px-4 py-2 rounded-md hover:bg-blue-800 cursor-pointer"
+            >
+              Add Partner
+            </button>
+          )}
+
           <img
-            onClick={handleEditClick}
+            onClick={() => {
+              setEditStates((prev) => ({
+                ...prev,
+                [activeTab]: !prev[activeTab],
+              }));
+              if (editStates[activeTab]) fetchData();
+            }}
             src="/assets/icons/mode_edit.svg"
             alt="Edit"
             className="cursor-pointer lg:hidden "
@@ -356,53 +445,101 @@ const ContentTab = () => {
           )}
           <TabsContent value="about">
             <About
-              isEditing={isEditing}
+              isEditing={editStates.about}
               content={contents.about}
               onContentChange={(value) =>
                 handleContentAboutChange("about", value)
               }
+              updateAboutContent={updateAboutContent}
+              isLoadingAboutUpdate={isLoadingAboutUpdate}
+              onCancel={() =>
+                setEditStates((prev) => ({ ...prev, about: false }))
+              }
+              onEdit={() => setEditStates((prev) => ({ ...prev, about: true }))}
             />
           </TabsContent>
           <TabsContent value="privacy">
             <Privacy
-              isEditing={isEditing}
+              isEditing={editStates.privacy}
               content={contents.privacy}
               onContentChange={(value) =>
                 handleContentPrivacyChange("privacy", value)
+              }
+              updatePrivacyContent={updatePrivacyContent}
+              isLoadingPrivacyUpdate={isLoadingPrivacyUpdate}
+              onCancel={() =>
+                setEditStates((prev) => ({ ...prev, privacy: false }))
+              }
+              onEdit={() =>
+                setEditStates((prev) => ({ ...prev, privacy: true }))
               }
             />
           </TabsContent>
           <TabsContent value="terms">
             <Terms
-              isEditing={isEditing}
+              isEditing={editStates.terms}
               content={contents.terms}
               onContentChange={(value) =>
                 handleContentTermsChange("terms", value)
+              }
+              updateTermsContent={updateTermsContent}
+              isLoadingTermsUpdate={isLoadingTermsUpdate}
+              onEdit={() => setEditStates((prev) => ({ ...prev, terms: true }))}
+              onCancel={() =>
+                setEditStates((prev) => ({ ...prev, partner: false }))
               }
             />
           </TabsContent>
           <TabsContent value="partner">
             <Partner
-              isEditing={isEditing}
+              isEditing={editStates.partner}
               content={contents.partnerCategory}
               onContentChange={(value) =>
                 handleContentPartnerChange("partnerCategory", value)
               }
-              onDeletePartner={(partnerId) => deletePartners(partnerId)}
+              onDeletePartner={(partnerId, categoryId) =>
+                deletePartners(partnerId, categoryId)
+              }
+              showAddPartnersModal={showAddPartnersModal}
+              setShowAddPartnersModal={setShowAddPartnersModal}
             />
           </TabsContent>
         </Tabs>
       </div>
 
-      {isEditing && (
-        <Button
-          onClick={handleConfirmChanges}
-          full
-          title="CONFIRM CHANGES"
-          className="bg-[#023E8A] text-white"
-        />
+      {editStates[activeTab] && (
+        <div className="flex items-center justify-center relative">
+          {isLoadingUpdate && (
+            <svg
+              className="animate-spin -ml-1 mr-48  h-4 w-4 text-white absolute "
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="#ffffff"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          )}
+          {/* <Button
+            onClick={handleConfirmChanges}
+            full
+            title="CONFIRM CHANGES"
+            className="bg-[#023E8A] text-white"
+          /> */}
+        </div>
       )}
-      {!isEditing && (
+      {!editStates[activeTab] && (
         <Link href="/Dashboard/cms">
           <Button full variant="success" title="GO TO BACK TO SERVICES" />
         </Link>

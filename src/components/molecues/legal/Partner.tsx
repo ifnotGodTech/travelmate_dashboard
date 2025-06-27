@@ -1,11 +1,31 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Tiptap from "@/components/ui/Tiptap";
-type Partner = {
+import axios from "axios";
+import env from "@/config/env";
+import PartnerForm from "./PartnerForm";
+import PartnerDetails from "./PartnerDetails";
+import {
+  TableBody,
+  TableCell,
+  TableRow,
+  Table,
+  TableHeader,
+  TableHead,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
+import { showErrorToast } from "@/utils/toasters";
+
+export type Partner = {
   id: number;
   name: string;
-  logo: string;
+  logo: string | File;
   description: string;
-  website: string;
   category: number;
   is_active: boolean;
 };
@@ -22,6 +42,8 @@ type PartnerProps = {
   content: PartnerCategory[];
   onContentChange: (value: PartnerCategory[]) => void;
   onDeletePartner?: (categoryId: number, partnerId: number) => void;
+  showAddPartnersModal: boolean;
+  setShowAddPartnersModal: (show: boolean) => void;
 };
 
 const Partner = ({
@@ -29,7 +51,25 @@ const Partner = ({
   content,
   onContentChange,
   onDeletePartner,
+  showAddPartnersModal,
+  setShowAddPartnersModal,
 }: PartnerProps) => {
+  const [categorys, setCategories] = useState<PartnerCategory[]>([]);
+
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [isOpenOptions, setIsOpenOptions] = useState(-1);
+  const [showPartnerDetails, setShowPartnerDetails] = useState(true);
+
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const handleViewDetails = (partner: Partner) => {
+    setSelectedPartner(partner);
+    setShowPartnerDetails(true);
+  };
+  const toggleOptions = (index: number) => {
+    setIsOpenOptions(isOpenOptions === index ? -1 : index);
+  };
   const handleCategoryChange = (
     index: number,
     field: keyof PartnerCategory,
@@ -56,175 +96,316 @@ const Partner = ({
     onContentChange(updated);
   };
 
+  const createpartner = async (newPartner: Partner) => {
+    if (!newPartner.name || !newPartner.category || !newPartner.logo) {
+      showErrorToast({ message: "Please fill in all required fields." });
+      return;
+    }
+    try {
+      setLoadingSave(true);
+      const formData = new FormData();
+      formData.append("name", newPartner.name);
+      formData.append("description", newPartner.description);
+      formData.append("category", newPartner.category.toString());
+      formData.append("is_active", newPartner.is_active ? "true" : "false");
+
+      if ((newPartner.logo as any) instanceof File) {
+        formData.append("logo", newPartner.logo as any);
+      }
+
+      const response = await axios.post(
+        `${env.api.admin}/partners/`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      const updatedContent = [...content];
+      const catIndex = updatedContent.findIndex(
+        (cat) => cat.id === response.data.category
+      );
+      if (catIndex !== -1) {
+        updatedContent[catIndex].partners.push(response.data);
+        onContentChange(updatedContent);
+      }
+      setShowAddPartnersModal(false);
+    } catch (error: any) {
+      console.log(
+        "Create partner error:",
+        error?.response?.data || error.message
+      );
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
+  const updatePartner = async (updated: Partner) => {
+    try {
+      setLoadingSave(true);
+
+      const formData = new FormData();
+      formData.append("name", updated.name);
+      formData.append("description", updated.description);
+      formData.append("category", updated.category.toString());
+      formData.append("is_active", updated.is_active ? "true" : "false");
+
+      if ((updated.logo as any) instanceof File) {
+        formData.append("logo", updated.logo as any);
+      }
+
+      const response = await axios.patch(
+        `${env.api.admin}/partners/${updated.id}/`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      // Update frontend state
+      const updatedContent = [...content];
+      const catIndex = updatedContent.findIndex(
+        (cat) => cat.id === updated.category
+      );
+      if (catIndex !== -1) {
+        const partnerIndex = updatedContent[catIndex].partners.findIndex(
+          (p) => p.id === updated.id
+        );
+        if (partnerIndex !== -1) {
+          updatedContent[catIndex].partners[partnerIndex] = response.data;
+          onContentChange(updatedContent);
+        }
+      }
+
+      setShowAddPartnersModal(false);
+      setEditingPartner(null);
+    } catch (err) {
+      console.error("Update failed:", err);
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(`${env.api.admin}/partner-categories/`);
+        setCategories(Array.isArray(res.data.results) ? res.data.results : []);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const noPartners = content.every((cat) => cat.partners.length === 0);
   const formatSnakeToTitle = (value: string): string => {
     return value
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
+  const [selectedPartners, setSelectedPartners] = useState<number[]>([]);
+
+  const totalPartnerCount = content.reduce(
+    (acc, cat) => acc + cat.partners.length,
+    0
+  );
+
+  // const handleSelectPartner = (id: number) => {
+  //   setSelectedPartners((prev) =>
+  //     prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+  //   );
+  // };
+
+  // const handleSelectAll = () => {
+  //   if (selectedPartners.length === totalPartnerCount) {
+  //     setSelectedPartners([]);
+  //   } else {
+  //     const allIds = content.flatMap((cat) => cat.partners.map((p) => p.id));
+  //     setSelectedPartners(allIds);
+  //   }
+  // };
+  const filteredContent = selectedCategory
+    ? content.filter((cat) => cat.id === selectedCategory)
+    : content;
 
   return (
-    <div className="space-y-12">
-      {content.map((cat, catIndex) => (
-        <div key={cat.id} className="space-y-4">
-          {/* Category Title */}
-          <h3 className="text-lg font-semibold text-gray-900 capitalize">
-            {formatSnakeToTitle(cat.name)} Partner
-          </h3>
-
-          {/* Category Description */}
-          <div>
-            {isEditing ? (
-              <Tiptap
-                content={cat.description}
-                onChange={(value: string) =>
-                  handleCategoryChange(catIndex, "description", value)
-                }
-              />
-            ) : (
-              <p
-                className="text-gray-700 leading-relaxed text-base"
-                dangerouslySetInnerHTML={{
-                  __html: cat.description || "<p>No description available.</p>",
-                }}
-              ></p>
-            )}
-          </div>
-
-          {/* Partner Names Line */}
-          {!isEditing && (
-            <div className="flex flex-wrap gap-x-2 text-base font-medium text-gray-800 uppercase">
-              {cat.partners.map((partner, index) => (
-                <span key={partner.id} className="capitalize">
-                  <a href={partner.website} target="blank">
-                    {partner.name || "No Partners for this category"}
-                  </a>
-                  {index < cat.partners.length - 1 && (
-                    <span className="mx-2 text-gray-500">•</span>
-                  )}
+    <div className="space-y-6">
+      {showPartnerDetails && selectedPartner && (
+        <PartnerDetails
+          showPartnerDetails={showPartnerDetails}
+          setShowPartnerDetails={setShowPartnerDetails}
+          partner={selectedPartner}
+          category={categorys}
+          formatSnakeToTitle={formatSnakeToTitle}
+        />
+      )}
+      <div>
+        <div>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <button className="w-[150px] p-2 cursor-pointer rounded-[8px] space-x-4  border-[#9b9ea4] border-[1px] flex justify-between items-center bg-transparent">
+                <span>
+                  {selectedCategory
+                    ? formatSnakeToTitle(
+                        categorys.find((cat) => cat.id === selectedCategory)
+                          ?.name || ""
+                      )
+                    : "All Categories"}
                 </span>
-              ))}
-            </div>
-          )}
+                <img
+                  src="/assets/icons/arrow-down.svg"
+                  alt=""
+                  className="w-3 h-3 ml-auto"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)]">
+              <DropdownMenuItem
+                onClick={() => setSelectedCategory(null)}
+                className="w-full text-center px-4 py-2 hover:bg-gray-200 cursor-pointer"
+              >
+                All Categories
+              </DropdownMenuItem>
+              {Array.isArray(categorys) &&
+                categorys?.map((cat) => (
+                  <DropdownMenuItem
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className="w-[150px] text-center px-4 py-2 hover:bg-gray-200 cursor-pointer"
+                  >
+                    {formatSnakeToTitle(cat.name)}
+                  </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-          {/* Editable Partner List */}
-          {isEditing && (
-            <div className="space-y-6">
-              {cat.partners.map((partner, partnerIndex) => (
-                <div
-                  key={partner.id}
-                  className="p-4 bg-white rounded-md border border-gray-200 space-y-4"
-                >
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Name */}
-                    <div>
-                      <label className="block font-medium text-sm text-gray-700">
-                        Name
-                      </label>
-                      <Tiptap
-                        content={partner.name || "Unnamed Partner"}
-                        onChange={(value: string) =>
-                          handlePartnerChange(
-                            catIndex,
-                            partnerIndex,
-                            "name",
-                            value
-                          )
-                        }
-                      />
-                    </div>
+      <Table className="w-full z-[9999] mb-28">
+        <TableHeader className="bg-gray-100">
+          {/* <TableHead>
+            <input
+              type="checkbox"
+              checked={
+                selectedPartners.length === totalPartnerCount &&
+                totalPartnerCount > 0
+              }
+              onChange={handleSelectAll}
+            />
+          </TableHead> */}
 
-                    {/* Website */}
-                    <div>
-                      <label className="block font-medium text-sm text-gray-700">
-                        Website
-                      </label>
-                      <input
-                        className="w-full border p-2"
-                        value={partner.website || "https://example.com"}
-                        onChange={(e) =>
-                          handlePartnerChange(
-                            catIndex,
-                            partnerIndex,
-                            "website",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block font-medium text-sm text-gray-700">
-                      Description
-                    </label>
-                    <Tiptap
-                      content={
-                        partner.description || "No description provided."
-                      }
-                      onChange={(value: string) =>
-                        handlePartnerChange(
-                          catIndex,
-                          partnerIndex,
-                          "description",
-                          value
-                        )
-                      }
-                    />
-                  </div>
-
-                  {/* Logo */}
-                  <div className="flex flex-col gap-2">
-                    <label className="font-medium text-sm text-gray-700">
-                      Logo URL
-                    </label>
-                    <input
-                      className="border p-2 w-full"
-                      value={partner.logo || ""}
-                      onChange={(e) =>
-                        handlePartnerChange(
-                          catIndex,
-                          partnerIndex,
-                          "logo",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  {/* Active Toggle */}
-                  <div className="flex items-center gap-3">
-                    <label className="font-medium text-sm text-gray-700">
-                      Active:
-                    </label>
+          <TableHead className="font-semibold">Logo</TableHead>
+          <TableHead className="font-semibold">Name</TableHead>
+          <TableHead className="font-semibold">Date</TableHead>
+          <TableHead className="font-semibold">Category</TableHead>
+          <TableHead className="font-semibold">Uploaded By</TableHead>
+          <TableHead className="font-semibold">Role</TableHead>
+          <TableHead className="font-semibold">Actions</TableHead>
+        </TableHeader>
+        <TableBody>
+          {noPartners ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-4">
+                <div className="flex flex-col items-center justify-end ml-auto gap-5">
+                  <p className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px]">
+                    No content added yet.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowAddPartnersModal(true);
+                    }}
+                    className="bg-[#023E8A] text-white px-4 py-2 rounded-md hover:bg-blue-800 cursor-pointer"
+                  >
+                    Add Partner
+                  </button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredContent.flatMap((cat) =>
+              cat.partners.map((partner) => (
+                <TableRow key={`${cat.id}-${partner.id}`}>
+                  {/* <TableCell>
                     <input
                       type="checkbox"
-                      checked={partner.is_active}
-                      onChange={(e) =>
-                        handlePartnerChange(
-                          catIndex,
-                          partnerIndex,
-                          "is_active",
-                          e.target.checked
-                        )
-                      }
+                      checked={selectedPartners.includes(partner.id)}
+                      onChange={() => handleSelectPartner(partner.id)}
                     />
-                  </div>
-                  {isEditing && (
-                    <button
-                      onClick={() => onDeletePartner?.(cat.id, partner.id)}
-                      className="bg-red-600 py-2 text-white rounded-md cursor-pointer text-sm px-4"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </TableCell> */}
+
+                  <TableCell>
+                    {typeof partner.logo === "string" ? (
+                      <img
+                        src={partner.logo}
+                        alt={partner.name}
+                        className="h-10 w-10 object-contain"
+                      />
+                    ) : (
+                      "No Logo"
+                    )}
+                  </TableCell>
+                  <TableCell>{partner.name}</TableCell>
+                  <TableCell>{new Date().toLocaleDateString()}</TableCell>
+                  <TableCell>{formatSnakeToTitle(cat.name)}</TableCell>
+                  <TableCell>Admin</TableCell>
+                  <TableCell>Superadmin</TableCell>
+                  <TableCell className="relative cursor-pointer">
+                    <MoreVertical
+                      onClick={() => toggleOptions(partner.id)}
+                      width={12}
+                      height={12}
+                    />
+                    {isOpenOptions === partner.id && (
+                      <div
+                        className={`rounded-lg w-[120px] bg-white border-[1px] border-white h-fit absolute top-10 right-10 z-[99999] shadow-lg`}
+                      >
+                        <p
+                          onClick={() => {
+                            handleViewDetails(partner);
+                            setIsOpenOptions(-1);
+                          }}
+                          className="border-b-[1px] border-gray-300 p-2 cursor-pointer"
+                        >
+                          View
+                        </p>
+                        <p
+                          onClick={() => {
+                            setEditingPartner(partner);
+                            setShowAddPartnersModal(true);
+                            setIsOpenOptions(-1);
+                          }}
+                          className="border-b-[1px] p-2 cursor-pointer"
+                        >
+                          Edit
+                        </p>
+                        <p
+                          onClick={() => {
+                            onDeletePartner?.(cat.id, partner.id);
+                            setIsOpenOptions(-1);
+                          }}
+                          className="p-2 cursor-pointer"
+                        >
+                          Delete
+                        </p>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )
           )}
-        </div>
-      ))}
+        </TableBody>
+      </Table>
+
+      {(showAddPartnersModal || editingPartner) && (
+        <PartnerForm
+          onSubmit={createpartner}
+          onUpdatePartner={updatePartner}
+          categories={categorys}
+          showAddPartnersModal={showAddPartnersModal}
+          setShowAddPartnersModal={setShowAddPartnersModal}
+          loadingSave={loadingSave}
+          editingPartner={editingPartner}
+        />
+      )}
     </div>
   );
 };

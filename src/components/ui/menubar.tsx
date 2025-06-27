@@ -10,7 +10,9 @@ import {
   Italic,
   List,
   ListOrdered,
+  Redo,
   Strikethrough,
+  Undo,
 } from "lucide-react";
 
 import {Toggle} from "@radix-ui/react-toggle"
@@ -20,6 +22,16 @@ const Menubar = ({ editor }: { editor: Editor | null }) => {
     return null;
   }
    const Options = [
+    {
+      icon: <Undo className="size-4" />,
+      onClick: () => editor.chain().focus().undo().run(),
+      pressed: editor.isActive("undo"),
+    },
+    {
+      icon: <Redo className="size-4" />,
+      onClick: () => editor.chain().focus().redo().run(),
+      pressed: editor.isActive("redo"),
+    },
     {
       icon: <Heading1 className="size-4" />,
       onClick: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
@@ -83,7 +95,7 @@ const Menubar = ({ editor }: { editor: Editor | null }) => {
   ];
   return (
 
-    <div className="border rounded-md p-1 mb-1 bg-slate-50 space-x-2 z-50">
+    <div className="border rounded-md p-1 mb-1 bg-slate-50 space-x-2 z-50 shadow-2xl">
       {Options.map((option, index) => (
         <Toggle
           key={index}
