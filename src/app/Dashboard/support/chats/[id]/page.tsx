@@ -49,7 +49,7 @@ const page = (props: Props) => {
 
   const isInputDisabled =
     chat?.status === "CLOSED" ||
-    !canViewMessage ||
+    !canViewMessage 
     !(
       chat?.assigned_admin_info === null ||
       chat?.claimed_by_info?.id === currentUser ||
@@ -223,7 +223,7 @@ const Session = ({
   }, [allMessages, systemErrorMessage]);
 
   const isInputDisabled =
-    chat?.status === "CLOSED" || systemErrorMessage !== null || !isAdmin;
+    chat?.status === "CLOSED" || systemErrorMessage !== null || isAdmin;
 
   return (
     <>

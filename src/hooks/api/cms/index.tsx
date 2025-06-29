@@ -4,10 +4,8 @@ import { useEffect } from "react";
 
 export function useGetAllServices({
   initalFetch = true,
-  refresh = false,
 }: {
   initalFetch?: boolean;
-  refresh?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any | null>(null);
@@ -24,12 +22,18 @@ export function useGetAllServices({
     }
   };
 
+  // Public refresh function
+  const refresh = () => {
+    onCMSdata();
+  };
+
   useEffect(() => {
-    if (initalFetch || refresh) onCMSdata();
-  }, [initalFetch, refresh]);
+    if (initalFetch) onCMSdata();
+  }, [initalFetch]);
 
   return { loading, data, refresh };
 }
+
 export function useEditServices() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any | null>(null);

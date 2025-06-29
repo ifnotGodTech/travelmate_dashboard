@@ -1,83 +1,177 @@
 "use client";
+import React from "react";
+import { useState, useEffect } from "react";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { DatePicker } from "@/app/components/date-picker";
-import { BookingCalendar } from "@/app/components/booking-calendar";
-import { BookingFilter } from "@/app/components/booking-filter";
-import { Search } from "lucide-react";
-import { mockBookings } from "@/components/data";
-import { BookingItem } from "@/app/types";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
-export default function BookingsPage() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState(
-    "Thursday 13th of Feb., 2025"
-  );
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [bookingsPerPage, setBookingsPerPage] = useState("20");
-
-  const filteredBookings = mockBookings.filter((booking) => {
-    if (activeFilter !== "All" && booking.type !== activeFilter) {
-      return false;
-    }
-
-    if (
-      searchQuery &&
-      !booking.userName.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-
-    return true;
-  });
-
-  const handleBookingClick = (booking: BookingItem) => {
-    router.push(`/Dashboard/bookings/1`);
-  };
-
+const page = () => {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="relative w-full md:w-2/3">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search by user's name"
-            className="pl-10 pr-4 py-2 w-full rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <DatePicker value={selectedDate} onChange={setSelectedDate} />
-      </div>
-
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span>Today's bookings</span>
-          <select
-            value={bookingsPerPage}
-            onChange={(e) => setBookingsPerPage(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1"
-          >
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-        </div>
-        <BookingFilter
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-        />
-      </div>
-
-      <BookingCalendar
-        bookings={filteredBookings}
-        onBookingClick={handleBookingClick}
-      />
+    <div>
+      <BookingTab />
     </div>
   );
-}
+};
+
+export default page;
+
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
+
+import { format } from "date-fns";
+import { Filter } from "@/components/molecues/bookings/reuseables";
+import BookingTable from "@/components/molecues/bookings/BookingTable";
+
+const BookingTab: React.FC = () => {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOption, setSelectedOption] = useState("");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedStartDate, setSelectedStartDate] = useState<
+    string | undefined
+  >(undefined);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(
+    undefined
+  );
+
+  // Track active tab with localStorage persistence
+  const [activeTab, setActiveTab] = useState<string>("ticket");
+
+  // Load saved tab from localStorage on the client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTab = window.localStorage.getItem("bactiveTab");
+      if (savedTab) {
+        setActiveTab(savedTab);
+      }
+    }
+  }, []);
+
+  // Save the active tab to localStorage on change
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("bactiveTab", activeTab);
+    }
+  }, [activeTab]);
+
+  // Reset filters when the active tab changes
+  useEffect(() => {
+    setSearchTerm("");
+    setSelectedOption("");
+    setSelectedDate(undefined);
+  }, [activeTab]);
+
+  return (
+    <div className="pb-20 lg:pb-0  ">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value)}
+        className="space-y-[40px]"
+      >
+        <div className="flex justify-between items-center flex-col lg:flex-row gap-4">
+          <TabsList className="lg:w-[436px] w-full bg-[#fff] rounded-[12px] flex justify-between items-center h-[64px]">
+            <TabsTrigger
+              value="ticket"
+              className="px-[24px] h-full rounded-[8px] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center"
+            >
+              Stays
+            </TabsTrigger>
+            <TabsTrigger
+              value="chat"
+              className="px-[24px] h-full rounded-[8px] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center"
+            >
+              Flights
+            </TabsTrigger>
+            <TabsTrigger
+              value="faq"
+              className="px-[24px] h-full rounded-[8px] data-[state=active]:bg-[#023E8A] data-[state=active]:text-white flex items-center justify-center"
+            >
+              Airport Taxis
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex flex-col md:flex-row gap-2 w-full lg:w-auto ">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="px-6 py-4 bg-[#fff] flex items-center space-x-4 rounded-[8px] cursor-pointer justify-center w-full md:w-auto ">
+                  <span className="text-[#181818] text-[14px] font-[400]  ">
+                    Currency: NGN – Nigerian Naira (₦)
+                  </span>{" "}
+                  <img
+                    src="/assets/icons/chevron-down.svg"
+                    alt=""
+                    className="rotate-90"
+                  />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-full mt-1 border border-gray-300 rounded-lg bg-white shadow-lg space-y-2"
+                align="start"
+              >
+                <DropdownMenuItem
+                  // onClick={() => handleSelect(option)} // Set selected option
+                  className={`px-3 py-2 font-[400] text-[12px] text-[#181818]`}
+                >
+                  NGN – Nigerian Naira (₦)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  // onClick={() => handleSelect(option)} // Set selected option
+                  className={`px-3 py-2 font-[400] text-[12px] text-[#181818] `}
+                >
+                  USD – United States Dollar ($)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div
+              className="flex items-center space-x-2 py-4 px-6 bg-[#FF6F1E] rounded-[8px] cursor-pointer p-[6px] justify-center w-full md:w-auto "
+              // onClick={handleExport}
+            >
+              <img
+                src="/assets/icons/orange-download.svg"
+                alt=""
+                className=" lg:w-auto"
+              />
+              <span className="font-[600] text-[16px] lg:text-[16px] text-[#fff]">
+                Export as CSV file
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Filter
+          datePickerOpen={datePickerOpen}
+          setDatePickerOpen={setDatePickerOpen}
+        />
+
+        <BookingTable />
+
+        {/* {activeTab !== "faq" && (
+          // <Filter
+          //   searchTerm={searchTerm}
+          //   setSearchTerm={setSearchTerm}
+          //   selectedOption={selectedOption}
+          //   setSelectedOption={setSelectedOption}
+          //   datePickerOpen={datePickerOpen}
+          //   setDatePickerOpen={setDatePickerOpen}
+          //   filterOption={activeTab}
+          //   selectedDate={selectedDate}
+          //   setSelectedDate={setSelectedDate}
+          //   activeTab={activeTab}
+          //   selectedStartDate={selectedStartDate}
+          //   setSelectedStartDate={setSelectedStartDate}
+          //   selectedEndDate={selectedEndDate}
+          //   setSelectedEndDate={setSelectedEndDate}
+          // />
+        )} */}
+      </Tabs>
+    </div>
+  );
+};

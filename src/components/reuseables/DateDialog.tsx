@@ -100,12 +100,12 @@ export const DatePairDialog = ({
   selectedEndDate,
   setSelectedEndDate,
 }: {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedStartDate: string | "";
-  setSelectedStartDate: (date: string | "") => void;
-  selectedEndDate: string | "";
-  setSelectedEndDate: (date: string | "") => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  selectedStartDate?: string | "";
+  setSelectedStartDate?: (date: string | "") => void;
+  selectedEndDate?: string | "";
+  setSelectedEndDate?: (date: string | "") => void;
 }) => {
   const [internalStartDate, setInternalStartDate] = useState<Date | undefined>(
     undefined
