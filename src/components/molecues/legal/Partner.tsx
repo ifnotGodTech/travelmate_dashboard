@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import Tiptap from "@/components/ui/Tiptap";
 import axios from "axios";
 import env from "@/config/env";
-import PartnerForm from "./PartnerForm";
-import PartnerDetails from "./PartnerDetails";
+import PartnerForm from "./modals/PartnerForm";
+import PartnerDetails from "./modals/PartnerDetails";
 import {
   TableBody,
   TableCell,
@@ -20,50 +20,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { showErrorToast } from "@/utils/toasters";
-
-export type Partner = {
-  id: number;
-  name: string;
-  logo: string | File;
-  description: string;
-  category: number;
-  is_active: boolean;
-};
-
-type PartnerCategory = {
-  id: number;
-  name: string;
-  description: string;
-  partners: Partner[];
-};
+import { HistoryProps, Partners } from "@/app/Dashboard/cms/legal/page";
+import { PartnerCategory } from "@/app/Dashboard/cms/legal/page";
 
 type PartnerProps = {
-  isEditing: boolean;
   content: PartnerCategory[];
   onContentChange: (value: PartnerCategory[]) => void;
   onDeletePartner?: (categoryId: number, partnerId: number) => void;
   showAddPartnersModal: boolean;
   setShowAddPartnersModal: (show: boolean) => void;
+  historyDetails: HistoryProps[];
 };
 
 const Partner = ({
-  isEditing,
   content,
   onContentChange,
   onDeletePartner,
   showAddPartnersModal,
   setShowAddPartnersModal,
+  historyDetails,
 }: PartnerProps) => {
   const [categorys, setCategories] = useState<PartnerCategory[]>([]);
 
   const [loadingSave, setLoadingSave] = useState(false);
-  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [editingPartner, setEditingPartner] = useState<Partners | null>(null);
   const [isOpenOptions, setIsOpenOptions] = useState(-1);
   const [showPartnerDetails, setShowPartnerDetails] = useState(true);
 
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<Partners | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const handleViewDetails = (partner: Partner) => {
+  const handleViewDetails = (partner: Partners) => {
     setSelectedPartner(partner);
     setShowPartnerDetails(true);
   };
@@ -83,7 +69,7 @@ const Partner = ({
   const handlePartnerChange = (
     categoryIndex: number,
     partnerIndex: number,
-    field: keyof Partner,
+    field: keyof Partners,
     value: string | boolean
   ) => {
     const updated = [...content];
@@ -96,7 +82,7 @@ const Partner = ({
     onContentChange(updated);
   };
 
-  const createpartner = async (newPartner: Partner) => {
+  const createpartner = async (newPartner: Partners) => {
     if (!newPartner.name || !newPartner.category || !newPartner.logo) {
       showErrorToast({ message: "Please fill in all required fields." });
       return;
@@ -138,7 +124,7 @@ const Partner = ({
     }
   };
 
-  const updatePartner = async (updated: Partner) => {
+  const updatePartner = async (updated: Partners) => {
     try {
       setLoadingSave(true);
 
@@ -157,8 +143,6 @@ const Partner = ({
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-
-      // Update frontend state
       const updatedContent = [...content];
       const catIndex = updatedContent.findIndex(
         (cat) => cat.id === updated.category
@@ -201,8 +185,6 @@ const Partner = ({
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
-  const [selectedPartners, setSelectedPartners] = useState<number[]>([]);
-
   const totalPartnerCount = content.reduce(
     (acc, cat) => acc + cat.partners.length,
     0
@@ -230,6 +212,7 @@ const Partner = ({
     <div className="space-y-6">
       {showPartnerDetails && selectedPartner && (
         <PartnerDetails
+          historyDetails={historyDetails}
           showPartnerDetails={showPartnerDetails}
           setShowPartnerDetails={setShowPartnerDetails}
           partner={selectedPartner}
@@ -240,7 +223,7 @@ const Partner = ({
       <div>
         <div>
           <DropdownMenu>
-            <DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
               <button className="w-[150px] p-2 cursor-pointer rounded-[8px] space-x-4  border-[#9b9ea4] border-[1px] flex justify-between items-center bg-transparent">
                 <span>
                   {selectedCategory
@@ -292,13 +275,15 @@ const Partner = ({
             />
           </TableHead> */}
 
-          <TableHead className="font-semibold">Logo</TableHead>
-          <TableHead className="font-semibold">Name</TableHead>
-          <TableHead className="font-semibold">Date</TableHead>
-          <TableHead className="font-semibold">Category</TableHead>
-          <TableHead className="font-semibold">Uploaded By</TableHead>
-          <TableHead className="font-semibold">Role</TableHead>
-          <TableHead className="font-semibold">Actions</TableHead>
+          <TableRow>
+            <TableHead className="font-semibold">Logo</TableHead>
+            <TableHead className="font-semibold">Name</TableHead>
+            <TableHead className="font-semibold">Date</TableHead>
+            <TableHead className="font-semibold">Category</TableHead>
+            <TableHead className="font-semibold">Uploaded By</TableHead>
+            <TableHead className="font-semibold">Role</TableHead>
+            <TableHead className="font-semibold">Actions</TableHead>
+          </TableRow>
         </TableHeader>
         <TableBody>
           {noPartners ? (
@@ -321,9 +306,16 @@ const Partner = ({
             </TableRow>
           ) : (
             filteredContent.flatMap((cat) =>
-              cat.partners.map((partner) => (
-                <TableRow key={`${cat.id}-${partner.id}`}>
-                  {/* <TableCell>
+              cat.partners.map((partner) => {
+                const matched = historyDetails.find(
+                  (item) =>
+                    item.content_type === "partner" &&
+                    item.action === "create" &&
+                    item.object_id === partner.id
+                );
+                return (
+                  <TableRow key={`${cat.id}-${partner.id}`}>
+                    {/* <TableCell>
                     <input
                       type="checkbox"
                       checked={selectedPartners.includes(partner.id)}
@@ -331,65 +323,66 @@ const Partner = ({
                     />
                   </TableCell> */}
 
-                  <TableCell>
-                    {typeof partner.logo === "string" ? (
-                      <img
-                        src={partner.logo}
-                        alt={partner.name}
-                        className="h-10 w-10 object-contain"
+                    <TableCell>
+                      {typeof partner.logo === "string" ? (
+                        <img
+                          src={partner.logo}
+                          alt={partner.name}
+                          className="h-10 w-10 object-contain"
+                        />
+                      ) : (
+                        "No Logo"
+                      )}
+                    </TableCell>
+                    <TableCell>{partner.name}</TableCell>
+                    <TableCell>{new Date().toLocaleDateString()}</TableCell>
+                    <TableCell>{formatSnakeToTitle(cat.name)}</TableCell>
+                    <TableCell>{matched?.admin_full_name}</TableCell>
+                    <TableCell>{matched?.admin_role}</TableCell>
+                    <TableCell className="relative cursor-pointer">
+                      <MoreVertical
+                        onClick={() => toggleOptions(partner.id)}
+                        width={12}
+                        height={12}
                       />
-                    ) : (
-                      "No Logo"
-                    )}
-                  </TableCell>
-                  <TableCell>{partner.name}</TableCell>
-                  <TableCell>{new Date().toLocaleDateString()}</TableCell>
-                  <TableCell>{formatSnakeToTitle(cat.name)}</TableCell>
-                  <TableCell>Admin</TableCell>
-                  <TableCell>Superadmin</TableCell>
-                  <TableCell className="relative cursor-pointer">
-                    <MoreVertical
-                      onClick={() => toggleOptions(partner.id)}
-                      width={12}
-                      height={12}
-                    />
-                    {isOpenOptions === partner.id && (
-                      <div
-                        className={`rounded-lg w-[120px] bg-white border-[1px] border-white h-fit absolute top-10 right-10 z-[99999] shadow-lg`}
-                      >
-                        <p
-                          onClick={() => {
-                            handleViewDetails(partner);
-                            setIsOpenOptions(-1);
-                          }}
-                          className="border-b-[1px] border-gray-300 p-2 cursor-pointer"
+                      {isOpenOptions === partner.id && (
+                        <div
+                          className={`rounded-lg w-[120px] bg-white border-[1px] border-white h-fit absolute top-10 right-10 z-[99999] shadow-lg`}
                         >
-                          View
-                        </p>
-                        <p
-                          onClick={() => {
-                            setEditingPartner(partner);
-                            setShowAddPartnersModal(true);
-                            setIsOpenOptions(-1);
-                          }}
-                          className="border-b-[1px] p-2 cursor-pointer"
-                        >
-                          Edit
-                        </p>
-                        <p
-                          onClick={() => {
-                            onDeletePartner?.(cat.id, partner.id);
-                            setIsOpenOptions(-1);
-                          }}
-                          className="p-2 cursor-pointer"
-                        >
-                          Delete
-                        </p>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                          <p
+                            onClick={() => {
+                              handleViewDetails(partner);
+                              setIsOpenOptions(-1);
+                            }}
+                            className="border-b-[1px] border-gray-300 p-2 cursor-pointer"
+                          >
+                            View
+                          </p>
+                          <p
+                            onClick={() => {
+                              setEditingPartner(partner);
+                              setShowAddPartnersModal(true);
+                              setIsOpenOptions(-1);
+                            }}
+                            className="border-b-[1px] p-2 cursor-pointer"
+                          >
+                            Edit
+                          </p>
+                          <p
+                            onClick={() => {
+                              onDeletePartner?.(cat.id, partner.id);
+                              setIsOpenOptions(-1);
+                            }}
+                            className="p-2 cursor-pointer"
+                          >
+                            Delete
+                          </p>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )
           )}
         </TableBody>
@@ -406,6 +399,7 @@ const Partner = ({
           editingPartner={editingPartner}
         />
       )}
+      
     </div>
   );
 };

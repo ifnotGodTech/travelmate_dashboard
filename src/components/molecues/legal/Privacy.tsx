@@ -1,10 +1,7 @@
 import Tiptap from "@/components/ui/Tiptap";
 import { Plus } from "lucide-react";
-type PrivacyPolicy = {
-  id: number;
-  content: string;
-  last_updated: string;
-};
+import { PrivacyPolicy } from "@/app/Dashboard/cms/legal/page";
+
 
 type PrivacyProps = {
   isEditing: boolean;

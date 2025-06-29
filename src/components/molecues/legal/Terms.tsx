@@ -1,12 +1,7 @@
 import Tiptap from "@/components/ui/Tiptap";
 import React from "react";
 import { Plus } from "lucide-react";
-type TermsContent = {
-  id: number;
-  content: string;
-  last_updated: string;
-  updated_at: string;
-};
+import { TermsContent } from "@/app/Dashboard/cms/legal/page";
 
 type Props = {
   isEditing: boolean;

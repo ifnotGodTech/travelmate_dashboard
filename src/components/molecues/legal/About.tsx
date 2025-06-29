@@ -1,12 +1,14 @@
 import Tiptap from "@/components/ui/Tiptap";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
+import { AboutContent } from "@/app/Dashboard/cms/legal/page";
+import HistoryModal from "./modals/HistoryModal";
 
 type Props = {
   isEditing: boolean;
-  content: string;
+  content: AboutContent[];
   updateAboutContent: () => void;
-  onContentChange: (content: string) => void;
+  onContentChange: (content: AboutContent[]) => void;
   isLoadingAboutUpdate: boolean;
   onCancel?: () => void;
   onEdit?: () => void;
@@ -21,41 +23,62 @@ const About = ({
   updateAboutContent,
   isLoadingAboutUpdate,
   onCancel,
-  onEdit
+  onEdit,
 }: Props) => {
+  const currentContent = content?.[0]?.content || "";
 
+   const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+    const handleChange = (id: number, value: string) => {
+    const updatedContent = content.map((item) =>
+      item.id === id ? { ...item, content: value } : item
+    );
+    onContentChange(updatedContent);
+  };
   return (
     <div>
+      {/* <HistoryModal/> */}
       {isEditing ? (
-        <div
-          className={`w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md `}
-        >
-          <Tiptap
-            onChange={(value: string) => onContentChange(value)}
-            content={content}
-          />
-          <div className="flex justify-center w-full items-center mt-12 gap-5 px-8">
-            <button
-              className="border-[1px] border-[#023E8A] text-[#023E8A] p-2 rounded-md w-full cursor-pointer"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-[#023E8A] flex items-center justify-center text-white p-2 rounded-md w-full cursor-pointer disabled:cursor-auto disabled:bg-gray-300 disabled:text-gray-500"
-              onClick={updateAboutContent}
-              disabled={isContentEmpty(content)}
-            >
-              {isLoadingAboutUpdate && <LoadingIcon />}
-              <span className="pl-2"> Save</span>
-            </button>
+        content?.map((item) => (
+          <div
+            key={item.id}
+            className="w-full p-4 text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px] border border-gray-300 rounded-md"
+          >
+            <Tiptap
+              onChange={(value: string) => handleChange(item.id, value)}
+              content={item.content}
+            />
+            <div className="flex justify-center w-full items-center mt-12 gap-5 px-8">
+              <button
+                className="border-[1px] border-[#023E8A] text-[#023E8A] p-2 rounded-md w-full cursor-pointer"
+                onClick={onCancel}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-[#023E8A] flex items-center justify-center text-white p-2 rounded-md w-full cursor-pointer disabled:cursor-auto disabled:bg-gray-300 disabled:text-gray-500"
+                onClick={updateAboutContent}
+                disabled={isContentEmpty(item.content)}
+              >
+                {isLoadingAboutUpdate && <LoadingIcon />}
+                <span className="pl-2">Save</span>
+              </button>
+            </div>
           </div>
-        </div>
-      ) : !isEditing && !isContentEmpty(content) ? (
+        ))
+      ) : currentContent && !isContentEmpty(currentContent) ? (
         <div className="text-[16px] lg:text-[18px] font-[400] text-[#181818] leading-[30px]">
+          <p className="pb-3">Last Updated: {formatDate(content[0]?.updated_at)}</p>
           <p
             dangerouslySetInnerHTML={{
-              __html: content,
+              __html: currentContent,
             }}
           ></p>
         </div>

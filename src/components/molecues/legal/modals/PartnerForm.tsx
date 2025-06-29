@@ -13,19 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Upload } from "lucide-react";
-type Partner = {
-  id: number;
-  name: string;
-  logo: string | File;
-  description: string;
-  category: number;
-  is_active: boolean;
-};
-
-const defaultData: Partner = {
+import { Partners } from "@/app/Dashboard/cms/legal/page";
+const defaultData: Partners = {
   id: 0,
   name: "",
   logo: "",
+  website: "",
   description: "",
   category: 0,
   is_active: true,
@@ -40,16 +33,16 @@ const PartnerForm = ({
   editingPartner,
   onUpdatePartner,
 }: {
-  onSubmit: (newPartner: Partner) => Promise<void>;
+  onSubmit: (newPartner: Partners) => Promise<void>;
   categories: { id: number; name: string }[];
   showAddPartnersModal: boolean;
   setShowAddPartnersModal: (showAddPartnersModal: boolean) => void;
   loadingSave: boolean;
-  editingPartner?: Partner | null;
-  onUpdatePartner?: (updatedPartner: Partner) => void;
+  editingPartner?: Partners | null;
+  onUpdatePartner?: (updatedPartner: Partners) => void;
 
 }) => {
- const [formData, setFormData] = useState<Partner>(editingPartner || defaultData);
+ const [formData, setFormData] = useState<Partners>(editingPartner || defaultData);
   const formatSnakeToTitle = (value: string): string => {
     return value
       .split("_")
@@ -107,6 +100,7 @@ useEffect(() => {
     setFormData({
       id: editingPartner.id,
       name: editingPartner.name,
+      website: editingPartner.website || "",
       description: editingPartner.description,
       category: editingPartner.category,
       logo: editingPartner.logo,
@@ -129,8 +123,8 @@ useEffect(() => {
           <div className="flex justify-between gap-8 items-center">
             <div className="w-full flex flex-col gap-1">
               <label className="font-bold">Category*</label>
-              <DropdownMenu>
-                <DropdownMenuTrigger>
+              <DropdownMenu >
+                <DropdownMenuTrigger asChild>
                   <button className="w-full p-2 cursor-pointer rounded-[8px] space-x-4  border-[#9b9ea4] border-[1px] flex justify-between items-center bg-transparent">
                     <span>
                       {formData.category
