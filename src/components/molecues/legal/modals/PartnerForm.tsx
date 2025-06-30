@@ -120,7 +120,7 @@ useEffect(() => {
           </DialogTitle>
         </DialogHeader>
         <div className="border rounded-lg p-2 bg-white">
-          <div className="flex justify-between gap-8 items-center">
+          <div className="flex lg:flex-row flex-col justify-between gap-8 items-center w-full">
             <div className="w-full flex flex-col gap-1">
               <label className="font-bold">Category*</label>
               <DropdownMenu >
@@ -233,7 +233,6 @@ useEffect(() => {
             <button
               className="bg-[#023E8A] flex items-center justify-center text-white p-2 rounded-md w-full cursor-pointer disabled:cursor-auto disabled:bg-gray-300 disabled:text-gray-500"
               onClick={handleSubmit}
-              // disabled={isContentEmpty(content)}
             >
               {loadingSave && <LoadingIcon />}
               <span className="pl-2"> Save</span>

@@ -30,6 +30,7 @@ type PartnerProps = {
   showAddPartnersModal: boolean;
   setShowAddPartnersModal: (show: boolean) => void;
   historyDetails: HistoryProps[];
+  getHistory?: () => Promise<void>;
 };
 
 const Partner = ({
@@ -39,6 +40,7 @@ const Partner = ({
   showAddPartnersModal,
   setShowAddPartnersModal,
   historyDetails,
+  getHistory
 }: PartnerProps) => {
   const [categorys, setCategories] = useState<PartnerCategory[]>([]);
 
@@ -55,31 +57,6 @@ const Partner = ({
   };
   const toggleOptions = (index: number) => {
     setIsOpenOptions(isOpenOptions === index ? -1 : index);
-  };
-  const handleCategoryChange = (
-    index: number,
-    field: keyof PartnerCategory,
-    value: string
-  ) => {
-    const updated = [...content];
-    updated[index] = { ...updated[index], [field]: value };
-    onContentChange(updated);
-  };
-
-  const handlePartnerChange = (
-    categoryIndex: number,
-    partnerIndex: number,
-    field: keyof Partners,
-    value: string | boolean
-  ) => {
-    const updated = [...content];
-    const partners = [...updated[categoryIndex].partners];
-    partners[partnerIndex] = {
-      ...partners[partnerIndex],
-      [field]: value,
-    };
-    updated[categoryIndex].partners = partners;
-    onContentChange(updated);
   };
 
   const createpartner = async (newPartner: Partners) => {
@@ -114,6 +91,7 @@ const Partner = ({
         onContentChange(updatedContent);
       }
       setShowAddPartnersModal(false);
+      await getHistory?.()
     } catch (error: any) {
       console.log(
         "Create partner error:",
@@ -159,6 +137,7 @@ const Partner = ({
 
       setShowAddPartnersModal(false);
       setEditingPartner(null);
+      await getHistory?.()
     } catch (err) {
       console.error("Update failed:", err);
     } finally {
@@ -185,29 +164,11 @@ const Partner = ({
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
-  const totalPartnerCount = content.reduce(
-    (acc, cat) => acc + cat.partners.length,
-    0
-  );
 
-  // const handleSelectPartner = (id: number) => {
-  //   setSelectedPartners((prev) =>
-  //     prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-  //   );
-  // };
-
-  // const handleSelectAll = () => {
-  //   if (selectedPartners.length === totalPartnerCount) {
-  //     setSelectedPartners([]);
-  //   } else {
-  //     const allIds = content.flatMap((cat) => cat.partners.map((p) => p.id));
-  //     setSelectedPartners(allIds);
-  //   }
-  // };
   const filteredContent = selectedCategory
     ? content.filter((cat) => cat.id === selectedCategory)
     : content;
-
+let serial = 1;
   return (
     <div className="space-y-6">
       {showPartnerDetails && selectedPartner && (
@@ -264,18 +225,8 @@ const Partner = ({
 
       <Table className="w-full z-[9999] mb-28">
         <TableHeader className="bg-gray-100">
-          {/* <TableHead>
-            <input
-              type="checkbox"
-              checked={
-                selectedPartners.length === totalPartnerCount &&
-                totalPartnerCount > 0
-              }
-              onChange={handleSelectAll}
-            />
-          </TableHead> */}
-
           <TableRow>
+            <TableHead className="font-semibold">Serial No</TableHead>
             <TableHead className="font-semibold">Logo</TableHead>
             <TableHead className="font-semibold">Name</TableHead>
             <TableHead className="font-semibold">Date</TableHead>
@@ -313,15 +264,10 @@ const Partner = ({
                     item.action === "create" &&
                     item.object_id === partner.id
                 );
+                
                 return (
                   <TableRow key={`${cat.id}-${partner.id}`}>
-                    {/* <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedPartners.includes(partner.id)}
-                      onChange={() => handleSelectPartner(partner.id)}
-                    />
-                  </TableCell> */}
+                    <TableCell>{serial++}</TableCell>
 
                     <TableCell>
                       {typeof partner.logo === "string" ? (
@@ -399,7 +345,6 @@ const Partner = ({
           editingPartner={editingPartner}
         />
       )}
-      
     </div>
   );
 };
