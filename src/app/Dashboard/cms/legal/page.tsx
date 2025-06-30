@@ -13,6 +13,7 @@ import env from "@/config/env";
 import Loading from "../../admin/loading";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import HistoryModal from "@/components/molecues/legal/modals/HistoryModal";
+import { useAuthContext } from "@/context/AuthContext";
 
 const page = () => {
   return (
@@ -63,9 +64,9 @@ type ContentTypes = {
   partnerCategory: PartnerCategory[];
 };
 export type HistoryProps = {
-  id:number
+  id: number;
   object_id: number;
-  action: "create"| "update";
+  action: "create" | "update";
   admin_full_name: string;
   admin_role: string;
   content_type: "privacy_policy" | "about_us" | "terms_of_use" | "partner";
@@ -73,6 +74,8 @@ export type HistoryProps = {
 };
 
 const ContentTab = () => {
+  const { accessToken } = useAuthContext();
+
   const [editStates, setEditStates] = useState({
     about_us: false,
     privacy_policy: false,
@@ -95,10 +98,6 @@ const ContentTab = () => {
     useState<boolean>(false);
   const [isLoadingTermsUpdate, setIsLoadingTermsUpdate] =
     useState<boolean>(false);
-  // const [isLoadingPartnerUpdate, setIsLoadingPartnerUpdate] =
-  //   useState<boolean>(false);
-  // const [isLoadingPartnerCategoryUpdate, setIsLoadingPartnerCategoryUpdate] =
-  //   useState<boolean>(false);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -273,9 +272,12 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.terms_of_use) {
-        await axios.post(`${env.api.termsofuse}/`, {
-          content: contents.terms,
-        });
+        await axios.post(
+          `${env.api.termsofuse}/`,
+          {
+            content: contents.terms,
+          }
+        );
         showSuccessToast({
           message: "Terms of use content added successfully!",
         });
@@ -354,7 +356,12 @@ const ContentTab = () => {
   const getHistory = async () => {
     try {
       const response = await axios.get(
-        `${env.api.admin}/policy-update-history/`
+        `${env.api.admin}/policy-update-history/`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
       console.log("History data:", response.data);
       setHistoryDetails(response.data.results);
@@ -528,6 +535,7 @@ const ContentTab = () => {
               showAddPartnersModal={showAddPartnersModal}
               setShowAddPartnersModal={setShowAddPartnersModal}
               historyDetails={historyDetails}
+              getHistory={getHistory}
             />
           </TabsContent>
         </Tabs>
