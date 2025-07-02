@@ -122,11 +122,31 @@ const ContentTab = () => {
     try {
       const [aboutRes, privacyRes, termsRes, partnerRes, partnerCategoryRes] =
         await Promise.all([
-          axios.get(env.api.aboutus),
-          axios.get(env.api.privacypolicy),
-          axios.get(env.api.termsofuse),
-          axios.get(env.api.partners),
-          axios.get(env.api.partnercategories),
+          axios.get(env.api.aboutus, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          axios.get(env.api.privacypolicy, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          axios.get(env.api.termsofuse, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          axios.get(env.api.partners, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
+          axios.get(env.api.partnercategories, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }),
         ]);
       const partnerCategories = partnerCategoryRes.data.results;
       const partners = partnerRes.data.results;
@@ -206,17 +226,33 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.about_us) {
-        await axios.post(`${env.api.aboutus}/`, {
-          content: contents.about,
-        });
+        await axios.post(
+          `${env.api.aboutus}/`,
+          {
+            content: contents.about,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
         showSuccessToast({
           message: "About content added successfully!",
         });
       } else {
-        await axios.patch(`${env.api.aboutus}/${contentIds.about}/`, {
-          content: contents.about[0].content,
-          last_updated: contents.about[0].updated_at,
-        });
+        await axios.patch(
+          `${env.api.aboutus}/${contentIds.about}/`,
+          {
+            content: contents.about[0].content,
+            last_updated: contents.about[0].updated_at,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
         setEditStates((prev) => ({ ...prev, about_us: false }));
         showSuccessToast({
           message: "About content updated successfully!",
@@ -239,17 +275,33 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.privacy_policy) {
-        await axios.post(`${env.api.privacypolicy}/`, {
-          content: contents.privacy,
-        });
+        await axios.post(
+          `${env.api.privacypolicy}/`,
+          {
+            content: contents.privacy,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
         showSuccessToast({
           message: "Privacy content added successfully!",
         });
       } else {
-        await axios.patch(`${env.api.privacypolicy}/${contentIds.privacy}/`, {
-          content: contents.privacy[0].content,
-          last_updated: contents.privacy[0].last_updated,
-        });
+        await axios.patch(
+          `${env.api.privacypolicy}/${contentIds.privacy}/`,
+          {
+            content: contents.privacy[0].content,
+            last_updated: contents.privacy[0].last_updated,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
         setEditStates((prev) => ({ ...prev, privacy_policy: false }));
         showSuccessToast({
           message: "Privacy content updated successfully!",
@@ -276,16 +328,29 @@ const ContentTab = () => {
           `${env.api.termsofuse}/`,
           {
             content: contents.terms,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           }
         );
         showSuccessToast({
           message: "Terms of use content added successfully!",
         });
       } else {
-        await axios.patch(`${env.api.termsofuse}/${contentIds.terms}/`, {
-          content: contents.terms[0].content,
-          last_updated: contents.terms[0].updated_at,
-        }),
+        await axios.patch(
+          `${env.api.termsofuse}/${contentIds.terms}/`,
+          {
+            content: contents.terms[0].content,
+            last_updated: contents.terms[0].updated_at,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        ),
           setEditStates((prev) => ({ ...prev, terms_of_use: false }));
         showSuccessToast({
           message: "Terms of use content updated successfully!",
@@ -305,7 +370,11 @@ const ContentTab = () => {
 
   const deletePartners = async (categoryId: number, partnerId: number) => {
     try {
-      await axios.delete(`${env.api.partners}/${partnerId}/`);
+      await axios.delete(`${env.api.partners}/${partnerId}/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
       fetchData();
     } catch (error) {
       console.error("Error deleting partner:", error);
