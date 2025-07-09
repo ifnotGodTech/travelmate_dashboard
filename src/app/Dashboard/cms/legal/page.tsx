@@ -91,6 +91,7 @@ const ContentTab = () => {
   const [showAddPartnersModal, setShowAddPartnersModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyDetails, setHistoryDetails] = useState<HistoryProps[]>([]);
+  const [editingPartner, setEditingPartner] = useState<Partners | null>(null);
 
   const [isLoadingAboutUpdate, setIsLoadingAboutUpdate] =
     useState<boolean>(false);
@@ -478,7 +479,7 @@ const ContentTab = () => {
             ) : (
               <button
                 onClick={() => {
-                  // setEditingPartner(null);
+                  setEditingPartner(null);
                   setShowAddPartnersModal(true);
                 }}
                 className="bg-[#023E8A] text-white px-4 py-2 rounded-md hover:bg-blue-800 cursor-pointer"
@@ -605,6 +606,8 @@ const ContentTab = () => {
               setShowAddPartnersModal={setShowAddPartnersModal}
               historyDetails={historyDetails}
               getHistory={getHistory}
+              editingPartner={editingPartner}
+              setEditingPartner={setEditingPartner}
             />
           </TabsContent>
         </Tabs>
