@@ -87,6 +87,7 @@ const PartnerForm = ({
     } else {
       onSubmit(formData);
     }
+     setFormData(defaultData);
   };
 
   useEffect(() => {
@@ -97,7 +98,7 @@ const PartnerForm = ({
 
   useEffect(() => {
     if (editingPartner) {
-      setFormData({
+      setFormData(editingPartner? {
         id: editingPartner.id,
         name: editingPartner.name,
         website: editingPartner.website || "",
@@ -105,7 +106,7 @@ const PartnerForm = ({
         category: editingPartner.category,
         logo: editingPartner.logo,
         is_active: editingPartner.is_active,
-      });
+      }: defaultData);
     } else {
       setFormData(defaultData);
     }
