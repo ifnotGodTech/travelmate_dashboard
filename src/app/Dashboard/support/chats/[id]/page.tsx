@@ -145,12 +145,16 @@ const Session = ({
   canViewMessage,
   currentUser,
 }: any) => {
-  const { messages: liveMessages, send } = useWebSocketService(chat?.id);
+  const { messages: liveMessages, send, socket } = useWebSocketService(chat?.id);
   const [input, setInput] = useState("");
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  // Remove uploadingMessages state and related logic
 
   const handleDownload = () => {
+    if (!modalImage) return;
     fetch(modalImage)
       .then((response) => response.blob())
       .then((blob) => {
@@ -170,20 +174,23 @@ const Session = ({
   const handleCloseModal = () => setModalImage(null);
   const handleImageClick = (url: string) => setModalImage(url);
 
+  // Restore handleAttachmentChange to its initial state:
   const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const payload = {
-        messageId: Date.now(),
-        chatId: chat?.id,
-        attachment: {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        },
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        const payload = {
+          messageId: Date.now(),
+          message: file.name, // Use file name as content
+          chatId: chat?.id,
+          attachment: base64String, // base64 string
+          attachmentType: file.type,
+        };
+        send(payload);
       };
-
-      send(payload); // Send attachment details to the backend
+      reader.readAsDataURL(file);
     }
   };
 
@@ -224,6 +231,14 @@ const Session = ({
 
   const isInputDisabled =
     chat?.status === "CLOSED" || systemErrorMessage !== null || isAdmin;
+
+  // Remove placeholder when real message arrives
+  // useEffect(() => {
+  //   if (uploadingMessages.length === 0) return;
+  //   setUploadingMessages((prev) => prev.filter(
+  //     (umsg) => !allMessages.some((msg) => msg.id === umsg.id)
+  //   ));
+  // }, [allMessages]);
 
   return (
     <>
@@ -309,6 +324,7 @@ const Session = ({
                       </div>
                     )}
 
+                    {/* Removed uploadingMessages display */}
                     <span
                       className={`block text-xs text-gray-500 ${
                         isUser ? "text-right" : "text-left"

@@ -35,6 +35,16 @@ class Service {
   deleteFaq({ id }: { id: number }) {
     return axios.delete(env.api.faq + "/" + id);
   }
+
+  uploadAttachment(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return axios.post(env.api.upload, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  }
 }
 
 const ChatService = new Service();
