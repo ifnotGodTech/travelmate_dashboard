@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import Tiptap from "@/components/ui/Tiptap";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import env from "@/config/env";
 import PartnerForm from "./modals/PartnerForm";
@@ -31,6 +30,8 @@ type PartnerProps = {
   setShowAddPartnersModal: (show: boolean) => void;
   historyDetails: HistoryProps[];
   getHistory?: () => Promise<void>;
+  editingPartner: Partners | null;
+  setEditingPartner: (partner: Partners | null) => void;
 };
 
 const Partner = ({
@@ -40,17 +41,22 @@ const Partner = ({
   showAddPartnersModal,
   setShowAddPartnersModal,
   historyDetails,
-  getHistory
+  getHistory,
+  editingPartner,
+  setEditingPartner,
 }: PartnerProps) => {
   const [categorys, setCategories] = useState<PartnerCategory[]>([]);
 
   const [loadingSave, setLoadingSave] = useState(false);
-  const [editingPartner, setEditingPartner] = useState<Partners | null>(null);
+
   const [isOpenOptions, setIsOpenOptions] = useState(-1);
   const [showPartnerDetails, setShowPartnerDetails] = useState(true);
 
   const [selectedPartner, setSelectedPartner] = useState<Partners | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+
+  const optionsRef = useRef<HTMLDivElement | null>(null);
+
   const handleViewDetails = (partner: Partners) => {
     setSelectedPartner(partner);
     setShowPartnerDetails(true);
@@ -59,6 +65,22 @@ const Partner = ({
     setIsOpenOptions(isOpenOptions === index ? -1 : index);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        optionsRef.current &&
+        !optionsRef.current.contains(event.target as Node)
+      ) {
+        setIsOpenOptions(-1);
+      }
+    };
+    if (isOpenOptions !== -1) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpenOptions]);
   const createpartner = async (newPartner: Partners) => {
     if (!newPartner.name || !newPartner.category || !newPartner.logo) {
       showErrorToast({ message: "Please fill in all required fields." });
@@ -91,7 +113,7 @@ const Partner = ({
         onContentChange(updatedContent);
       }
       setShowAddPartnersModal(false);
-      await getHistory?.()
+      await getHistory?.();
     } catch (error: any) {
       console.log(
         "Create partner error:",
@@ -137,7 +159,7 @@ const Partner = ({
 
       setShowAddPartnersModal(false);
       setEditingPartner(null);
-      await getHistory?.()
+      await getHistory?.();
     } catch (err) {
       console.error("Update failed:", err);
     } finally {
@@ -168,7 +190,7 @@ const Partner = ({
   const filteredContent = selectedCategory
     ? content.filter((cat) => cat.id === selectedCategory)
     : content;
-let serial = 1;
+  let serial = 1;
   return (
     <div className="space-y-6">
       {showPartnerDetails && selectedPartner && (
@@ -246,6 +268,7 @@ let serial = 1;
                   </p>
                   <button
                     onClick={() => {
+                      setEditingPartner(null);
                       setShowAddPartnersModal(true);
                     }}
                     className="bg-[#023E8A] text-white px-4 py-2 rounded-md hover:bg-blue-800 cursor-pointer"
@@ -264,7 +287,7 @@ let serial = 1;
                     item.action === "create" &&
                     item.object_id === partner.id
                 );
-                
+
                 return (
                   <TableRow key={`${cat.id}-${partner.id}`}>
                     <TableCell>{serial++}</TableCell>
@@ -293,6 +316,7 @@ let serial = 1;
                       />
                       {isOpenOptions === partner.id && (
                         <div
+                          ref={optionsRef}
                           className={`rounded-lg w-[120px] bg-white border-[1px] border-white h-fit absolute top-10 right-10 z-[99999] shadow-lg`}
                         >
                           <p

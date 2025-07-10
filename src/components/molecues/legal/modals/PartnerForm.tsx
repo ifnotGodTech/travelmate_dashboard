@@ -12,7 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { Partners } from "@/app/Dashboard/cms/legal/page";
 const defaultData: Partners = {
   id: 0,
@@ -40,9 +40,10 @@ const PartnerForm = ({
   loadingSave: boolean;
   editingPartner?: Partners | null;
   onUpdatePartner?: (updatedPartner: Partners) => void;
-
 }) => {
- const [formData, setFormData] = useState<Partners>(editingPartner || defaultData);
+  const [formData, setFormData] = useState<Partners>(
+    editingPartner || defaultData
+  );
   const formatSnakeToTitle = (value: string): string => {
     return value
       .split("_")
@@ -79,37 +80,37 @@ const PartnerForm = ({
     }
   };
 
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (editingPartner) {
-    onUpdatePartner?.(formData); 
-  } else {
-    onSubmit(formData); 
-  }
-  setFormData(defaultData);
-};
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingPartner) {
+      onUpdatePartner?.(formData);
+    } else {
+      onSubmit(formData);
+    }
+     setFormData(defaultData);
+  };
 
-useEffect(() => {
-  if (showAddPartnersModal) {
-    setFormData(editingPartner || defaultData);
-  }
-}, [showAddPartnersModal, editingPartner]);
+  useEffect(() => {
+    if (showAddPartnersModal) {
+      setFormData(editingPartner || defaultData);
+    }
+  }, [showAddPartnersModal, editingPartner]);
 
-useEffect(() => {
-  if (editingPartner) {
-    setFormData({
-      id: editingPartner.id,
-      name: editingPartner.name,
-      website: editingPartner.website || "",
-      description: editingPartner.description,
-      category: editingPartner.category,
-      logo: editingPartner.logo,
-      is_active: editingPartner.is_active,
-    });
-  } else {
-    setFormData(defaultData);
-  }
-}, [editingPartner]);
+  useEffect(() => {
+    if (editingPartner) {
+      setFormData(editingPartner? {
+        id: editingPartner.id,
+        name: editingPartner.name,
+        website: editingPartner.website || "",
+        description: editingPartner.description,
+        category: editingPartner.category,
+        logo: editingPartner.logo,
+        is_active: editingPartner.is_active,
+      }: defaultData);
+    } else {
+      setFormData(defaultData);
+    }
+  }, [editingPartner]);
 
   return (
     <Dialog open={showAddPartnersModal} onOpenChange={setShowAddPartnersModal}>
@@ -123,7 +124,7 @@ useEffect(() => {
           <div className="flex lg:flex-row flex-col justify-between gap-8 items-center w-full">
             <div className="w-full flex flex-col gap-1">
               <label className="font-bold">Category*</label>
-              <DropdownMenu >
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="w-full p-2 cursor-pointer rounded-[8px] space-x-4  border-[#9b9ea4] border-[1px] flex justify-between items-center bg-transparent">
                     <span>
@@ -213,11 +214,30 @@ useEffect(() => {
 
             {/* Image Preview */}
             {formData.logo instanceof File && (
-              <img
-                src={URL.createObjectURL(formData.logo)}
-                alt="Logo Preview"
-                className="h-24 w-auto rounded border mt-2 object-contain"
-              />
+              <div className="relative m-auto">
+                <img
+                  src={URL.createObjectURL(formData.logo)}
+                  alt="Logo Preview"
+                  className="h-24 w-auto rounded mt-2 object-contain"
+                />
+                <X
+                  className="z-20 absolute -right-6 -top-4 rounded-full w-5 h-5 cursor-pointer"
+                  onClick={() => setFormData((prev) => ({ ...prev, logo: "" }))}
+                />
+              </div>
+            )}
+            {typeof formData.logo === "string" && formData.logo && (
+              <div className="relative m-auto">
+                <img
+                  src={formData.logo}
+                  alt="Logo Preview"
+                  className="h-24 w-auto rounded mt-2 object-contain"
+                />
+                <X
+                  className="z-20 absolute -right-6 0 -top-4 rounded-full w-5 h-5 cursor-pointer"
+                  onClick={() => setFormData((prev) => ({ ...prev, logo: "" }))}
+                />
+              </div>
             )}
           </div>
           <div className="flex justify-center w-full items-center mt-12 gap-5 ">
