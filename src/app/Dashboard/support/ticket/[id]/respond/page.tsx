@@ -220,6 +220,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
   // New state for attachment functionality
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  // Remove fileBase64 state
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -316,6 +317,12 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
         return;
       }
 
+      // If message is empty and attachment exists, use attachment name as message
+      let messageToSend = values.message.trim();
+      if (!messageToSend && selectedFile) {
+        messageToSend = selectedFile.name;
+      }
+
       if (
         !ticket?.claimed_admin?.id ||
         ticket?.claimed_admin?.id !== currentUser
@@ -334,7 +341,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
 
       try {
         // Create FormData payload with message and file
-        const payload = createMessagePayload(values.message, selectedFile);
+        const payload = createMessagePayload(messageToSend, selectedFile);
 
         onRespondToTicket({
           TicketId: ticket?.id,
@@ -342,7 +349,7 @@ const Chat = ({ ticket, loadingTicket, isAdmin, currentUser }: any) => {
           successCallback: () => {
             const newMessage = {
               id: new Date().toISOString(),
-              content: values.message.trim() || null,
+              content: messageToSend || null,
               attachment: selectedFile
                 ? URL.createObjectURL(selectedFile)
                 : null, // Temporary preview URL

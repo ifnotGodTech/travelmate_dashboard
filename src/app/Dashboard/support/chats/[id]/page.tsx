@@ -12,6 +12,13 @@ import ChatService from "@/services/chat";
 import { useAuthContext } from "@/context/AuthContext";
 import { useMyRoles } from "@/hooks/api/roles";
 import { FileText, ArrowUpRight, DownloadIcon, X } from "lucide-react";
+// Simple spinner component
+const Spinner = () => (
+  <svg className="inline w-6 h-6 ml-2 animate-spin text-white" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="6" fill="none" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+  </svg>
+);
 
 const formatDate = (isoDate: any) => {
   if (!isoDate) {
@@ -145,12 +152,16 @@ const Session = ({
   canViewMessage,
   currentUser,
 }: any) => {
-  const { messages: liveMessages, send } = useWebSocketService(chat?.id);
+  const { messages: liveMessages, send, socket } = useWebSocketService(chat?.id);
   const [input, setInput] = useState("");
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadingMessages, setUploadingMessages] = useState<any[]>([]);
 
   const handleDownload = () => {
+    if (!modalImage) return;
     fetch(modalImage)
       .then((response) => response.blob())
       .then((blob) => {
@@ -173,23 +184,53 @@ const Session = ({
   const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const payload = {
-        messageId: Date.now(),
-        chatId: chat?.id,
-        attachment: {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        },
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        const clientMessageId = Date.now();
+        const payload = {
+          clientMessageId, // for tracking
+          message: file.name, // Use file name as content
+          chatId: chat?.id,
+          attachment: base64String, // base64 string
+          attachmentType: file.type,
+        };
+        setUploadingMessages((prev) => [
+          ...prev,
+          {
+            clientMessageId,
+            message: file.name,
+            sender_id: currentUser,
+            attachment_type: 'other',
+            uploading: true,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        send(payload);
       };
-
-      send(payload); // Send attachment details to the backend
+      reader.readAsDataURL(file);
     }
   };
 
   const systemErrorMessage = useMemo(() => {
     const errorMsgObj = liveMessages.find((msg: any) => msg.type === "error");
     return errorMsgObj ? errorMsgObj.message : null;
+  }, [liveMessages]);
+
+  // Remove uploading message when real message arrives (match by clientMessageId)
+  useEffect(() => {
+    if (uploadingMessages.length === 0) return;
+    setUploadingMessages((prev) =>
+      prev.filter(
+        (umsg) =>
+          !liveMessages.some(
+            (msg: any) =>
+              (msg.clientMessageId && msg.clientMessageId === umsg.clientMessageId) ||
+              // fallback: match by file name, sender, and created_at (if backend doesn't echo clientMessageId)
+              (msg.message === umsg.message && msg.sender_id === umsg.sender_id)
+          )
+      )
+    );
   }, [liveMessages]);
 
   const allMessages = useMemo(() => {
@@ -200,8 +241,8 @@ const Session = ({
         live.type !== "error" &&
         !history.some((msg: any) => msg.id === live.id)
     );
-    return [...history, ...live];
-  }, [chat?.messages, liveMessages]);
+    return [...history, ...live, ...uploadingMessages];
+  }, [chat?.messages, liveMessages, uploadingMessages]);
 
   const handleSend = () => {
     if (input.trim()) {
@@ -278,6 +319,7 @@ const Session = ({
                         }`}
                       >
                         {mes.content || mes.message}
+                        {mes.uploading && <Spinner />}
                       </div>
                     ) : null}
 
@@ -417,7 +459,5 @@ const Session = ({
     </>
   );
 };
-
-
 
 export default page;

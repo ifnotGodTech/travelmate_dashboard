@@ -254,7 +254,7 @@ export const useWebSocketService = (sessionId: number) => {
     }
   };
 
-  return { messages, send };
+  return { messages, send, socket };
 };
 
 export function useClaimChat() {
