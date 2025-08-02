@@ -56,7 +56,7 @@ const ManageUsers = () => {
     []
   );
   const [isLoadRemove, setIsLoadRemove] = useState(false);
-  const [isLoadAdd, setIsLoadAdd] = useState(false)
+  const [isLoadAdd, setIsLoadAdd] = useState(false);
 
   const currentRole = roles.find((role) => String(role.id) === String(roleId));
 
@@ -118,8 +118,8 @@ const ManageUsers = () => {
           },
         }
       );
-      setShowConfirmModal(false)
-      setShowSuccessModal(true)
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
       setSelectedUserIds([]);
       await fetchRoles();
     } catch (error: any) {
@@ -408,7 +408,7 @@ const ManageUsers = () => {
                 }}
                 className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
               >
-                 {isLoadAdd && (
+                {isLoadAdd && (
                   <LoaderCircleIcon
                     stroke="#ffffff"
                     style={{ animation: "spin 1s linear infinite" }}

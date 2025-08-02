@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, LoaderCircleIcon } from "lucide-react";
 import { FC } from "react";
 import { useRouter } from "next/navigation";
 import Loading from "@/app/Dashboard/admin/loading";
@@ -23,7 +23,6 @@ interface Role {
   description: string;
   assigned_users: any[];
   current_permission_group_slugs: string[];
-  // person: string;
   is_superuser: boolean;
   created_by: string;
   invited_users: any[];
@@ -45,6 +44,15 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
 }) => {
   const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
+  const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(
+    null
+  );
+
+  const currentRole = roles.find(
+    (role) => String(role.id) === String(selectedRoleId)
+  );
   const route = useRouter();
   const [loadingRemove, setLoadingRemove] = useState<{
     [key: string]: boolean;
@@ -86,14 +94,17 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
           : role
       );
 
-      setShowSuccessRemoveModal(true);
       setAdminDetails(updatedRoles);
+      setShowConfirmRemoveModal(false);
+      setShowSuccessRemoveModal(true);
     } catch (error: any) {
       console.log(error);
       showErrorToast({
         message: error?.response?.data?.message || "Failed to remove user.",
       });
     } finally {
+      setSelectedRoleId(null);
+      setSelectedUserEmail(null);
       setLoadingRemove((prev) => ({ ...prev, [userEmail]: false }));
     }
   };
@@ -153,7 +164,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                 >
                   <div className="flex flex-col justify-normal ">
                     <p className="font-medium">
-                      {assigned?.name || assigned?.email}
+                      {assigned?.name || assigned?.email || "Unnamed User"}
                     </p>
                     <p className="text-slate-600">{assigned?.email}</p>
                   </div>
@@ -163,7 +174,12 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
                       variant="link"
                       className={`text-red-600
                        hover:text-red-800 p-0 cursor-pointer`}
-                      onClick={() => handleRemoveUser(role.id, assigned?.email)}
+                      onClick={() => {
+                        setSelectedRoleId(role.id);
+                        setSelectedUserEmail(assigned.email);
+                        setShowConfirmRemoveModal(true);
+                        setSelectedRoleId(role.id);
+                      }}
                       disabled={loadingRemove[assigned?.email]}
                     >
                       {loadingRemove[assigned.email] ? "Removing" : "Remove"}
@@ -197,12 +213,15 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
               <Button
                 className="w-full h-12 bg-[#CCD8E8] text-[#023E8A] hover:bg-muted/80 cursor-pointer"
                 onClick={() => ManageUsers(role.id)}
+                disabled={role.assigned_users.length === 0}
               >
                 Manage Users
               </Button>
             </div>
           ))
         )}
+
+        {/* MODAL TO SHOW REMOVE SUCCESSFUL  */}
         <Dialog
           open={showSuccessRemoveModal}
           onOpenChange={setShowSuccessRemoveModal}
@@ -220,6 +239,51 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
               <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
                 Users Removed Successfully
               </DialogDescription>
+            </div>
+          </DialogContent>
+        </Dialog>
+        {/* MODAL TO CONFIRM DELETE OR REMOVE ADMIN  */}
+        <Dialog
+          open={showConfirmRemoveModal}
+          onOpenChange={setShowConfirmRemoveModal}
+        >
+          <DialogContent className="w-full lg:max-w-lg max-w-sm p-4">
+            <div className="space-y-[40px] flex flex-col items-center">
+              <DialogHeader className="text-left">
+                <DialogTitle className="text-xl font-bold text-[#181818]">
+                  Confirm Remove Users?
+                </DialogTitle>
+              </DialogHeader>
+              <DialogDescription className="lg:text-base text-[12px] text-gray-700 text-left px-4 font-[500]">
+                You are about to remove the selected users from{" "}
+                {currentRole?.name} role. They will no longer have access to
+                these role permissions. Do you want to proceed?
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 justify-end pt-5">
+              <Button
+                className="border text-black border-[#023E8A] p-2 bg-transparent hover:bg-transparent cursor-pointer"
+                onClick={() => setShowConfirmRemoveModal(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                className="bg-[#023E8A] p-2 px-4 hover:bg-blue-700 cursor-pointer"
+                onClick={() => {
+                  if (selectedRoleId && selectedUserEmail) {
+                    handleRemoveUser(selectedRoleId, selectedUserEmail);
+                  }
+                }}
+              >
+                {selectedUserEmail && loadingRemove[selectedUserEmail] ? (
+                  <LoaderCircleIcon
+                    stroke="#ffffff"
+                    className="animate-spin mr-2 w-4 h-4"
+                  />
+                ) : null}
+                Yes, Proceed
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
