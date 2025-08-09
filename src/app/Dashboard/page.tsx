@@ -1,16 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useCallback } from "react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { useRouter } from "next/navigation";
-import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -22,6 +12,10 @@ import env from "@/config/env";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { showErrorToast } from "@/utils/toasters";
 import { useAuthContext } from "@/context/AuthContext";
+import Activity from "@/components/molecues/dashboard/RecentAct";
+import Chat from "@/components/molecues/dashboard/Messages";
+import Chart from "@/components/molecues/dashboard/Chart";
+import Statistics from "@/components/molecues/dashboard/MetricCards";
 
 const page = () => {
   const APP_STATE = useAuthContext();
@@ -29,68 +23,78 @@ const page = () => {
   const [activity, setActivity] = useState<ActivityProps[]>([]);
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<Bookings>({total_bookings: 0});
+  const [bookings, setBookings] = useState<Bookings>({ total_bookings: 0 });
   const [revenue, setRevenue] = useState<RevenueProps | null>(null);
   const [users, setUsers] = useState<UsersProps>({ total_normal_users: 0 });
-  const [selectedOption, setSelectedOption] = useState("This week");
-  const [allBookings, setAllBookings] = useState<BookingsProps[]>([])
+  const [selectedOption, setSelectedOption] = useState("This Week");
+  const [allBookings, setAllBookings] = useState<BookingsProps[]>([]);
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const [activities, messages, revenue, bookings, user, allBookings] = await Promise.all(
-        [
+
+      // Get query parameters for filtered data
+      const queryParams = generateQueryParams();
+
+      const [activities, messages, summaryResponse, allBookings] =
+        await Promise.all([
           axios.get(env.api.dashboardactivities, {
             headers: {
-              Authorization: `Bearer ${APP_STATE.accessToken}`,
+              Authorization: `Bearer ${APP_STATE?.accessToken}`,
             },
           }),
           axios.get(env.api.dashboardmessages, {
             headers: {
-              Authorization: `Bearer ${APP_STATE.accessToken}`,
+              Authorization: `Bearer ${APP_STATE?.accessToken}`,
             },
           }),
-          axios.get(env.api.dashboardrevenue, {
+          // Use the summary endpoint like in reports for all filtered data
+          axios.get(queryParams.summary, {
             headers: {
-              Authorization: `Bearer ${APP_STATE.accessToken}`,
+              Authorization: `Bearer ${APP_STATE?.accessToken}`,
             },
           }),
-          axios.get(env.api.dashboardbookings, {
+          axios.get(env.api.bookings, {
             headers: {
-              Authorization: `Bearer ${APP_STATE.accessToken}`,
+              Authorization: `Bearer ${APP_STATE?.accessToken}`,
             },
           }),
-          axios.get(env.api.usercount, {
-            headers: {
-              Authorization: `Bearer ${APP_STATE.accessToken}`,
-            },
-          }),
-          axios.get(env.api.bookings,{
-            headers:{
-              Authorization: `Bearer ${APP_STATE.accessToken}`
-            }
-          })
-        ]
-      );
+        ]);
+
       setActivity(activities.data);
       setMessages(messages.data);
-      setBookings(bookings.data);
-      isSuperadmin && setRevenue(revenue.data);
-      setUsers(user.data);
-      setAllBookings(allBookings.data)
-      console.log(allBookings)
+
+      // Extract ALL data from summary response (including filtered users)
+      const summaryData = summaryResponse.data;
+      setBookings({ total_bookings: summaryData.total_bookings || 0 });
+      setUsers({ total_normal_users: summaryData.total_users || 0 }); // Now uses filtered users
+
+      if (isSuperadmin) {
+        setRevenue({
+          total_revenue: summaryData.total_revenue || 0,
+          car_revenue: 0, // You might need to adjust based on your API response
+          flight_revenue: 0, // You might need to adjust based on your API response
+          currency: "NGN",
+        });
+      }
+
+      setAllBookings(allBookings.data);
     } catch (error: any) {
-      showErrorToast({ message: error?.response?.data?.message || error?.message });
+      showErrorToast({
+        message: error?.response?.data?.message || error?.message,
+      });
     } finally {
       setLoading(false);
     }
-  }, [APP_STATE, isSuperadmin]);
+  }, [APP_STATE?.accessToken, isSuperadmin, selectedOption]); // Fixed dependencies
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (APP_STATE?.accessToken) {
+      fetchDashboardData();
+    }
+  }, [fetchDashboardData, selectedOption]); // Added selectedOption to trigger refetch
 
-  const generateWeeklyChartData = (bookings: BookingsProps[]) => {
+  const generateWeeklyChartData = useCallback((bookings: BookingsProps[]) => {
     const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     // Initialize a structure for each weekday with zero values
     const weeklyData = weekDays.map((day) => ({
@@ -102,41 +106,104 @@ const page = () => {
     }));
 
     // Sum up total_amounts per booking type per day
-    allBookings.forEach((item) => {
+    bookings.forEach((item) => {
       const date = new Date(item.created_at);
-      const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // e.g., "Mon"
+      const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
 
-      const target = weeklyData.find((entry: any) => entry.day === dayOfWeek);
-      if (target && item.total_amount) {
-        target[item.booking_type] += item.total_amount;
+      const target = weeklyData.find((entry) => entry.day === dayOfWeek);
+      if (!target || !item.total_amount) {
+        return;
       }
+
+      // Type-safe way to update the booking type count
+      if (item.booking_type === "flight") {
+        target.flight += item.total_amount;
+      } else if (item.booking_type === "hotel") {
+        target.hotel += item.total_amount;
+      } else if (item.booking_type === "car") {
+        target.car += item.total_amount;
+      }
+      target.total_amount += item.total_amount;
     });
+
     return weeklyData;
-  };
+  }, []);
+
+  const generateQueryParams = useCallback(() => {
+    const now = new Date();
+    const breakdownBaseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
+    const combinedBaseUrl = `${env.api.admin}/reports/bookings/combined/?group_by=day`;
+    const summaryBaseUrl = `${env.api.admin}/reports/summary/?`;
+    let params = { breakdown: "", combined: "", summary: "" };
+
+    switch (selectedOption) {
+      case "This Week":
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const startDateStr = startOfWeek.toISOString().split("T")[0];
+        const endDateStr = now.toISOString().split("T")[0];
+
+        params.breakdown = `${breakdownBaseUrl}&start=${startDateStr}&end=${endDateStr}&period=week`;
+        params.summary = `${summaryBaseUrl}&start=${startDateStr}&end=${endDateStr}&period=week`;
+        params.combined = `${combinedBaseUrl}&start=${startDateStr}&end=${endDateStr}&period=week`;
+        break;
+
+      case "This Month":
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthStartStr = startOfMonth.toISOString().split("T")[0];
+        const monthEndStr = now.toISOString().split("T")[0];
+
+        params.breakdown = `${breakdownBaseUrl}&start=${monthStartStr}&end=${monthEndStr}&period=month`;
+        params.summary = `${summaryBaseUrl}&start=${monthStartStr}&end=${monthEndStr}&period=month`;
+        params.combined = `${combinedBaseUrl}&start=${monthStartStr}&end=${monthEndStr}&period=month`;
+        break;
+
+      case "This Year":
+        params.breakdown = `${breakdownBaseUrl}&period=year`;
+        params.summary = `${summaryBaseUrl}&period=year`;
+        params.combined = `${combinedBaseUrl}&period=year`;
+        break;
+
+      default:
+        params.breakdown = `${breakdownBaseUrl}&months=6`;
+        params.summary = `${summaryBaseUrl}&months=6`;
+        params.combined = `${combinedBaseUrl}&months=6`;
+        break;
+    }
+    return params;
+  }, [selectedOption]); // Added dependency
 
   const filteredData = useMemo(() => {
     const now = new Date();
-    return allBookings.filter((item) => {
+
+    const filtered = allBookings.filter((item) => {
       const createdAt = new Date(item.created_at);
 
-      if (selectedOption === "This week") {
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        return createdAt >= startOfWeek;
-      } else if (selectedOption === "This month") {
-        return (
-          createdAt.getMonth() === now.getMonth() &&
-          createdAt.getFullYear() === now.getFullYear()
+      if (selectedOption === "This Week") {
+        const currentDate = new Date(); // Create new date to avoid mutation
+        const startOfWeek = new Date(
+          currentDate.setDate(currentDate.getDate() - currentDate.getDay())
         );
-      } else if (selectedOption === "This year") {
-        return createdAt.getFullYear() === now.getFullYear();
+
+        return createdAt >= startOfWeek;
+      } else if (selectedOption === "This Month") {
+        const isCurrentMonth =
+          createdAt.getMonth() === now.getMonth() &&
+          createdAt.getFullYear() === now.getFullYear();
+
+        return isCurrentMonth;
+      } else if (selectedOption === "This Year") {
+        const isCurrentYear = createdAt.getFullYear() === now.getFullYear();
+        return isCurrentYear;
       }
       return true;
     });
-  }, [bookings, selectedOption]);
+    return filtered;
+  }, [allBookings, selectedOption]);
 
   const weeklyData = useMemo(
     () => generateWeeklyChartData(filteredData),
-    [filteredData]
+    [filteredData, generateWeeklyChartData]
   );
 
   const DashboardSkeletonLoader = () => {
@@ -185,6 +252,7 @@ const page = () => {
       </div>
     );
   };
+
   return (
     <div className="space-y-10 py-4 lg:py-0">
       {loading ? (
@@ -212,90 +280,7 @@ const page = () => {
   );
 };
 
-const Statistics = ({
-  bookings,
-  revenue,
-  users,
-  selectedOption,
-  setSelectedOption,
-  isSuperadmin,
-}: {
-  bookings: Bookings;
-  revenue: RevenueProps | null;
-  users: UsersProps;
-  selectedOption: string;
-  setSelectedOption: any;
-  isSuperadmin: boolean;
-}) => {
-  let NGNNaira = new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-  function formatMoney(number: number) {
-    if (Math.abs(number) >= 1000000) {
-      return (number / 1000000).toFixed(1) + "M";
-    }
-    return number.toLocaleString();
-  }
-
-  return (
-    <div className="flex justify-between items-start flex-col-reverse lg:flex-row gap-y-4 lg:gap-0 px-3 ">
-      <div className="space-y-6">
-        <TimeFilterDropdown
-          selectedOption={selectedOption}
-          setSelectedOption={setSelectedOption}
-        />
-        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard
-            title="Users"
-            value={users?.total_normal_users?.toLocaleString() || "0"}
-            color="#50AC79"
-            icon="/assets/icons/ana-users.svg"
-            smColor="#D5EBDF"
-          />
-          <StatCard
-            title="Bookings"
-            value={bookings.total_bookings.toLocaleString()}
-            color="#023E8A"
-            icon="/assets/icons/ana-bookings.svg"
-            smColor="#CCD8E8"
-          />
-          {isSuperadmin && (
-            <StatCard
-              title="Revenue"
-              value={
-                revenue
-                  ? Math.abs(revenue.total_revenue) >= 1000000
-                    ? `₦${formatMoney(revenue.total_revenue)}`
-                    : NGNNaira.format(revenue.total_revenue)
-                  : "₦0"
-              }
-              color="#FF6F1E"
-              icon="/assets/icons/ana-revenue.svg"
-              smColor="#FFCFB4"
-            />
-          )}
-        </div>
-      </div>
-      {isSuperadmin && (
-        <div className="space-y-2">
-          <p className="text-sm lg:text-base font-semibold text-[#181818]">
-            Total Revenue
-          </p>
-
-          <h1 className="text-2xl font-semibold text-[#023E8A]">
-            {revenue ? NGNNaira.format(Number(revenue.total_revenue)) : "₦0"}
-          </h1>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const StatCard = ({
+export const StatCard = ({
   title,
   value,
   color,
@@ -319,7 +304,7 @@ const StatCard = ({
             "w-10 h-10 rounded-[8px] flex justify-center items-center bg-[#fff] "
           }
         >
-          <img src={icon} alt="" className="" />{" "}
+          <img src={icon} alt="Icon" className="" />{" "}
         </div>
         <div className="space-y-2">
           <h1 className="font-[600] text-[28px] leading-[100%] text-[#fff]">
@@ -336,13 +321,13 @@ const StatCard = ({
           className="w-10 h-10 rounded-full flex justify-center items-center"
           style={{ backgroundColor: smColor }}
         >
-          <img src={icon} alt="" className="" />{" "}
+          <img src={icon} alt="Icon" className="" />{" "}
         </div>
         <div className="space-y-2">
           <h1 className="font-[600] text-[14px] lg:text-[28px]  leading-[100%] text-[#181818]">
             {value}
           </h1>
-          <p className="font-[500] text-[12px] b:text-[16px]  leading-[100%] text-[#555]">
+          <p className="font-[500] text-[12px] lg:text-[16px]  leading-[100%] text-[#555]">
             {title}
           </p>
         </div>
@@ -379,266 +364,6 @@ const DataGrid = ({
   );
 };
 
-const Legend = () => {
-  return (
-    <div className="flex space-x-6 items-center">
-      <div className="flex space-x-1 items-center cursor-pointer ">
-        <img src="/assets/icons/ana-airplane.svg" alt="" className="" />
-        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-          Flight
-        </span>
-      </div>
-      <div className="flex space-x-1 items-center cursor-pointer ">
-        <img src="/assets/icons/ana-bed.svg" alt="" className="" />
-        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-          Hotel
-        </span>
-      </div>
-      <div className="flex space-x-1 items-center cursor-pointer ">
-        <img src="/assets/icons/ana-car.svg" alt="" className="" />
-        <span className="text-[12px] font-[500] leading-[100%] text-[#181818]  ">
-          Car
-        </span>
-      </div>
-    </div>
-  );
-};
-
-const Chart = ({ weeklyData }: { weeklyData: any[] }) => {
-  const router = useRouter();
-  let NGNNaira = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "NGN",
-  });
-  return (
-    <div className="bg-white lg:px-6 px-2 py-6 rounded-2xl overflow-hidden h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="lg:text-xl text-sm font-semibold">Booking Trends</h2>
-        <div className="hidden lg:block">
-          <Legend />
-        </div>
-        <div
-          className="ld:text-sm text-xs text-blue-600 cursor-pointer hover:text-blue-800 "
-          onClick={() => router.push("/Dashboard/reports")}
-        >
-          View full report
-        </div>
-      </div>
-      <div className="flex-grow">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={weeklyData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" className="text-xs" />
-            <YAxis
-              className="text-[8px]"
-              tickFormatter={(value) =>
-                new Intl.NumberFormat("en-NG", {
-                  style: "currency",
-                  currency: "NGN",
-                  maximumFractionDigits: 0,
-                })
-                  .format(value)
-                  .replace(/\.00/, "")
-              }
-            />
-
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="flight"
-              stroke="#FF6D00"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="hotel"
-              stroke="#00C853"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="car"
-              stroke="#2962FF"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="lg:hidden flex justify-center mt-1">
-        <Legend />
-      </div>
-    </div>
-  );
-};
-
-const Chat = ({
-  messages,
-  loading,
-}: {
-  messages: MessageProps[];
-  loading: boolean;
-}) => {
-  const router = useRouter();
-  const getMeridian = (dateString: string) => {
-    const date = new Date(dateString);
-    const hour = date.getHours();
-    return hour >= 12 ? "PM" : "AM";
-  };
-  return (
-    <div className="bg-[#fff] h-full px-4 py-[30px] rounded-[16px] overflow-y-auto">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center lg:px-[20px] ">
-          <h3 className="font-[500] text-[18px] text-[#181818] leading-[100%]">
-            Messages
-          </h3>
-          <div
-            className="flex items-center space-x-2 cursor-pointer "
-            onClick={() => router.push("/Dashboard/support")}
-          >
-            <p className="font-[500] text-[16px] text-[#023E8A] leading-[100%]">
-              See all
-            </p>
-            <ChevronRight stroke="#023E8A" />
-          </div>
-        </div>
-        <div className="w-full h-[3px] bg-[#EBECED]"></div>
-        <div className="">
-          {loading ? (
-            <Loading />
-          ) : (
-            messages.slice(0, 10).map((msg, i) => (
-              <div
-                key={msg.id}
-                className={`py-3 lg:px-[20px]  w-full flex space-x-4 items-center cursor-pointer hover:bg-[#f2f2f2]  ${
-                  i === messages.length - 1
-                    ? ""
-                    : "border-b-[2px] border-[#F5F5F5]"
-                }`}
-              >
-                <img
-                  src={
-                    msg.type === "ticket_message"
-                      ? `/assets/icons/flight_cancellation.svg`
-                      : `/assets/icons/Message-icon.svg`
-                  }
-                  alt=""
-                  className=""
-                />
-                <div className="flex-1 justify-between flex items-center">
-                  <p className="font-[400] text-sm text-[#181818] leading-[100%]">
-                    {msg.title.length > 15
-                      ? `${msg.title.slice(0, 20)}...`
-                      : `${msg.title} by ${msg.sender}`}
-                  </p>
-                  <span className="font-[400] text-[12px] text-[#9B9EA4] leading-[100%]">
-                    {new Date(msg.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    {getMeridian(msg.created_at)}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Activity = ({
-  activity,
-  loading,
-}: {
-  activity: ActivityProps[];
-  loading: boolean;
-}) => {
-  const router = useRouter();
-  let NGNNaira = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "NGN",
-  });
-  const getMeridian = (dateString: string) => {
-    const date = new Date(dateString);
-    const hour = date.getHours();
-    return hour >= 12 ? "PM" : "AM";
-  };
-
-  return (
-    <div className="bg-white h-full lg:p-6 rounded-2xl overflow-y-auto p-3">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="lg:text-lg text-sm font-medium text-[#181818]">
-            Recent Activities
-          </h1>
-          <div
-            className="flex items-center space-x-2 cursor-pointer"
-            onClick={() => router.push("/Dashboard/bookings")}
-          >
-            <p className="lg:text-base text-xs font-medium text-[#023E8A]">See all</p>
-            <ChevronRight stroke="#023E8A" />
-          </div>
-        </div>
-        <div className="space-y-4">
-          {loading ? (
-            <Loading />
-          ) : activity.length === 0 ? (
-            <p className="text-center mt-auto">No recent activities</p>
-          ) : (
-            activity.map((act, i) => (
-              <div
-                key={i}
-                className="flex md:justify-center justify-between lg:gap-24 gap-16 w-full items-center cursor-pointer hover:bg-[#f1f1f1] rounded-xl py-2 lg:px-3 px-2"
-                onClick={() => router.push("/Dashboard/user/profile")}
-              >
-                <div className="flex items-center space-x-3 lg:w-[200px] w-full">
-                  <img
-                    src="/assets/images/profile-image.svg"
-                    alt=""
-                    className="lg:w-10 w-6"
-                  />
-                  <p className="lg:text-base text-sm font-medium text-[#181818]">
-                    {act.user_full_name}
-                  </p>
-                </div>
-                <p className="lg:text-sm text-xs text-[#181818]">
-                  {act.booking_type}
-                </p>
-                <div className="flex items-center ml-auto space-x-2">
-                  <div className="text-right">
-                    <p className="lg:text-sm text-xs text-[#181818]">
-                      {NGNNaira.format(act.amount)}
-                    </p>
-                    <p className="lg:text-sm text-xs text-[#9B9EA4]">
-                      {new Date(act.date).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      {getMeridian(act.date)}
-                    </p>
-                  </div>
-                  <img
-                    src="/assets/icons/chevron-down.svg"
-                    alt=""
-                    className="w-5"
-                  />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // TimeFilterDropdown.tsx
 export const TimeFilterDropdown = ({
   selectedOption,
@@ -647,7 +372,7 @@ export const TimeFilterDropdown = ({
   selectedOption: string;
   setSelectedOption: (value: string) => void;
 }) => {
-  const options = ["This week", "This month", "This year"];
+  const options = ["This Week", "This Month", "This Year"];
   return (
     <div className="relative">
       <DropdownMenu>
@@ -682,36 +407,9 @@ export const TimeFilterDropdown = ({
   );
 };
 
-export const Loading = () => {
-  return (
-    <div className="text-center flex items-center justify-center gap-3">
-      <p>Loading...</p>
-      <svg
-        className="animate-spin -ml-1 mr-2 h-4 w-4 text-black"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        ></circle>
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        ></path>
-      </svg>
-    </div>
-  );
-};
 export default page;
 
-type ActivityProps = {
+export type ActivityProps = {
   user_full_name: string;
   amount: number;
   date: string;
@@ -719,7 +417,7 @@ type ActivityProps = {
   booking_type: string;
 };
 
-type MessageProps = {
+export type MessageProps = {
   content: string;
   created_at: string;
   id: string;
@@ -729,19 +427,22 @@ type MessageProps = {
   type: string;
 };
 
-type RevenueProps = {
+export type RevenueProps = {
   total_revenue: number;
   car_revenue: number;
   flight_revenue: number;
   currency: string;
 };
-type UsersProps = {
+
+export type UsersProps = {
   total_normal_users: number;
 };
-type Bookings ={
-  total_bookings : number
-}
-type BookingsProps = {
+
+export type Bookings = {
+  total_bookings: number;
+};
+
+export type BookingsProps = {
   booking_type: "flight" | "hotel" | "car";
   created_at: string;
   details: {
