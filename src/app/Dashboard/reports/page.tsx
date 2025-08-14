@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -43,95 +43,84 @@ type Summary = {
   total_revenue: number;
   revenue_growth_percentage: number;
 };
+
 type Breakdown = {
   label: string;
   flight_bookings: number;
   car_bookings: number;
+  hotel_bookings?: number; // Added hotel bookings
   flight_revenue: number;
   car_revenue: number;
+  hotel_revenue?: number; // Added hotel revenue
 };
+
 type Combined = {
   label: string;
   bookings: number;
   revenue: number;
 };
+
 export default function ReportsPage() {
   const APP_STATE = useAuthContext();
   const isSuperadmin = APP_STATE?.user?.isSuperuser;
 
   const [activeTab, setActiveTab] = useState("overview");
-
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingExport, setIsLoadingExport] = useState(false);
-
   const [overviewData, setOverviewData] = useState<Summary>();
-  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>(
-    []
-  );
+  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>([]);
   const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
-
   const [selectedOption, setSelectedOption] = useState("This Week");
 
-  // if (!APP_STATE?.user) return <Loading />;
-  // if (!APP_STATE?.accessToken) {
-  //   showErrorToast({ message: "You are not authorized to view this page" });
-  //   return null;
-  // }
-  const formatCurrency = (value: number) => {
+  const formatCurrency = useCallback((value: number) => {
     if (value >= 1_000_000) {
-      return `N${(value / 1_000_000).toFixed(1)}m`; // Format millions
+      return `₦${(value / 1_000_000).toFixed(1)}M`; // Changed to Naira symbol and proper formatting
     } else if (value >= 1_000) {
-      return `N${(value / 1_000).toFixed(1)}k`; // Format thousands
+      return `₦${(value / 1_000).toFixed(1)}K`;
     }
-    return `N${value.toLocaleString()}`; // Format smaller values
-  };
+    return `₦${value.toLocaleString()}`;
+  }, []);
 
-  const generateQueryParams = () => {
+  const generateQueryParams = useCallback(() => {
     const now = new Date();
     const breakdownBaseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
     const combinedBaseUrl = `${env.api.admin}/reports/bookings/combined/?group_by=day`;
     const summaryBaseUrl = `${env.api.admin}/reports/summary/?`;
+    
     let params = { breakdown: "", combined: "", summary: "" };
+    
     switch (selectedOption) {
-      case "This Week":
+      case "This Week": {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
-        params.breakdown = `${breakdownBaseUrl}&start=${
-          startOfWeek.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=week`;
-        params.summary = `${summaryBaseUrl}&start=${
-          startOfWeek.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=week`;
-        params.combined = `${combinedBaseUrl}&start=${
-          startOfWeek.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=week`;
+        const start = startOfWeek.toISOString().split("T")[0];
+        const end = now.toISOString().split("T")[0];
+        
+        params.breakdown = `${breakdownBaseUrl}&start=${start}&end=${end}&period=week`;
+        params.summary = `${summaryBaseUrl}&start=${start}&end=${end}&period=week`;
+        params.combined = `${combinedBaseUrl}&start=${start}&end=${end}&period=week`;
         break;
-      case "This Month":
+      }
+      case "This Month": {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        params.breakdown = `${breakdownBaseUrl}&start=${
-          startOfMonth.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=month`;
-        params.summary = `${summaryBaseUrl}&start=${
-          startOfMonth.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=month`;
-        params.combined = `${combinedBaseUrl}&start=${
-          startOfMonth.toISOString().split("T")[0]
-        }&end=${now.toISOString().split("T")[0]}&period=month`;
+        const start = startOfMonth.toISOString().split("T")[0];
+        const end = now.toISOString().split("T")[0];
+        
+        params.breakdown = `${breakdownBaseUrl}&start=${start}&end=${end}&period=month`;
+        params.summary = `${summaryBaseUrl}&start=${start}&end=${end}&period=month`;
+        params.combined = `${combinedBaseUrl}&start=${start}&end=${end}&period=month`;
         break;
-
+      }
       case "Last 3 Months":
         params.breakdown = `${breakdownBaseUrl}&months=3`;
         params.summary = `${summaryBaseUrl}&months=3`;
         params.combined = `${combinedBaseUrl}&months=3`;
         break;
-
       case "This Year":
-        // const startOfYear = new Date(now.getFullYear(), 0, 1);
         params.breakdown = `${breakdownBaseUrl}&period=year`;
         params.summary = `${summaryBaseUrl}&period=year`;
         params.combined = `${combinedBaseUrl}&period=year`;
         break;
-
       default:
         params.breakdown = `${breakdownBaseUrl}&months=6`;
         params.summary = `${summaryBaseUrl}&months=6`;
@@ -139,224 +128,105 @@ export default function ReportsPage() {
         break;
     }
     return params;
-  };
+  }, [selectedOption]);
 
-  //FETCH DATA
-  const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(async () => {
     const { breakdown, summary, combined } = generateQueryParams();
     try {
       setIsLoading(true);
-      const [bookingbreakdown, bookingscombined, summaryResponse] =
-        await Promise.all([
-          axios.get(breakdown, {
-            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
-          }),
-          axios.get(combined, {
-            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
-          }),
-          axios.get(summary, {
-            headers: { Authorization: `Bearer ${APP_STATE.accessToken}` },
-          }),
-        ]);
-      setRevenueBookingsData(bookingscombined.data.results);
+      const [bookingbreakdown, bookingscombined, summaryResponse] = await Promise.all([
+        axios.get(breakdown, {
+          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+        }),
+        axios.get(combined, {
+          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+        }),
+        axios.get(summary, {
+          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+        }),
+      ]);
+      
+      setRevenueBookingsData(bookingscombined.data.results || []);
       setOverviewData(summaryResponse.data);
-      setBookingTrendsData(bookingbreakdown.data.results);
+      setBookingTrendsData(bookingbreakdown.data.results || []);
     } catch (error: any) {
-      console.log(error);
+      console.error("Error fetching data:", error);
       showErrorToast({
         message: error?.response?.data?.message || "Error displaying data",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [generateQueryParams, APP_STATE?.accessToken]);
 
-  //EXPORT DATA AS XLSL FORMAT
-  const exportData = async () => {
+  const exportData = useCallback(async () => {
     try {
       setIsLoadingExport(true);
       const response = await axios.get(`${env.api.admin}/reports/export/`, {
         responseType: "blob",
         headers: {
-          Authorization: `Bearer ${APP_STATE.accessToken}`,
+          Authorization: `Bearer ${APP_STATE?.accessToken}`,
         },
       });
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "report.xlsx"); // Set the file name
+      link.setAttribute("download", "report.xlsx");
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link); // Clean up
+      window.URL.revokeObjectURL(url); // Clean up
+      
       showSuccessToast({ message: "Download starting" });
     } catch (error: any) {
       showErrorToast({
         message: error?.response?.data?.message || "Error exporting data",
       });
-      console.log(error?.response?.data?.message);
+      console.error("Export error:", error);
     } finally {
       setIsLoadingExport(false);
     }
-  };
+  }, [APP_STATE?.accessToken]);
 
-  // //FILTER DATA BASED ON TIME PERIOD OR DURATIONS
-  const filteredCombinedData = useMemo(() => {
-    if (!revenueBookingsData) return [];
-    const now = new Date();
-    let filtered = revenueBookingsData?.filter((item) => {
-      const createdAt = new Date(item.label);
-      if (selectedOption === "This Week") {
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        return createdAt >= startOfWeek;
-      } else if (selectedOption === "This Month") {
-        return (
-          createdAt.getMonth() === now.getMonth() &&
-          createdAt.getFullYear() === now.getFullYear()
-        );
-      } else if (selectedOption === "Last 3 Months") {
-        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
-        return createdAt >= threeMonthsAgo;
-      } else if (selectedOption === "This Year") {
-        return createdAt.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
-    if (selectedOption === "This Year") {
-      // Aggregate by month
-      const monthlyData: { [key: string]: Combined } = {};
-      filtered.forEach((item) => {
-        const date = new Date(item.label);
-        const monthKey = date.toLocaleString("en-US", { month: "long" });
-        if (!monthlyData[monthKey]) {
-          monthlyData[monthKey] = {
-            label: monthKey,
-            bookings: 0,
-            revenue: 0,
-          };
-        }
-        monthlyData[monthKey].bookings += item.bookings;
-        monthlyData[monthKey].revenue += item.revenue;
-      });
-      return Object.values(monthlyData).sort((a, b) => {
-        const months = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
-        return months.indexOf(a.label) - months.indexOf(b.label);
-      });
-    }
-
-    return filtered.map((item) => ({
+  // REMOVED CLIENT-SIDE FILTERING - Data should come pre-filtered from API
+  // The API endpoints already handle filtering based on the selected period
+  const processedTrendsData = useMemo(() => {
+    if (!bookingTrendsData?.length) return [];
+    
+    return bookingTrendsData.map((item) => ({
       ...item,
-      label:
-        selectedOption === "This Year"
-          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
-          : item.label,
-    }));
-  }, [revenueBookingsData, selectedOption]);
-
-  const filteredData = useMemo(() => {
-    if (!bookingTrendsData) return [];
-    const now = new Date();
-    let filtered = bookingTrendsData?.filter((item) => {
-      const createdAt = new Date(item.label);
-      if (selectedOption === "This Week") {
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        return createdAt >= startOfWeek;
-      } else if (selectedOption === "This Month") {
-        return (
-          createdAt.getMonth() === now.getMonth() &&
-          createdAt.getFullYear() === now.getFullYear()
-        );
-      } else if (selectedOption === "Last 3 Months") {
-        const threeMonthsAgo = new Date(now.setMonth(now.getMonth() - 3));
-        return createdAt >= threeMonthsAgo;
-      } else if (selectedOption === "This Year") {
-        return createdAt.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
-    if (selectedOption === "This Year") {
-      // Aggregate by month
-      const monthlyData: { [key: string]: Breakdown } = {};
-      filtered.forEach((item) => {
-        const date = new Date(item.label);
-        const monthKey = date.toLocaleString("en-US", { month: "long" });
-        if (!monthlyData[monthKey]) {
-          monthlyData[monthKey] = {
-            label: monthKey,
-            flight_bookings: 0,
-            car_bookings: 0,
-            flight_revenue: 0,
-            car_revenue: 0,
-          };
-        }
-        monthlyData[monthKey].flight_bookings += item.flight_bookings;
-        monthlyData[monthKey].car_bookings += item.car_bookings;
-        monthlyData[monthKey].flight_revenue += item.flight_revenue;
-        monthlyData[monthKey].car_revenue += item.car_revenue;
-      });
-      return Object.values(monthlyData).sort((a, b) => {
-        const months = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
-        return months.indexOf(a.label) - months.indexOf(b.label);
-      });
-    }
-
-    return filtered.map((item) => ({
-      ...item,
-      label:
-        selectedOption === "This Year"
-          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
-          : item.label,
+      total_bookings: (item.flight_bookings || 0) + (item.car_bookings || 0) + (item.hotel_bookings || 0),
+      total_revenue: (item.flight_revenue || 0) + (item.car_revenue || 0) + (item.hotel_revenue || 0),
+      // Format label for better display
+      displayLabel: selectedOption === "This Year" 
+        ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+        : new Date(item.label).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     }));
   }, [bookingTrendsData, selectedOption]);
 
-  const processedData = useMemo(() => {
-    if (!filteredData) return [];
-    return filteredData.map((item) => ({
+  const processedCombinedData = useMemo(() => {
+    if (!revenueBookingsData?.length) return [];
+    
+    return revenueBookingsData.map((item) => ({
       ...item,
-      total_bookings: item.car_bookings + item.flight_bookings,
-      total_revenue: item.flight_revenue + item.car_revenue,
-      count: filteredData.length
+      displayLabel: selectedOption === "This Year"
+        ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+        : new Date(item.label).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     }));
-  }, [filteredData]);
+  }, [revenueBookingsData, selectedOption]);
 
   useEffect(() => {
-    fetchAdminData();
-  }, [isSuperadmin, selectedOption]);
+    if (APP_STATE?.accessToken) {
+      fetchAdminData();
+    }
+  }, [fetchAdminData]);
 
-  const periodFilter = [
-    "This Week",
-    "This Month",
-    "Last 3 Months",
-    "This Year",
-  ];
+  const periodFilter = ["This Week", "This Month", "Last 3 Months", "This Year"];
+
   const SkeletonLoader = () => (
     <div className="animate-pulse">
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-        {/* Skeleton for Metric Cards */}
         {[1, 2, 3].map((_, index) => (
           <Card key={index} className="bg-gray-100 w-full">
             <CardContent className="p-6">
@@ -367,14 +237,27 @@ export default function ReportsPage() {
           </Card>
         ))}
       </div>
-
-      {/* Skeleton for Charts */}
       <div className="h-[400px] bg-gray-100 rounded"></div>
     </div>
   );
+
+  const EmptyState = ({ message = "No data available" }: { message?: string }) => (
+    <div className="flex items-center justify-center h-[400px]">
+      <div className="text-center">
+        <div className="text-gray-400 mb-2">
+          <BookOpen className="h-12 w-12 mx-auto" />
+        </div>
+        <p className="text-lg font-medium text-gray-500">{message}</p>
+      </div>
+    </div>
+  );
+
+  if (!APP_STATE?.accessToken) {
+    return <div>Please log in to access reports.</div>;
+  }
+
   return (
     <div className="flex min-h-screen p-5">
-      {/* Main Content */}
       <main className="flex-1 w-full">
         {isLoading ? (
           <SkeletonLoader />
@@ -401,22 +284,22 @@ export default function ReportsPage() {
 
               <Button
                 className={`${
-                  isLoadingExport ? `bg-orange-200` : `bg-orange-500`
+                  isLoadingExport ? "bg-orange-200" : "bg-orange-500"
                 } hover:bg-orange-600`}
                 onClick={exportData}
+                disabled={isLoadingExport}
               >
                 <Download className="mr-2 h-4 w-4" />
-                <p className="hidden lg:block">
-                  {isLoadingExport ? "Exporting" : "Export All Data"}
-                </p>
+                <span className="hidden lg:block">
+                  {isLoadingExport ? "Exporting..." : "Export All Data"}
+                </span>
               </Button>
             </div>
 
             {/* Metric Cards */}
-
             <div
               className={`grid gap-4 ${
-                isSuperadmin ? `md:grid-cols-3` : `md:grid-cols-2`
+                isSuperadmin ? "md:grid-cols-3" : "md:grid-cols-2"
               } mb-8`}
             >
               <Card className="bg-green-50 w-full">
@@ -429,11 +312,10 @@ export default function ReportsPage() {
                   </div>
                   <div className="mt-2">
                     <span className="text-2xl font-bold">
-                      {overviewData?.total_users ?? 0}
+                      {overviewData?.total_users?.toLocaleString() ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-green-600">
-                      {overviewData?.user_growth_percentage ?? 0}% from last
-                      period
+                      {overviewData?.user_growth_percentage ?? 0}% from last period
                     </span>
                   </div>
                 </CardContent>
@@ -449,11 +331,10 @@ export default function ReportsPage() {
                   </div>
                   <div className="mt-2">
                     <span className="text-2xl font-bold">
-                      {overviewData?.total_bookings ?? 0}
+                      {overviewData?.total_bookings?.toLocaleString() ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-blue-600">
-                      {overviewData?.booking_growth_percentage ?? 0}% from last
-                      period
+                      {overviewData?.booking_growth_percentage ?? 0}% from last period
                     </span>
                   </div>
                 </CardContent>
@@ -473,8 +354,7 @@ export default function ReportsPage() {
                         {formatCurrency(overviewData?.total_revenue ?? 0)}
                       </span>
                       <span className="ml-2 text-sm text-orange-600">
-                        {overviewData?.revenue_growth_percentage ?? 0}% from
-                        last period
+                        {overviewData?.revenue_growth_percentage ?? 0}% from last period
                       </span>
                     </div>
                   </CardContent>
@@ -483,243 +363,192 @@ export default function ReportsPage() {
             </div>
 
             {/* Charts */}
-            <Tabs
-              defaultValue="overview"
-              className="space-y-4"
-              onValueChange={setActiveTab}
-            >
+            <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
               <div className="overflow-x-auto whitespace-nowrap pb-2">
                 <TabsList className="min-w-max flex gap-2">
-                  <TabsTrigger
-                    value="overview"
-                    className="flex items-center gap-2"
-                  >
+                  <TabsTrigger value="overview" className="flex items-center gap-2">
                     <BarChart className="h-4 w-4" />
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="booking-trends"
-                    className="flex items-center gap-2"
-                  >
+                  <TabsTrigger value="booking-trends" className="flex items-center gap-2">
                     <LineChart className="h-4 w-4" />
                     Booking Trends
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="user-activities"
-                    className="flex items-center gap-2"
-                  >
+                  <TabsTrigger value="user-activities" className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     User Activities
                   </TabsTrigger>
                   {isSuperadmin && (
-                    <TabsTrigger
-                      value="revenue-analysis"
-                      className="flex items-center gap-2"
-                    >
+                    <TabsTrigger value="revenue-analysis" className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
                       Revenue Analysis
                     </TabsTrigger>
                   )}
                 </TabsList>
               </div>
+
               <Card>
                 <CardContent className="pt-6">
-                  {/* OVERVIEW ACTIVITIES  CHART*/}
+                  {/* OVERVIEW CHART */}
                   <TabsContent value="overview" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Booking & Revenue Overview
-                    </h3>
-                    {isLoading ? (
-                      <Loading />
-                    ) : (
-                      <div className="h-[400px]">
-                        {filteredCombinedData.length === 0 && (
-                          <div className="text-center mt-[15%] text-lg font-bold">
-                            Nothing to see here
-                          </div>
-                        )}
+                    <h3 className="text-lg font-semibold mb-4">Booking & Revenue Overview</h3>
+                    <div className="h-[400px]">
+                      {processedCombinedData.length === 0 ? (
+                        <EmptyState message="No booking or revenue data available" />
+                      ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={filteredCombinedData}>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-muted"
-                            />
-                            <XAxis dataKey="label" />
+                          <BarChart data={processedCombinedData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="displayLabel" />
                             <YAxis tickFormatter={formatCurrency} />
                             <Tooltip
-                              formatter={(value) =>
-                                formatCurrency(Number(value))
-                              }
+                              formatter={(value, name) => [
+                                typeof value === 'number' 
+                                  ? name === 'Revenue' ? formatCurrency(value) : value.toLocaleString()
+                                  : value,
+                                name
+                              ]}
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",
+                                borderRadius: "8px",
                               }}
                             />
-                            <Bar
-                              dataKey="bookings"
-                              fill="#1e40af"
-                              name="Booking"
-                            />
+                            <Bar dataKey="bookings" fill="#1e40af" name="Bookings" />
                             {isSuperadmin && (
-                              <Bar
-                                dataKey="revenue"
-                                fill="#f97316"
-                                name="Revenue"
-                              />
+                              <Bar dataKey="revenue" fill="#f97316" name="Revenue" />
                             )}
                           </BarChart>
                         </ResponsiveContainer>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </TabsContent>
 
-                  {/* BOOKING TRENNDS ACTIVITIES */}
+                  {/* BOOKING TRENDS CHART - FIXED */}
                   <TabsContent value="booking-trends" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Booking Trends
-                    </h3>
-                    {isLoading ? (
-                      <Loading />
-                    ) : (
-                      <div className="h-[400px]">
-                        {filteredData.length === 0 && (
-                          <div className="text-center mt-[15%] text-lg font-bold">
-                            Nothing to see here
-                          </div>
-                        )}
+                    <h3 className="text-lg font-semibold mb-4">Booking Trends</h3>
+                    <div className="h-[400px]">
+                      {processedTrendsData.length === 0 ? (
+                        <EmptyState message="No booking trends data available" />
+                      ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={filteredData}>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-muted"
-                            />
-                            <XAxis dataKey="label" />
+                          <LineChart data={processedTrendsData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="displayLabel" />
                             <YAxis />
                             <Tooltip
-                              
+                              formatter={(value) => [
+                                typeof value === 'number' ? value.toLocaleString() : value,
+                              ]}
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",
+                                borderRadius: "8px",
                               }}
                             />
                             <Line
                               type="monotone"
-                              dataKey=
-                                   "flight_bookings"
-                              
+                              dataKey="flight_bookings"
                               stroke="#f97316"
                               name="Flights"
                               strokeWidth={2}
+                              dot={{ r: 4 }}
+                            />
+                            {/* FIXED: Changed from car_bookings to hotel_bookings */}
+                            <Line
+                              type="monotone"
+                              dataKey="hotel_bookings"
+                              stroke="#22c55e"
+                              name="Hotels"
+                              strokeWidth={2}
+                              dot={{ r: 4 }}
                             />
                             <Line
                               type="monotone"
                               dataKey="car_bookings"
-                              
-                              stroke="#22c55e"
-                              name="Hotels"
-                              strokeWidth={2}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey= "car_bookings"
-                              
                               stroke="#1e40af"
                               name="Cars"
                               strokeWidth={2}
+                              dot={{ r: 4 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </TabsContent>
 
-                  {/* USERS ACTIVITIES CHART */}
+                  {/* USER ACTIVITIES CHART - IMPROVED */}
                   <TabsContent value="user-activities" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">
-                      User Activities
-                    </h3>
-                    {isLoading ? (
-                      <Loading />
-                    ) : (
-                      <div className="h-[400px]">
-                        {processedData.length === 0 && (
-                          <div className="text-center mt-[15%] text-lg font-bold">
-                            Nothing to see here
-                          </div>
-                        )}
+                    <h3 className="text-lg font-semibold mb-4">User Activities</h3>
+                    <div className="h-[400px]">
+                      {processedTrendsData.length === 0 ? (
+                        <EmptyState message="No user activity data available" />
+                      ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={processedData}>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-muted"
-                            />
-                            <XAxis dataKey="label" />
-                            <YAxis dataKey="count"/>
+                          <LineChart data={processedTrendsData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="displayLabel" />
+                            <YAxis />
                             <Tooltip
-                             
+                              formatter={(value) => [
+                                typeof value === 'number' ? value.toLocaleString() : value,
+                                "Total Bookings"
+                              ]}
                               contentStyle={{
                                 background: "white",
                                 border: "1px solid #ccc",
+                                borderRadius: "8px",
                               }}
                             />
                             <Line
                               type="monotone"
                               dataKey="total_bookings"
                               stroke="#f97316"
-                              name="User Activities"
+                              name="Total Bookings"
                               strokeWidth={2}
                               dot={{ r: 4 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </TabsContent>
 
-                  {/* //REVENUE ANALYSIS CHART */}
-                  <TabsContent value="revenue-analysis" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Revenue Analysis
-                    </h3>
-                    {isLoading ? (
-                      <Loading />
-                    ) : (
+                  {/* REVENUE ANALYSIS CHART - IMPROVED */}
+                  {isSuperadmin && (
+                    <TabsContent value="revenue-analysis" className="mt-0">
+                      <h3 className="text-lg font-semibold mb-4">Revenue Analysis</h3>
                       <div className="h-[400px]">
-                        {processedData.length === 0 && (
-                          <div className="text-center mt-[15%] text-lg font-bold">
-                            Nothing to see here
-                          </div>
+                        {processedTrendsData.length === 0 ? (
+                          <EmptyState message="No revenue data available" />
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={processedTrendsData}>
+                              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                              <XAxis dataKey="displayLabel" />
+                              <YAxis tickFormatter={formatCurrency} />
+                              <Tooltip
+                                formatter={(value) => [formatCurrency(Number(value)), "Total Revenue"]}
+                                contentStyle={{
+                                  background: "white",
+                                  border: "1px solid #ccc",
+                                  borderRadius: "8px",
+                                }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="total_revenue"
+                                stroke="#eab308"
+                                name="Total Revenue"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
                         )}
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={processedData}>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-muted"
-                            />
-                            <XAxis dataKey="label" />
-                            <YAxis tickFormatter={formatCurrency} />
-                            <Tooltip
-                              formatter={(value) =>
-                                formatCurrency(Number(value))
-                              }
-                              contentStyle={{
-                                background: "white",
-                                border: "1px solid #ccc",
-                              }}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="total_revenue"
-                              stroke="#eab308"
-                              name="Revenue"
-                              strokeWidth={2}
-                              dot={{ r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
                       </div>
-                    )}
-                  </TabsContent>
+                    </TabsContent>
+                  )}
                 </CardContent>
               </Card>
             </Tabs>
