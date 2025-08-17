@@ -10,11 +10,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const router = useRouter();
-  const { accessToken } = useAuthContext();
+  // const { accessToken } = useAuthContext();
 
-  useEffect(() => {
-    if (!accessToken) router.push("/auth/login");
-  }, [accessToken]);
+  // useEffect(() => {
+  //   if (!accessToken) router.push("/auth/login");
+  // }, [accessToken]);
 
   return (
     <DashboardLayout>

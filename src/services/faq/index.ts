@@ -1,5 +1,6 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 type TAddFaq = {
   payload: {
@@ -12,15 +13,15 @@ type TAddFaq = {
 
 class Service {
   getAllFaq() {
-    return axios.get(env.api.faq + "/categories/");
+    return instance.get(env.api.faq + "/categories/");
   }
 
   addFaq({ payload }: TAddFaq) {
-    return axios.post(env.api.faq + "/", payload);
+    return instance.post(env.api.faq + "/", payload);
   }
 
   deleteFaq({ id }: { id: number }) {
-    return axios.delete(env.api.faq + "/" + id);
+    return instance.delete(env.api.faq + "/" + id);
   }
 }
 const FaqService = new Service();

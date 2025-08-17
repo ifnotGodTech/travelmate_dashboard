@@ -1,12 +1,13 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 class Service {
   getRoles() {
-    return axios.get(env.api.superadmin + "roles/admin-list/");
+    return instance.get(env.api.superadmin + "roles/admin-list/");
   }
   getMyRole() {
-    return axios.get(env.api.roles + "roles/");
+    return instance.get(env.api.roles + "roles/");
   }
 }
 

@@ -5,8 +5,6 @@ import env from "@/config/env";
 import { AxiosError } from "axios";
 import { AuthInterface } from "@/services/auth/types";
 
-const INITIAL_APP_STATE = env.auth.INITIAL_APP_STATE;
-
 export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -22,6 +20,7 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
     setLoading(true);
     try {
       const res = await Service.login({ payload });
+
       const user = {
         user_id: res.data.user_id,
         email: res.data.email,
@@ -29,11 +28,24 @@ export const useLoginUser = ({ Service }: { Service: AuthInterface }) => {
         isSuperuser: res.data.is_superuser,
         isAdmin: res.data.is_admin,
       };
-      updateAppState({
-        accessToken: res.data.access,
-        refreshToken: res.data.refresh,
-        user,
+
+      // ✅ Store tokens securely in cookies (server handles httpOnly)
+      await fetch("/api/auth/set-cookies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accessToken: res.data.access,
+          refreshToken: res.data.refresh,
+        }),
       });
+
+
+      updateAppState({
+        user, // tokens will be read later from cookies
+      });
+
       showSuccessToast({
         message: res.data.message || "🚀 Login success!",
         description: res.data.description || "",

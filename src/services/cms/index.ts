@@ -1,12 +1,13 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 class Service {
   getServices() {
-    return axios.get(env.api.cms);
+    return instance.get(env.api.cms);
   }
   updateService({ id, payload }: { id: string; payload: any }) {
-    return axios.patch(env.api.cms + id + "/", payload);
+    return instance.patch(env.api.cms + id + "/", payload);
   }
 }
 

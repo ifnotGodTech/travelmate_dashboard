@@ -204,6 +204,7 @@ export const TicketDetailsDialog = ({
     </div>
   );
 };
+
 export const ViewingChatModal = ({
   selectedTicket,
   ticketDetails,
@@ -224,7 +225,7 @@ export const ViewingChatModal = ({
   const [showNotAuthorized, setShowNotAuthorized] = useState(false); // New state
 
   const { loading, data } = useMyRoles({ modalVisible: selectedTicket });
-  const canViewMessage = data?.name === "Support & Tickets";
+  const canViewMessage = data?.name === "Tickets and Support";
 
   const formattedDate = useMemo(
     () => (ticketDetails ? formatCreatedAt(ticketDetails.created_at, 2) : ""),

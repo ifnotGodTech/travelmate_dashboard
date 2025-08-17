@@ -26,6 +26,7 @@ const api = () => {
     dashboardbookings: BASE_URL_LINK + "/api/admin/dashboard/stats/",
     cms: BASE_URL_LINK + "/api/admin/commissions/",
     upload: BASE_URL_LINK + "/api/upload/",
+    notification: BASE_URL_LINK + "/api/notifications/",
   };
 };
 

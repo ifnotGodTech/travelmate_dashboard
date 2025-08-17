@@ -1,92 +1,72 @@
-"use client";
-import * as React from "react";
-import axios, { AxiosError } from "axios";
-import env from "@/config/env";
-import { useUpdateAuthContext } from "@/context/AuthContext";
+import axios from "axios";
+import { getCookies } from "@/context/Auth-Cookies";
 
-function isUnAuthorizedError(error: Error | AxiosError | any) {
-  return error?.config && error?.response && error?.response?.status === 401;
-}
+const instance = axios.create({
+  withCredentials: true,
+});
 
-let tokenRefreshRetries = 0;
-
-function useAxiosDefaults({
-  accessToken,
-  refreshToken,
-}: {
-  accessToken: string;
-  refreshToken?: string;
-}) {
-  const updateAppState = useUpdateAuthContext();
-
-  // Set default content type
-  axios.defaults.headers.post["Content-Type"] = "application/json";
-
-  // Conditionally attach Authorization header
-  if (accessToken) {
-    axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-  } else {
-    delete axios.defaults.headers.common.Authorization;
-  }
-
-  axios.interceptors.response.use(
-    function (response) {
-      return response;
-    },
-    async function (error) {
-      const originalRequest = error.config;
-
-      const isLogin = originalRequest?.url?.includes("/login");
-      const isRefresh = originalRequest?.url?.includes("/refresh");
-
-      if (isUnAuthorizedError(error) && !isLogin && !isRefresh) {
-        if (tokenRefreshRetries < 3 && refreshToken) {
-          tokenRefreshRetries++;
-
-          try {
-            const response = await axios.post(
-              `${env.api.auth}/jwt/token/refresh/`,
-              { refreshToken },
-              { headers: { Authorization: "" } }
-            );
-
-            const newAccessToken = response?.data?.access;
-
-            // Update context state
-            updateAppState({
-              accessToken: newAccessToken,
-            });
-
-            // Update global header and original request
-            axios.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-            return axios(originalRequest); // Retry the original request
-          } catch (refreshError: any) {
-            console.error(
-              "Token refresh failed:",
-              refreshError.response?.data || refreshError.message
-            );
-            window.location.href = `/auth/login`;
-            return Promise.reject(refreshError);
-          }
-        } else {
-          console.warn("Max retries exceeded or no refresh token available.");
-          window.location.href = `/auth/login`;
-        }
+instance.interceptors.request.use(
+  async (config) => {
+    try {
+      const { accessToken } = await getCookies();
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      } else {
+        delete config.headers.Authorization;
       }
-
-      return Promise.reject(error);
+    } catch (error) {
+      console.error("Error in request interceptor:", error);
     }
-  );
+    console.log("Request Config:", config);
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  React.useEffect(() => {
-    if (accessToken) {
-      axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-    } else {
-      delete axios.defaults.headers.common.Authorization;
+instance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response &&
+      error.response.status === 403 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true; // Mark request for retry
+
+      try {
+        // Retrieve refresh token from cookies
+        const refreshToken = Cookies.get("refreshToken");
+        if (!refreshToken) throw new Error("No refresh token available");
+
+        // Request a new access token
+        const refreshResponse = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh`,
+          { refreshToken },
+          { withCredentials: true }
+        );
+
+        const { accessToken, refreshToken: newRefreshToken } =
+          refreshResponse.data.data;
+
+        // // Update cookies with new tokens
+        // Cookies.set("accessToken", accessToken, { path: "/" });
+        // Cookies.set("refreshToken", newRefreshToken, { path: "/" });
+
+        // Update the Authorization header and retry the original request
+        originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+        return instance(originalRequest);
+      } catch (refreshError) {
+        // Optionally: Redirect to login or handle logout
+        console.error("Token refresh failed. Redirecting to login...");
+        window.location.href = "/auth/login";
+        return Promise.reject(refreshError);
+      }
     }
-  }, [accessToken]);
-}
 
-export default useAxiosDefaults;
+    return Promise.reject(error);
+  }
+);
+
+export default instance;

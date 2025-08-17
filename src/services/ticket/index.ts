@@ -1,5 +1,6 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 type TEscalateTicket = {
   escalation_level: number;
@@ -25,32 +26,32 @@ class Service {
     const endpoint = url || env.api.ticket;
     const queryString = new URLSearchParams(filters).toString(); // Convert filters object to query string
     const fullUrl = queryString ? `${endpoint}?${queryString}` : endpoint;
-    return axios.get(fullUrl);
+    return instance.get(fullUrl);
   }
 
   getTicketsStats = ({ days }: { days?: number }) => {
     const endpoint = `${env.api.ticket}all_stats/`;
     const params = days ? `?days=${days}` : "";
-    return axios.get(`${endpoint}${params}`);
+    return instance.get(`${endpoint}${params}`);
   };
 
   getTicket({ TicketId }: { TicketId?: string }) {
-    return axios.get(env.api.ticket + TicketId + "/");
+    return instance.get(env.api.ticket + TicketId + "/");
   }
 
   claimTicket({ TicketId }: { TicketId?: string }) {
-    return axios.post(env.api.ticket + TicketId + "/claim/");
+    return instance.post(env.api.ticket + TicketId + "/claim/");
   }
 
   getEscalationLevel() {
-    return axios.get(env.api.superadmin + "/roles/admin-list/");
+    return instance.get(env.api.superadmin + "/roles/admin-list/");
   }
   createEscalationLevel({ payload }: { payload: TEscalationPayload }) {
-    return axios.post(env.api.escalation + "/", payload);
+    return instance.post(env.api.escalation + "/", payload);
   }
 
   getEscalationReasons() {
-    return axios.get(env.api.admin + "/escalation-reasons/");
+    return instance.get(env.api.admin + "/escalation-reasons/");
   }
 
   escalateTicket({
@@ -60,7 +61,7 @@ class Service {
     TicketId: string;
     payload: TEscalateTicket;
   }) {
-    return axios.post(env.api.ticket + TicketId + "/escalate/", payload);
+    return instance.post(env.api.ticket + TicketId + "/escalate/", payload);
   }
 
   respondToTicket({
@@ -70,13 +71,13 @@ class Service {
     TicketId: string;
     payload: any;
   }) {
-    return axios.post(env.api.ticket + TicketId + "/messages/", payload, {
+    return instance.post(env.api.ticket + TicketId + "/messages/", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   }
 
   resolveTicket(TicketId: string) {
-    return axios.post(`${env.api.ticket}${TicketId}/resolve/`);
+    return instance.post(`${env.api.ticket}${TicketId}/resolve/`);
   }
 }
 

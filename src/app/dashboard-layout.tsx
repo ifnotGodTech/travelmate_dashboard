@@ -203,7 +203,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           </h1>
         </div>
         <div className="flex space-x-6 relative">
-          <div className="relative">
+          <div className="relative hidden md:block ">
             <div
               className="w-[56px] h-[56px] rounded-full flex items-center justify-center bg-[#fff] cursor-pointer"
               onClick={toggleModal}
@@ -227,7 +227,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
           </div>
 
           {/* User Info */}
-          <div className="flex items-center gap-2 bg-[#f5f5f5] lg:bg-[#fff] p-[8px] rounded-[200px]">
+          <div className="flex items-center gap-2 bg-[#fff] lg:bg-[#fff] p-[10px] rounded-[200px]">
             <div className="relative cursor-pointer">
               {loading ? (
                 <div className="flex space-x-2 items-center ">
@@ -235,7 +235,7 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
                   <div className="w-[100px] h-[20px] rounded-[8px] bg-gray-300 animate-pulse"></div>
                 </div>
               ) : (
-                <button className="flex items-center gap-2 rounded-full w-[auto] outline-none focus:outline-none">
+                <button className="flex items-center gap-2 rounded-full w-[auto] outline-none focus:outline-none ">
                   <div>
                     <Image
                       src="/assets/images/nav-user.svg"
@@ -253,6 +253,29 @@ const Navbar = ({ pageName, onMenuClick }: NavbarProps) => {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="relative md:hidden">
+            <div
+              className="w-[56px] h-[56px] rounded-full flex items-center justify-center bg-[#fff] cursor-pointer"
+              onClick={toggleModal}
+            >
+              <div className="bg-[#D72638] absolute rounded-full w-[20px] h-[20px] flex items-center justify-center text-white text-xs font-bold top-0 right-0">
+                3
+              </div>
+              <img
+                src="/assets/icons/notifications.svg"
+                alt="Notifications"
+                className=""
+              />
+            </div>
+
+            {/* Notification Modal */}
+            {isModalVisible && (
+              <div className="absolute right-0">
+                <NotificationModal onClose={() => setIsModalVisible(false)} />
+              </div>
+            )}
           </div>
 
           {/* Menu Button */}

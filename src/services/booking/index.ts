@@ -1,5 +1,6 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 class Service {
   getBookings({
@@ -23,19 +24,19 @@ class Service {
       orderBy,
       cursor,
     });
-    return axios.get(`${env.api.bookings}/${designId}?${queryParams}`);
+    return instance.get(`${env.api.bookings}/${designId}?${queryParams}`);
   }
 
   getSingleBooking({ bookingId }: { bookingId?: string }) {
-    return axios.get(env.api.bookings + "/" + bookingId + "/");
+    return instance.get(env.api.bookings + "/" + bookingId + "/");
   }
 
   cancelBooking({ bookingId }: { bookingId?: string }) {
-    return axios.post(env.api.bookings + "/" + bookingId + "/cancel_booking/");
+    return instance.post(env.api.bookings + "/" + bookingId + "/cancel_booking/");
   }
 
   updateBooking({ bookingId, payload }: { bookingId?: string; payload?: any }) {
-    return axios.post(
+    return instance.post(
       env.api.bookings + "/" + bookingId + "/update_booking/",
       payload
     );

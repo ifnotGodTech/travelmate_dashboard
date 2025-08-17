@@ -1,5 +1,6 @@
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 type TAddFaq = {
   payload: {
@@ -13,33 +14,33 @@ type TAddFaq = {
 class Service {
   getAllChats(url?: string) {
     const endpoint = url || env.api.chat;
-    return axios.get(endpoint);
+    return instance.get(endpoint);
   }
 
   getChat({ id }: { id: string }) {
-    return axios.get(env.api.chat + id + "/");
+    return instance.get(env.api.chat + id + "/");
   }
 
   getChatMessages({ id }: { id: number }) {
-    return axios.get(env.api.chat + "/" + id);
+    return instance.get(env.api.chat + "/" + id);
   }
 
   claimChat({ id }: { id: any }) {
-    return axios.post(env.api.chat + id + "/claim/");
+    return instance.post(env.api.chat + id + "/claim/");
   }
 
   closeChat({ id }: { id: number }) {
-    return axios.post(env.api.chat  + id + "/close/");
+    return instance.post(env.api.chat  + id + "/close/");
   }
 
   deleteFaq({ id }: { id: number }) {
-    return axios.delete(env.api.faq + "/" + id);
+    return instance.delete(env.api.faq + "/" + id);
   }
 
   uploadAttachment(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    return axios.post(env.api.upload, formData, {
+    return instance.post(env.api.upload, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

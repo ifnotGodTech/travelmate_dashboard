@@ -15,6 +15,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import Activity from "@/components/molecues/dashboard/RecentAct";
 import Chat from "@/components/molecues/dashboard/Messages";
 import Chart from "@/components/molecues/dashboard/Chart";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 import Statistics from "@/components/molecues/dashboard/MetricCards";
 
 const page = () => {
@@ -38,26 +39,26 @@ const page = () => {
 
       const [activities, messages, summaryResponse, allBookings] =
         await Promise.all([
-          axios.get(env.api.dashboardactivities, {
-            headers: {
-              Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            },
+          instance.get(env.api.dashboardactivities, {
+            // headers: {
+            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
+            // },
           }),
-          axios.get(env.api.dashboardmessages, {
-            headers: {
-              Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            },
+          instance.get(env.api.dashboardmessages, {
+            // headers: {
+            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
+            // },
           }),
           // Use the summary endpoint like in reports for all filtered data
-          axios.get(queryParams.summary, {
-            headers: {
-              Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            },
+          instance.get(queryParams.summary, {
+            // headers: {
+            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
+            // },
           }),
-          axios.get(env.api.bookings, {
-            headers: {
-              Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            },
+          instance.get(env.api.bookings, {
+            // headers: {
+            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
+            // },
           }),
         ]);
 

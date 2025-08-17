@@ -22,10 +22,7 @@ const AuthUpdateContext = createContext<UpdateAppStateFunction>(() => {});
 
 // Ensure INITIAL_APP_STATE is defined correctly
 const INITIAL_APP_STATE = {
-  accessToken: null,
-  refreshToken: null,
   user: null,
-  // other state properties...
 };
 
 // TO FETCH CURRENT AUTH_CONTEXT STATE
@@ -37,13 +34,6 @@ export function useAuthContext() {
 export function useUpdateAuthContext() {
   return useContext(AuthUpdateContext);
 }
-
-const InitializeAxiosDefaults = () => {
-  const { accessToken = "", refreshToken = "", } = useAuthContext();
-
-  useAxiosDefaults({ accessToken, refreshToken });
-  return null;
-};
 
 export function AuthContextWrapper({
   children,
@@ -63,7 +53,6 @@ export function AuthContextWrapper({
   return (
     <AuthContext.Provider value={appState}>
       <AuthUpdateContext.Provider value={updateAppState}>
-        <InitializeAxiosDefaults />
         {children}
       </AuthUpdateContext.Provider>
     </AuthContext.Provider>
