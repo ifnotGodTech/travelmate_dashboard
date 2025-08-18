@@ -8,7 +8,7 @@ import Partner from "@/components/molecues/legal/Partner";
 import Button from "@/components/reuseables/Button";
 import SuccessModal from "@/components/ui/LegalSuccessModal";
 import Link from "next/link";
-import axios from "axios";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 import env from "@/config/env";
 import Loading from "../../admin/loading";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
@@ -123,27 +123,27 @@ const ContentTab = () => {
     try {
       const [aboutRes, privacyRes, termsRes, partnerRes, partnerCategoryRes] =
         await Promise.all([
-          axios.get(env.api.aboutus, {
+          instance.get(env.api.aboutus, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
           }),
-          axios.get(env.api.privacypolicy, {
+          instance.get(env.api.privacypolicy, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
           }),
-          axios.get(env.api.termsofuse, {
+          instance.get(env.api.termsofuse, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
           }),
-          axios.get(env.api.partners, {
+          instance.get(env.api.partners, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
           }),
-          axios.get(env.api.partnercategories, {
+          instance.get(env.api.partnercategories, {
             headers: {
               Authorization: `Bearer ${accessToken}`,
             },
@@ -227,7 +227,7 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.about_us) {
-        await axios.post(
+        await instance.post(
           `${env.api.aboutus}/`,
           {
             content: contents.about,
@@ -242,7 +242,7 @@ const ContentTab = () => {
           message: "About content added successfully!",
         });
       } else {
-        await axios.patch(
+        await instance.patch(
           `${env.api.aboutus}/${contentIds.about}/`,
           {
             content: contents.about[0].content,
@@ -276,7 +276,7 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.privacy_policy) {
-        await axios.post(
+        await instance.post(
           `${env.api.privacypolicy}/`,
           {
             content: contents.privacy,
@@ -291,7 +291,7 @@ const ContentTab = () => {
           message: "Privacy content added successfully!",
         });
       } else {
-        await axios.patch(
+        await instance.patch(
           `${env.api.privacypolicy}/${contentIds.privacy}/`,
           {
             content: contents.privacy[0].content,
@@ -325,7 +325,7 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.terms_of_use) {
-        await axios.post(
+        await instance.post(
           `${env.api.termsofuse}/`,
           {
             content: contents.terms,
@@ -340,7 +340,7 @@ const ContentTab = () => {
           message: "Terms of use content added successfully!",
         });
       } else {
-        await axios.patch(
+        await instance.patch(
           `${env.api.termsofuse}/${contentIds.terms}/`,
           {
             content: contents.terms[0].content,
@@ -371,7 +371,7 @@ const ContentTab = () => {
 
   const deletePartners = async (categoryId: number, partnerId: number) => {
     try {
-      await axios.delete(`${env.api.partners}/${partnerId}/`, {
+      await instance.delete(`${env.api.partners}/${partnerId}/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -425,7 +425,7 @@ const ContentTab = () => {
 
   const getHistory = async () => {
     try {
-      const response = await axios.get(
+      const response = await instance.get(
         `${env.api.admin}/policy-update-history/`,
         {
           headers: {

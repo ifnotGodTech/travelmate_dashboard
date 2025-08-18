@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import axios from "axios";
 import { LoaderCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +19,7 @@ import { DeleteIcon, RemoveFormattingIcon, SearchIcon, X } from "lucide-react";
 import Loading from "../../loading";
 import { showErrorToast } from "@/utils/toasters";
 import { useAuthContext } from "@/context/AuthContext";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 type AssignedUser = {
   id: number;
@@ -78,7 +78,7 @@ const ManageUsers = () => {
   const fetchRoles = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${env.api.superadmin}roles/`);
+      const response = await instance.get(`${env.api.superadmin}roles/`);
       setRoles(response.data.results || []);
     } catch (error) {
       console.error("Error fetching roles:", error);
@@ -109,7 +109,7 @@ const ManageUsers = () => {
       .map((user) => user.email.trim());
     try {
       setIsLoadAdd(true);
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}roles/${roleId}/assign/`,
         { email: emailsToAdd.join(",") },
         {
@@ -142,7 +142,7 @@ const ManageUsers = () => {
       );
     try {
       setIsLoadRemove(true);
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}roles/${roleId}/remove/`,
         { email: emailsToRemove.join(",") },
         {

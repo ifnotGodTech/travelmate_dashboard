@@ -126,7 +126,7 @@ export const UserDeactivationDialog = ({
 
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const canViewMessage =
-    data?.name === "Super Admin" || data?.name === "User Management";
+    data?.current_permission_group_slugs?.includes("user-management");
 
   const handleDeactivate = () => {
     if (!reason || !additionalNote) {
@@ -394,7 +394,7 @@ export const UserActivationDialog = ({
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
   const { reactivating, onReactivateUser } = useReactivateUser();
   const canViewMessage =
-    data?.name === "Super Admin" || data?.name === "User Management";
+    data?.current_permission_group_slugs?.includes("user-management");
 
   const handleReactivate = () => {
     onReactivateUser({

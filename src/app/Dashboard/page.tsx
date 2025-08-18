@@ -34,47 +34,45 @@ const page = () => {
     try {
       setLoading(true);
 
-      // Get query parameters for filtered data
       const queryParams = generateQueryParams();
 
       const [activities, messages, summaryResponse, allBookings] =
         await Promise.all([
-          instance.get(env.api.dashboardactivities, {
-            // headers: {
-            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            // },
-          }),
-          instance.get(env.api.dashboardmessages, {
-            // headers: {
-            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            // },
-          }),
-          // Use the summary endpoint like in reports for all filtered data
-          instance.get(queryParams.summary, {
-            // headers: {
-            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            // },
-          }),
-          instance.get(env.api.bookings, {
-            // headers: {
-            //   Authorization: `Bearer ${APP_STATE?.accessToken}`,
-            // },
-          }),
+          instance.get(env.api.dashboardactivities),
+          instance.get(env.api.dashboardmessages),
+          instance.get(queryParams.summary),
+          instance.get(env.api.bookings),
         ]);
 
       setActivity(activities.data);
       setMessages(messages.data);
 
-      // Extract ALL data from summary response (including filtered users)
       const summaryData = summaryResponse.data;
-      setBookings({ total_bookings: summaryData.total_bookings || 0 });
-      setUsers({ total_normal_users: summaryData.total_users || 0 }); // Now uses filtered users
+      console.log("SUMMARY DATA ===>", summaryData); // 👈 debug API structure
+
+      // ✅ safely map fields depending on API response
+      setBookings({
+        total_bookings:
+          summaryData?.total_bookings ??
+          summaryData?.bookings ??
+          0,
+      });
+
+      setUsers({
+        total_normal_users:
+          summaryData?.total_users ??
+          summaryData?.users ??
+          0,
+      });
 
       if (isSuperadmin) {
         setRevenue({
-          total_revenue: summaryData.total_revenue || 0,
-          car_revenue: 0, // You might need to adjust based on your API response
-          flight_revenue: 0, // You might need to adjust based on your API response
+          total_revenue:
+            summaryData?.total_revenue ??
+            summaryData?.revenue ??
+            0,
+          car_revenue: summaryData?.car_revenue ?? 0,
+          flight_revenue: summaryData?.flight_revenue ?? 0,
           currency: "NGN",
         });
       }
@@ -87,12 +85,14 @@ const page = () => {
     } finally {
       setLoading(false);
     }
-  }, [APP_STATE?.accessToken, isSuperadmin, selectedOption]); // Fixed dependencies
+  }, [isSuperadmin, selectedOption]);
 
   useEffect(() => {
-    if (APP_STATE?.accessToken) {
-      fetchDashboardData();
-    }
+    fetchDashboardData();
+  }, [fetchDashboardData, selectedOption])
+
+  useEffect(() => {
+    fetchDashboardData();
   }, [fetchDashboardData, selectedOption]); // Added selectedOption to trigger refetch
 
   const generateWeeklyChartData = useCallback((bookings: BookingsProps[]) => {

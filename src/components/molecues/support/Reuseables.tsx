@@ -225,7 +225,8 @@ export const ViewingChatModal = ({
   const [showNotAuthorized, setShowNotAuthorized] = useState(false); // New state
 
   const { loading, data } = useMyRoles({ modalVisible: selectedTicket });
-  const canViewMessage = data?.name === "Tickets and Support";
+  const canViewMessage =
+    data?.current_permission_group_slugs?.includes("support-tickets");
 
   const formattedDate = useMemo(
     () => (ticketDetails ? formatCreatedAt(ticketDetails.created_at, 2) : ""),

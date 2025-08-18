@@ -114,7 +114,8 @@ export const UserDeleteDialog = ({
 }) => {
   const { deleting, onDeleteUser } = useDeleteUser();
   const { loading, data } = useMyRoles({ modalVisible: isOpen });
-  const canViewMessage = data?.name === "Super Admin";
+  const canViewMessage =
+    data?.current_permission_group_slugs?.includes("user-management");
 
   const handleConfirm = () => {
     if (!deactivatingUser?.id) return;

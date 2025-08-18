@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import TicketService from "@/services/ticket";
 import axios from "axios";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 export interface User {
   id: number;
@@ -70,7 +71,7 @@ export const useGetAllTickets = () => {
         setError(null);
 
         const endpoint = url || buildUrl();
-        const response = await axios.get(endpoint);
+        const response = await instance.get(endpoint);
         const data: { results: Ticket[]; next: string | null } = response.data;
 
         setTickets((prevTickets) =>

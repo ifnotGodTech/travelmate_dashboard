@@ -19,6 +19,8 @@ const Statistics = ({
   setSelectedOption: any;
   isSuperadmin?: boolean;
 }) => {
+
+  console.log(users.total_normal_users)
   let NGNNaira = new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
@@ -50,7 +52,7 @@ const Statistics = ({
           />
           <StatCard
             title="Bookings"
-            value={bookings.total_bookings?.toLocaleString()|| "0"}
+            value={bookings?.total_bookings?.toLocaleString()|| "0"}
             color="#023E8A"
             icon="/assets/icons/ana-bookings.svg"
             smColor="#CCD8E8"
@@ -60,7 +62,7 @@ const Statistics = ({
               title="Revenue"
               value={
                 revenue
-                  ? Math.abs(revenue.total_revenue) >= 1000000
+                  ? Math.abs(revenue?.total_revenue) >= 1000000
                     ? `₦${formatMoney(revenue.total_revenue)}`
                     : NGNNaira.format(revenue.total_revenue)
                   : "₦0"

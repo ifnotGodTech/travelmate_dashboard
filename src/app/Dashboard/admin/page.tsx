@@ -15,7 +15,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import RoleManagement from "../../../components/molecues/admin/RoleManagement";
 import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
-import axios from "axios";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
@@ -28,6 +27,7 @@ import {
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
 import { Download, XCircle } from "lucide-react";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 interface User {
   name: string;
@@ -110,7 +110,7 @@ const AdminRolesPage: React.FC = () => {
   const fetchPermissions = async () => {
     try {
       setIsPermissionLoading(true);
-      const response = await axios.get(
+      const response = await instance.get(
         `${env.api.superadmin}permissions/groups`,
         {
           headers: {
@@ -142,7 +142,7 @@ const AdminRolesPage: React.FC = () => {
   const fetchAllRoles = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${env.api.superadmin}roles/`, {
+      const response = await instance.get(`${env.api.superadmin}roles/`, {
         headers: {
           Authorization: `Bearer ${accessToken || ""}`,
           "Content-Type": "application/json",
@@ -169,7 +169,7 @@ const AdminRolesPage: React.FC = () => {
         description: updatedRole.description,
         permission_group_slugs: updatedRole.current_permission_group_slugs,
       };
-      const response = await axios.patch(
+      const response = await instance.patch(
         `${env.api.superadmin}roles/${roleId}/`,
         payload,
         {
@@ -244,7 +244,7 @@ const AdminRolesPage: React.FC = () => {
     } else {
       try {
         setIsSaveLoading(true);
-        const response = await axios.post(
+        const response = await instance.post(
           `${env.api.superadmin}roles/`,
           {
             name: roleDetails.name,
@@ -317,7 +317,7 @@ const AdminRolesPage: React.FC = () => {
   const confirmDeleteRole = async () => {
     try {
       setIsDeleteLoading(true);
-      await axios.delete(`${env.api.superadmin}roles/${roleToDelete}/`, {
+      await instance.delete(`${env.api.superadmin}roles/${roleToDelete}/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -349,7 +349,7 @@ const AdminRolesPage: React.FC = () => {
     }
     try {
       setIsInviteLoading(true);
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}roles/${id}/invite/`,
         {
           email: newMember.email,
@@ -391,7 +391,7 @@ const AdminRolesPage: React.FC = () => {
   // REVOKE INVITATION OF ADMINS AND SUPERADMINS
   const revokeInvite = async (id: string, email: string) => {
     try {
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}roles/${id}/cancel-invite/`,
         {
           email,

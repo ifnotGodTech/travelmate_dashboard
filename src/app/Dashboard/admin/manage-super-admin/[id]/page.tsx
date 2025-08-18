@@ -39,7 +39,7 @@ type SuperAdmin = {
 };
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import axios from "axios";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast } from "@/utils/toasters";
@@ -82,7 +82,7 @@ const ManageSuperAdmin = () => {
 
   const fetchRoles = async () => {
     try {
-      const response = await axios.get(`${env.api.superadmin}roles/`);
+      const response = await instance.get(`${env.api.superadmin}roles/`);
       setRoles(response.data.results || []);
     } catch (error) {
       // handle error
@@ -98,7 +98,7 @@ const ManageSuperAdmin = () => {
   const transferSuperAdminRole = async () => {
     try {
       setIsLoadTransfer(true);
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}superadmins/transfer/`,
         {
           email: adminRoles
@@ -133,7 +133,7 @@ const ManageSuperAdmin = () => {
   const InviteSuperAdmin = async () => {
     try {
       setIsLoadInvite(true);
-      await axios.post(
+      await instance.post(
         `${env.api.superadmin}superadmins/invite/`,
         {
           email: newSuperAdmin.email,

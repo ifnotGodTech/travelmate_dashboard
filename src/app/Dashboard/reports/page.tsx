@@ -12,6 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 import {
   ChevronDown,
   Download,
@@ -68,7 +69,9 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingExport, setIsLoadingExport] = useState(false);
   const [overviewData, setOverviewData] = useState<Summary>();
-  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>([]);
+  const [revenueBookingsData, setRevenueBookingsData] = useState<Combined[]>(
+    []
+  );
   const [bookingTrendsData, setBookingTrendsData] = useState<Breakdown[]>([]);
   const [selectedOption, setSelectedOption] = useState("This Week");
 
@@ -86,16 +89,16 @@ export default function ReportsPage() {
     const breakdownBaseUrl = `${env.api.admin}/reports/bookings/breakdown/?group_by=day`;
     const combinedBaseUrl = `${env.api.admin}/reports/bookings/combined/?group_by=day`;
     const summaryBaseUrl = `${env.api.admin}/reports/summary/?`;
-    
+
     let params = { breakdown: "", combined: "", summary: "" };
-    
+
     switch (selectedOption) {
       case "This Week": {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
         const start = startOfWeek.toISOString().split("T")[0];
         const end = now.toISOString().split("T")[0];
-        
+
         params.breakdown = `${breakdownBaseUrl}&start=${start}&end=${end}&period=week`;
         params.summary = `${summaryBaseUrl}&start=${start}&end=${end}&period=week`;
         params.combined = `${combinedBaseUrl}&start=${start}&end=${end}&period=week`;
@@ -105,7 +108,7 @@ export default function ReportsPage() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const start = startOfMonth.toISOString().split("T")[0];
         const end = now.toISOString().split("T")[0];
-        
+
         params.breakdown = `${breakdownBaseUrl}&start=${start}&end=${end}&period=month`;
         params.summary = `${summaryBaseUrl}&start=${start}&end=${end}&period=month`;
         params.combined = `${combinedBaseUrl}&start=${start}&end=${end}&period=month`;
@@ -130,22 +133,25 @@ export default function ReportsPage() {
     return params;
   }, [selectedOption]);
 
+  // 🔹 keep fetchAdminData same as you already have
+
   const fetchAdminData = useCallback(async () => {
     const { breakdown, summary, combined } = generateQueryParams();
     try {
       setIsLoading(true);
-      const [bookingbreakdown, bookingscombined, summaryResponse] = await Promise.all([
-        axios.get(breakdown, {
-          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-        }),
-        axios.get(combined, {
-          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-        }),
-        axios.get(summary, {
-          headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-        }),
-      ]);
-      
+      const [bookingbreakdown, bookingscombined, summaryResponse] =
+        await Promise.all([
+          instance.get(breakdown, {
+            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+          }),
+          instance.get(combined, {
+            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+          }),
+          instance.get(summary, {
+            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
+          }),
+        ]);
+
       setRevenueBookingsData(bookingscombined.data.results || []);
       setOverviewData(summaryResponse.data);
       setBookingTrendsData(bookingbreakdown.data.results || []);
@@ -159,16 +165,23 @@ export default function ReportsPage() {
     }
   }, [generateQueryParams, APP_STATE?.accessToken]);
 
+  // 🔹 useEffect triggers fetch when token OR filter changes
+  // useEffect(() => {
+  //   if (APP_STATE?.accessToken) {
+  //     fetchAdminData();
+  //   }
+  // }, [selectedOption, fetchAdminData]);
+
   const exportData = useCallback(async () => {
     try {
       setIsLoadingExport(true);
-      const response = await axios.get(`${env.api.admin}/reports/export/`, {
+      const response = await instance.get(`${env.api.admin}/reports/export/`, {
         responseType: "blob",
         headers: {
           Authorization: `Bearer ${APP_STATE?.accessToken}`,
         },
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -177,7 +190,7 @@ export default function ReportsPage() {
       link.click();
       document.body.removeChild(link); // Clean up
       window.URL.revokeObjectURL(url); // Clean up
-      
+
       showSuccessToast({ message: "Download starting" });
     } catch (error: any) {
       showErrorToast({
@@ -187,42 +200,61 @@ export default function ReportsPage() {
     } finally {
       setIsLoadingExport(false);
     }
-  }, [APP_STATE?.accessToken]);
+  }, []);
 
   // REMOVED CLIENT-SIDE FILTERING - Data should come pre-filtered from API
   // The API endpoints already handle filtering based on the selected period
   const processedTrendsData = useMemo(() => {
     if (!bookingTrendsData?.length) return [];
-    
+
     return bookingTrendsData.map((item) => ({
       ...item,
-      total_bookings: (item.flight_bookings || 0) + (item.car_bookings || 0) + (item.hotel_bookings || 0),
-      total_revenue: (item.flight_revenue || 0) + (item.car_revenue || 0) + (item.hotel_revenue || 0),
+      total_bookings:
+        (item.flight_bookings || 0) +
+        (item.car_bookings || 0) +
+        (item.hotel_bookings || 0),
+      total_revenue:
+        (item.flight_revenue || 0) +
+        (item.car_revenue || 0) +
+        (item.hotel_revenue || 0),
       // Format label for better display
-      displayLabel: selectedOption === "This Year" 
-        ? new Date(item.label).toLocaleString("en-US", { month: "long" })
-        : new Date(item.label).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      displayLabel:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : new Date(item.label).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
     }));
   }, [bookingTrendsData, selectedOption]);
 
   const processedCombinedData = useMemo(() => {
     if (!revenueBookingsData?.length) return [];
-    
+
     return revenueBookingsData.map((item) => ({
       ...item,
-      displayLabel: selectedOption === "This Year"
-        ? new Date(item.label).toLocaleString("en-US", { month: "long" })
-        : new Date(item.label).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      displayLabel:
+        selectedOption === "This Year"
+          ? new Date(item.label).toLocaleString("en-US", { month: "long" })
+          : new Date(item.label).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
     }));
   }, [revenueBookingsData, selectedOption]);
 
   useEffect(() => {
-    if (APP_STATE?.accessToken) {
-      fetchAdminData();
-    }
-  }, [fetchAdminData]);
 
-  const periodFilter = ["This Week", "This Month", "Last 3 Months", "This Year"];
+      fetchAdminData();
+
+  }, [selectedOption]);
+
+  const periodFilter = [
+    "This Week",
+    "This Month",
+    "Last 3 Months",
+    "This Year",
+  ];
 
   const SkeletonLoader = () => (
     <div className="animate-pulse">
@@ -241,7 +273,11 @@ export default function ReportsPage() {
     </div>
   );
 
-  const EmptyState = ({ message = "No data available" }: { message?: string }) => (
+  const EmptyState = ({
+    message = "No data available",
+  }: {
+    message?: string;
+  }) => (
     <div className="flex items-center justify-center h-[400px]">
       <div className="text-center">
         <div className="text-gray-400 mb-2">
@@ -252,9 +288,9 @@ export default function ReportsPage() {
     </div>
   );
 
-  if (!APP_STATE?.accessToken) {
-    return <div>Please log in to access reports.</div>;
-  }
+  // if (!APP_STATE?.accessToken) {
+  //   return <div>Please log in to access reports.</div>;
+  // }
 
   return (
     <div className="flex min-h-screen p-5">
@@ -315,7 +351,8 @@ export default function ReportsPage() {
                       {overviewData?.total_users?.toLocaleString() ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-green-600">
-                      {overviewData?.user_growth_percentage ?? 0}% from last period
+                      {overviewData?.user_growth_percentage ?? 0}% from last
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -334,7 +371,8 @@ export default function ReportsPage() {
                       {overviewData?.total_bookings?.toLocaleString() ?? 0}
                     </span>
                     <span className="ml-2 text-sm text-blue-600">
-                      {overviewData?.booking_growth_percentage ?? 0}% from last period
+                      {overviewData?.booking_growth_percentage ?? 0}% from last
+                      period
                     </span>
                   </div>
                 </CardContent>
@@ -354,7 +392,8 @@ export default function ReportsPage() {
                         {formatCurrency(overviewData?.total_revenue ?? 0)}
                       </span>
                       <span className="ml-2 text-sm text-orange-600">
-                        {overviewData?.revenue_growth_percentage ?? 0}% from last period
+                        {overviewData?.revenue_growth_percentage ?? 0}% from
+                        last period
                       </span>
                     </div>
                   </CardContent>
@@ -363,23 +402,39 @@ export default function ReportsPage() {
             </div>
 
             {/* Charts */}
-            <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
+            <Tabs
+              defaultValue="overview"
+              className="space-y-4"
+              onValueChange={setActiveTab}
+            >
               <div className="overflow-x-auto whitespace-nowrap pb-2">
                 <TabsList className="min-w-max flex gap-2">
-                  <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="overview"
+                    className="flex items-center gap-2"
+                  >
                     <BarChart className="h-4 w-4" />
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger value="booking-trends" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="booking-trends"
+                    className="flex items-center gap-2"
+                  >
                     <LineChart className="h-4 w-4" />
                     Booking Trends
                   </TabsTrigger>
-                  <TabsTrigger value="user-activities" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="user-activities"
+                    className="flex items-center gap-2"
+                  >
                     <Users className="h-4 w-4" />
                     User Activities
                   </TabsTrigger>
                   {isSuperadmin && (
-                    <TabsTrigger value="revenue-analysis" className="flex items-center gap-2">
+                    <TabsTrigger
+                      value="revenue-analysis"
+                      className="flex items-center gap-2"
+                    >
                       <DollarSign className="h-4 w-4" />
                       Revenue Analysis
                     </TabsTrigger>
@@ -391,22 +446,29 @@ export default function ReportsPage() {
                 <CardContent className="pt-6">
                   {/* OVERVIEW CHART */}
                   <TabsContent value="overview" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">Booking & Revenue Overview</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Booking & Revenue Overview
+                    </h3>
                     <div className="h-[400px]">
                       {processedCombinedData.length === 0 ? (
                         <EmptyState message="No booking or revenue data available" />
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={processedCombinedData}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
                             <XAxis dataKey="displayLabel" />
                             <YAxis tickFormatter={formatCurrency} />
                             <Tooltip
                               formatter={(value, name) => [
-                                typeof value === 'number' 
-                                  ? name === 'Revenue' ? formatCurrency(value) : value.toLocaleString()
+                                typeof value === "number"
+                                  ? name === "Revenue"
+                                    ? formatCurrency(value)
+                                    : value.toLocaleString()
                                   : value,
-                                name
+                                name,
                               ]}
                               contentStyle={{
                                 background: "white",
@@ -414,9 +476,17 @@ export default function ReportsPage() {
                                 borderRadius: "8px",
                               }}
                             />
-                            <Bar dataKey="bookings" fill="#1e40af" name="Bookings" />
+                            <Bar
+                              dataKey="bookings"
+                              fill="#1e40af"
+                              name="Bookings"
+                            />
                             {isSuperadmin && (
-                              <Bar dataKey="revenue" fill="#f97316" name="Revenue" />
+                              <Bar
+                                dataKey="revenue"
+                                fill="#f97316"
+                                name="Revenue"
+                              />
                             )}
                           </BarChart>
                         </ResponsiveContainer>
@@ -426,19 +496,26 @@ export default function ReportsPage() {
 
                   {/* BOOKING TRENDS CHART - FIXED */}
                   <TabsContent value="booking-trends" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">Booking Trends</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Booking Trends
+                    </h3>
                     <div className="h-[400px]">
                       {processedTrendsData.length === 0 ? (
                         <EmptyState message="No booking trends data available" />
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={processedTrendsData}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
                             <XAxis dataKey="displayLabel" />
                             <YAxis />
                             <Tooltip
                               formatter={(value) => [
-                                typeof value === 'number' ? value.toLocaleString() : value,
+                                typeof value === "number"
+                                  ? value.toLocaleString()
+                                  : value,
                               ]}
                               contentStyle={{
                                 background: "white",
@@ -479,20 +556,27 @@ export default function ReportsPage() {
 
                   {/* USER ACTIVITIES CHART - IMPROVED */}
                   <TabsContent value="user-activities" className="mt-0">
-                    <h3 className="text-lg font-semibold mb-4">User Activities</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      User Activities
+                    </h3>
                     <div className="h-[400px]">
                       {processedTrendsData.length === 0 ? (
                         <EmptyState message="No user activity data available" />
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={processedTrendsData}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              className="stroke-muted"
+                            />
                             <XAxis dataKey="displayLabel" />
                             <YAxis />
                             <Tooltip
                               formatter={(value) => [
-                                typeof value === 'number' ? value.toLocaleString() : value,
-                                "Total Bookings"
+                                typeof value === "number"
+                                  ? value.toLocaleString()
+                                  : value,
+                                "Total Bookings",
                               ]}
                               contentStyle={{
                                 background: "white",
@@ -517,18 +601,26 @@ export default function ReportsPage() {
                   {/* REVENUE ANALYSIS CHART - IMPROVED */}
                   {isSuperadmin && (
                     <TabsContent value="revenue-analysis" className="mt-0">
-                      <h3 className="text-lg font-semibold mb-4">Revenue Analysis</h3>
+                      <h3 className="text-lg font-semibold mb-4">
+                        Revenue Analysis
+                      </h3>
                       <div className="h-[400px]">
                         {processedTrendsData.length === 0 ? (
                           <EmptyState message="No revenue data available" />
                         ) : (
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={processedTrendsData}>
-                              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                className="stroke-muted"
+                              />
                               <XAxis dataKey="displayLabel" />
                               <YAxis tickFormatter={formatCurrency} />
                               <Tooltip
-                                formatter={(value) => [formatCurrency(Number(value)), "Total Revenue"]}
+                                formatter={(value) => [
+                                  formatCurrency(Number(value)),
+                                  "Total Revenue",
+                                ]}
                                 contentStyle={{
                                   background: "white",
                                   border: "1px solid #ccc",

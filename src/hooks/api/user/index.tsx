@@ -4,6 +4,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import UserService from "@/services/user";
 import axios from "axios";
 import env from "@/config/env";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 export function useGetUser({
   UserId,
@@ -101,7 +102,7 @@ export const useGetUsers = () => {
       setError(null);
 
       const endpoint = url || buildUrl();
-      const response = await axios.get(endpoint);
+      const response = await instance.get(endpoint);
       const data: UsersResponse = response.data;
 
       setUsers(reset ? data.results : [...users, ...data.results]);
@@ -186,7 +187,7 @@ export const useGetDeletedUsers = () => {
       setError(null);
 
       const endpoint = url || buildUrl();
-      const response = await axios.get(endpoint);
+      const response = await instance.get(endpoint);
       const data: UsersResponse = response.data;
 
       // Replace the users list if reset === true, else append
