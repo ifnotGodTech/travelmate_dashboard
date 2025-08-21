@@ -21,6 +21,7 @@ import { MoreVertical } from "lucide-react";
 import { showErrorToast } from "@/utils/toasters";
 import { HistoryProps, Partners } from "@/app/Dashboard/cms/legal/page";
 import { PartnerCategory } from "@/app/Dashboard/cms/legal/page";
+import { fetchPartnersCategories } from "@/services/infopolicies";
 
 type PartnerProps = {
   content: PartnerCategory[];
@@ -170,7 +171,7 @@ const Partner = ({
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${env.api.admin}/partner-categories/`);
+        const res = await fetchPartnersCategories();
         setCategories(Array.isArray(res.data.results) ? res.data.results : []);
       } catch (err) {
         console.error("Failed to fetch categories", err);

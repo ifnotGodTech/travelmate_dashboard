@@ -8,12 +8,20 @@ import Partner from "@/components/molecues/legal/Partner";
 import Button from "@/components/reuseables/Button";
 import SuccessModal from "@/components/ui/LegalSuccessModal";
 import Link from "next/link";
-import instance from "@/hooks/initializers/useAxiosDefaults";
-import env from "@/config/env";
 import Loading from "../../admin/loading";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import HistoryModal from "@/components/molecues/legal/modals/HistoryModal";
-import { useAuthContext } from "@/context/AuthContext";
+import {
+  fetchAllContents,
+  addAbout,
+  updateAbout,
+  addPrivacy,
+  updatePrivacy,
+  addTerms,
+  updateTerms,
+  deletePartner,
+  fetchHistory,
+} from "@/services/infopolicies/index";
 
 const page = () => {
   return (
@@ -74,8 +82,6 @@ export type HistoryProps = {
 };
 
 const ContentTab = () => {
-  const { accessToken } = useAuthContext();
-
   const [editStates, setEditStates] = useState({
     about_us: false,
     privacy_policy: false,
@@ -110,7 +116,7 @@ const ContentTab = () => {
   });
 
   const [contentIds, setContentIds] = useState({
-    about: null,
+    about: 0,
     privacy: null,
     terms: null,
     partners: null,
@@ -121,95 +127,41 @@ const ContentTab = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [aboutRes, privacyRes, termsRes, partnerRes, partnerCategoryRes] =
-        await Promise.all([
-          instance.get(env.api.aboutus, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          instance.get(env.api.privacypolicy, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          instance.get(env.api.termsofuse, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          instance.get(env.api.partners, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-          instance.get(env.api.partnercategories, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }),
-        ]);
-      const partnerCategories = partnerCategoryRes.data.results;
-      const partners = partnerRes.data.results;
-      const merged = partnerCategories.map((category: any) => ({
+      const { about, privacy, terms, partners, partnerCategories } =
+        await fetchAllContents();
+
+      const merged = partnerCategories.results.map((category: any) => ({
         ...category,
-        partners: partners.filter(
+        partners: partners.results.filter(
           (partner: any) => partner.category === category.id
         ),
       }));
+
       setContents({
         about: [
           {
-            id: aboutRes.data.id,
-            content: aboutRes.data.content,
-            updated_at: aboutRes.data.updated_at,
+            id: about.id,
+            content: about.content,
+            updated_at: about.updated_at,
           },
         ],
         privacy: [
           {
-            id: privacyRes.data.id,
-            content: privacyRes.data.content,
-            last_updated: privacyRes.data.last_updated,
+            id: privacy.id,
+            content: privacy.content,
+            last_updated: privacy.last_updated,
           },
         ],
-
         terms: [
           {
-            id: termsRes.data.id,
-            content: termsRes.data.content,
-            updated_at: termsRes.data.updated_at,
-            last_updated: termsRes.data.updated_at,
+            id: terms.id,
+            content: terms.content,
+            updated_at: terms.updated_at,
+            last_updated: terms.updated_at,
           },
         ],
         partnerCategory: merged,
       });
-      setContentIds({
-        about: aboutRes.data.id,
-        privacy: privacyRes.data.id,
-        terms: termsRes.data.id,
-        partnerCategory: partnerCategoryRes.data.results?.map(
-          (item: any) => item.id
-        ),
-        partners: partnerRes.data.results?.map((item: any) => item.id),
-      });
-      if (merged.length === 0) {
-        merged.push({
-          id: 0,
-          name: "car_rental",
-          description: "<p>Description for car rental category</p>",
-          partners: [
-            {
-              id: 0,
-              name: "Sample Partner",
-              logo: "",
-              description: "<p>Sample description for this partner</p>",
-              website: "https://example.com",
-              category: 0,
-              is_active: true,
-            },
-          ],
-        });
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
       setError("Failed to load content. Please try again later.");
@@ -227,32 +179,15 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.about_us) {
-        await instance.post(
-          `${env.api.aboutus}/`,
-          {
-            content: contents.about,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+        await addAbout(contents.about[0].content);
         showSuccessToast({
           message: "About content added successfully!",
         });
       } else {
-        await instance.patch(
-          `${env.api.aboutus}/${contentIds.about}/`,
-          {
-            content: contents.about[0].content,
-            last_updated: contents.about[0].updated_at,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
+        updateAbout(
+          contentIds.about,
+          contents.about[0].content,
+          contents.about[0].updated_at
         );
         setEditStates((prev) => ({ ...prev, about_us: false }));
         showSuccessToast({
@@ -276,33 +211,17 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.privacy_policy) {
-        await instance.post(
-          `${env.api.privacypolicy}/`,
-          {
-            content: contents.privacy,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+        await addPrivacy(contents.privacy[0].content);
         showSuccessToast({
           message: "Privacy content added successfully!",
         });
       } else {
-        await instance.patch(
-          `${env.api.privacypolicy}/${contentIds.privacy}/`,
-          {
-            content: contents.privacy[0].content,
-            last_updated: contents.privacy[0].last_updated,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
+        updatePrivacy(
+          contents.privacy[0].id,
+          contents.privacy[0].content,
+          contents.privacy[0].last_updated
         );
+
         setEditStates((prev) => ({ ...prev, privacy_policy: false }));
         showSuccessToast({
           message: "Privacy content updated successfully!",
@@ -325,32 +244,15 @@ const ContentTab = () => {
     setError(null);
     try {
       if (!editStates.terms_of_use) {
-        await instance.post(
-          `${env.api.termsofuse}/`,
-          {
-            content: contents.terms,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+        await addTerms(contents.terms[0].content);
         showSuccessToast({
           message: "Terms of use content added successfully!",
         });
       } else {
-        await instance.patch(
-          `${env.api.termsofuse}/${contentIds.terms}/`,
-          {
-            content: contents.terms[0].content,
-            last_updated: contents.terms[0].updated_at,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
+        updateTerms(
+          contents.terms[0].id,
+          contents.terms[0].content,
+          contents.terms[0].updated_at
         ),
           setEditStates((prev) => ({ ...prev, terms_of_use: false }));
         showSuccessToast({
@@ -371,11 +273,7 @@ const ContentTab = () => {
 
   const deletePartners = async (categoryId: number, partnerId: number) => {
     try {
-      await instance.delete(`${env.api.partners}/${partnerId}/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      await deletePartner(partnerId);
       fetchData();
     } catch (error) {
       console.error("Error deleting partner:", error);
@@ -425,15 +323,7 @@ const ContentTab = () => {
 
   const getHistory = async () => {
     try {
-      const response = await instance.get(
-        `${env.api.admin}/policy-update-history/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-      console.log("History data:", response.data);
+      const response = await fetchHistory();
       setHistoryDetails(response.data.results);
     } catch (error) {
       console.error("Error fetching history:", error);

@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import Loading from "../../loading";
 import {
   Dialog,
   DialogContent,
@@ -39,15 +38,11 @@ type SuperAdmin = {
 };
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import instance from "@/hooks/initializers/useAxiosDefaults";
-import env from "@/config/env";
-import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast } from "@/utils/toasters";
 import { LoaderCircleIcon } from "lucide-react";
+import { fetchRoles, inviteSupes, transferSupes } from "@/services/admin";
 
 const ManageSuperAdmin = () => {
-  const { accessToken } = useAuthContext();
-
   const [defaultTab, setDefaultTab] = useState("addNewUser");
   const route = useRouter();
 
@@ -80,9 +75,9 @@ const ManageSuperAdmin = () => {
     email: "",
   });
 
-  const fetchRoles = async () => {
+  const fetchRole = async () => {
     try {
-      const response = await instance.get(`${env.api.superadmin}roles/`);
+      const response = await fetchRoles();
       setRoles(response.data.results || []);
     } catch (error) {
       // handle error
@@ -90,32 +85,26 @@ const ManageSuperAdmin = () => {
   };
 
   useEffect(() => {
-    fetchRoles();
+    fetchRole();
   }, []);
 
   const adminRoles = roles.filter((role) => role.name !== "Super Admin");
 
   const transferSuperAdminRole = async () => {
     try {
-      setIsLoadTransfer(true);
-      await instance.post(
-        `${env.api.superadmin}superadmins/transfer/`,
-        {
-          email: adminRoles
+      const payload = {
+        email:
+          adminRoles
             .find((role) =>
               role.assigned_users.some((user) => user.id === selectedUserIds[0])
             )
             ?.assigned_users.find((user) => user.id === selectedUserIds[0])
-            ?.email,
-          transfer_action: actionTransferOption,
-          new_role_id: selectedRoleId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+            ?.email ?? "",
+        transfer_action: actionTransferOption ?? "",
+        new_role_id: selectedRoleId ?? "",
+      };
+      setIsLoadTransfer(true);
+      await transferSupes(payload);
       await fetchRoles();
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -132,22 +121,14 @@ const ManageSuperAdmin = () => {
 
   const InviteSuperAdmin = async () => {
     try {
+      const payload = {
+        email: newSuperAdmin.email ?? "",
+        name: newSuperAdmin.name ?? "",
+        transfer_action: actionInviteOption ?? "",
+        new_role_id: selectedInviteRoleId ?? "",
+      };
       setIsLoadInvite(true);
-      await instance.post(
-        `${env.api.superadmin}superadmins/invite/`,
-        {
-          email: newSuperAdmin.email,
-          name: newSuperAdmin.name,
-          transfer_action: actionInviteOption,
-          new_role_id: selectedInviteRoleId,
-        },
-
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await inviteSupes(payload);
       await fetchRoles();
       setShowSuccessInviteModal(true);
       setTimeout(() => route.push("/auth/login"), 3000);
@@ -613,7 +594,10 @@ const ManageSuperAdmin = () => {
               />
               <DialogDescription className="lg:text-lg text-[14px] text-gray-700 text-center px-4 font-bold">
                 An invitation email has been sent to {newSuperAdmin.email} and
-                Your role has been changed to an  {adminRoles.find((role) => role.id === selectedInviteRoleId)?.name || "Admin"}.
+                Your role has been changed to an{" "}
+                {adminRoles.find((role) => role.id === selectedInviteRoleId)
+                  ?.name || "Admin"}
+                .
               </DialogDescription>
             </div>
           </DialogContent>

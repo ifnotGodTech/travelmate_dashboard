@@ -15,7 +15,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import Activity from "@/components/molecues/dashboard/RecentAct";
 import Chat from "@/components/molecues/dashboard/Messages";
 import Chart from "@/components/molecues/dashboard/Chart";
-import instance from "@/hooks/initializers/useAxiosDefaults";
+import { fetchDashboardData } from "@/services/dashboard";
 import Statistics from "@/components/molecues/dashboard/MetricCards";
 
 const page = () => {
@@ -29,71 +29,6 @@ const page = () => {
   const [users, setUsers] = useState<UsersProps>({ total_normal_users: 0 });
   const [selectedOption, setSelectedOption] = useState("This Week");
   const [allBookings, setAllBookings] = useState<BookingsProps[]>([]);
-
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const queryParams = generateQueryParams();
-
-      const [activities, messages, summaryResponse, allBookings] =
-        await Promise.all([
-          instance.get(env.api.dashboardactivities),
-          instance.get(env.api.dashboardmessages),
-          instance.get(queryParams.summary),
-          instance.get(env.api.bookings),
-        ]);
-
-      setActivity(activities.data);
-      setMessages(messages.data);
-
-      const summaryData = summaryResponse.data;
-      console.log("SUMMARY DATA ===>", summaryData); // 👈 debug API structure
-
-      // ✅ safely map fields depending on API response
-      setBookings({
-        total_bookings:
-          summaryData?.total_bookings ??
-          summaryData?.bookings ??
-          0,
-      });
-
-      setUsers({
-        total_normal_users:
-          summaryData?.total_users ??
-          summaryData?.users ??
-          0,
-      });
-
-      if (isSuperadmin) {
-        setRevenue({
-          total_revenue:
-            summaryData?.total_revenue ??
-            summaryData?.revenue ??
-            0,
-          car_revenue: summaryData?.car_revenue ?? 0,
-          flight_revenue: summaryData?.flight_revenue ?? 0,
-          currency: "NGN",
-        });
-      }
-
-      setAllBookings(allBookings.data);
-    } catch (error: any) {
-      showErrorToast({
-        message: error?.response?.data?.message || error?.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [isSuperadmin, selectedOption]);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData, selectedOption])
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData, selectedOption]); // Added selectedOption to trigger refetch
 
   const generateWeeklyChartData = useCallback((bookings: BookingsProps[]) => {
     const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -172,7 +107,22 @@ const page = () => {
         break;
     }
     return params;
-  }, [selectedOption]); // Added dependency
+  }, [selectedOption]); 
+
+   useEffect(() => {
+    fetchDashboardData(
+      {
+        setBookings,
+        setActivity,
+        setMessages,
+        setLoading,
+        setRevenue,
+        setUsers,
+        setAllBookings,
+      },
+      { isSuperadmin, generateQueryParams }
+    );
+  }, [isSuperadmin, selectedOption, generateQueryParams]);
 
   const filteredData = useMemo(() => {
     const now = new Date();

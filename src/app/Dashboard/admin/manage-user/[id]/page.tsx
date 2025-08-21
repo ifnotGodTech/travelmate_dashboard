@@ -18,8 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeleteIcon, RemoveFormattingIcon, SearchIcon, X } from "lucide-react";
 import Loading from "../../loading";
 import { showErrorToast } from "@/utils/toasters";
-import { useAuthContext } from "@/context/AuthContext";
-import instance from "@/hooks/initializers/useAxiosDefaults";
+import { assignUserToRole, fetchRoles, removeUsersFromRole } from "@/services/admin";
 
 type AssignedUser = {
   id: number;
@@ -33,7 +32,6 @@ type Roles = {
 };
 
 const ManageUsers = () => {
-  const { accessToken } = useAuthContext();
   const [defaultTab, setDefaultTab] = useState("addNewUser");
   const route = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,10 +73,10 @@ const ManageUsers = () => {
     );
   };
 
-  const fetchRoles = async () => {
+  const fetchRole = async () => {
     try {
       setLoading(true);
-      const response = await instance.get(`${env.api.superadmin}roles/`);
+      const response = await fetchRoles();
       setRoles(response.data.results || []);
     } catch (error) {
       console.error("Error fetching roles:", error);
@@ -88,7 +86,7 @@ const ManageUsers = () => {
   };
 
   useEffect(() => {
-    fetchRoles();
+    fetchRole();
   }, []);
 
   const usersAssignedToOtherRoles = roles
@@ -109,15 +107,7 @@ const ManageUsers = () => {
       .map((user) => user.email.trim());
     try {
       setIsLoadAdd(true);
-      await instance.post(
-        `${env.api.superadmin}roles/${roleId}/assign/`,
-        { email: emailsToAdd.join(",") },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await assignUserToRole(roleId, emailsToAdd.join(","));
       setShowConfirmModal(false);
       setShowSuccessModal(true);
       setSelectedUserIds([]);
@@ -142,15 +132,7 @@ const ManageUsers = () => {
       );
     try {
       setIsLoadRemove(true);
-      await instance.post(
-        `${env.api.superadmin}roles/${roleId}/remove/`,
-        { email: emailsToRemove.join(",") },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await removeUsersFromRole(roleId, emailsToRemove)
       setShowConfirmRemoveModal(false);
       setShowSuccessRemoveModal(true);
       setSelectedUserIdRemove([]);
