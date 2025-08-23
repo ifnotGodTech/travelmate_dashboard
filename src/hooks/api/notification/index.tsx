@@ -2,6 +2,8 @@
 
 import NotificationService from "@/services/notification";
 import { useState, useEffect, useCallback, useRef } from "react";
+import instance from "@/hooks/initializers/useAxiosDefaults";
+import { showSuccessToast, showErrorToast } from "@/utils/toasters";
 
 type NotificationStatus = "read" | "unread" | "all";
 
@@ -12,120 +14,124 @@ interface FetchParams {
   endDate?: string;
 }
 
-export function useGetAllNotifications({
-  initialFetch = true,
-  initialParams = {},
-}: {
-  initialFetch?: boolean;
-  initialParams?: FetchParams;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any[]>([]);
-  const [count, setCount] = useState(0);
-  const [next, setNext] = useState<string | null>(null);
-  const [previous, setPrevious] = useState<string | null>(null);
-  const [params, setParams] = useState<FetchParams>(initialParams);
 
-  // Prevents double-fetch on mount in React StrictMode
-  const didMountRef = useRef(false);
+export const useGetAllNotifications = () => {
+  const BASE_URL =
+    "https://travelmate-backend-0suw.onrender.com/api/notifications/";
 
-  const fetchData = useCallback(
-    async (
-      urlOrParams?: string | FetchParams,
-      options?: { silent?: boolean }
-    ) => {
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      try {
-        let res;
-        if (typeof urlOrParams === "string") {
-          res = await NotificationService.getAllNotificationByUrl(urlOrParams);
-        } else {
-          const query = { ...params, ...urlOrParams };
-          res = await NotificationService.getAllNotification(query);
-          // only update params if they actually change
-          setParams((prev) =>
-            JSON.stringify(prev) === JSON.stringify(query) ? prev : query
-          );
-        }
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [previousPageUrl, setPreviousPageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-        setData(res.data.results);
-        setCount(res.data.count);
-        setNext(res.data.next);
-        setPrevious(res.data.previous);
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      } finally {
-        if (!options?.silent) {
-          setLoading(false);
-        }
-      }
-    },
-    [params]
-  );
+  // filters
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isRead, setIsRead] = useState<boolean | null>(null); // ✅ read/unread filter
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
-  // Only run once on mount if initialFetch is true
-  useEffect(() => {
-    if (initialFetch && !didMountRef.current) {
-      fetchData();
-      didMountRef.current = true;
+  const hasFetchedInitial = useRef(false);
+
+  // build query url with filters
+  const buildUrl = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    if (isRead !== null) params.append("is_read", String(isRead));
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+
+    return `${BASE_URL}${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  // fetch data
+  const fetchNotifications = async (url?: string, reset = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const endpoint = url || buildUrl();
+      const response = await instance.get(endpoint);
+      const data = response.data;
+
+      setNotifications((prev) =>
+        reset ? data.results : [...prev, ...data.results]
+      );
+      setNextPageUrl(data.next);
+      setPreviousPageUrl(data.previous);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+    } finally {
+      setLoading(false);
     }
-  }, [initialFetch, fetchData]);
+  };
 
-  // Public API
-  const refresh = useCallback(
-    (opts?: { silent?: boolean }) => fetchData(undefined, opts),
-    [fetchData]
-  );
+  // initial fetch
+  useEffect(() => {
+    if (!hasFetchedInitial.current) {
+      fetchNotifications(undefined, true);
+      hasFetchedInitial.current = true;
+    }
+  }, []);
 
-  const goToNextPage = useCallback(
-    (opts?: { silent?: boolean }) => next && fetchData(next, opts),
-    [next, fetchData]
-  );
+  // refetch when filters change
+  useEffect(() => {
+    fetchNotifications(undefined, true);
+  }, [searchTerm, isRead, startDate, endDate]);
 
-  const goToPreviousPage = useCallback(
-    (opts?: { silent?: boolean }) => previous && fetchData(previous, opts),
-    [previous, fetchData]
-  );
+  const loadNext = () => {
+    if (nextPageUrl) fetchNotifications(nextPageUrl, false);
+  };
 
-  const filterByStatus = useCallback(
-    (status: NotificationStatus, opts?: { silent?: boolean }) =>
-      fetchData({ page: 1, status }, opts),
-    [fetchData]
-  );
+  const loadPrevious = () => {
+    if (previousPageUrl) fetchNotifications(previousPageUrl, false);
+  };
 
-  const filterByDate = useCallback(
-    (startDate?: string, endDate?: string, opts?: { silent?: boolean }) =>
-      fetchData({ page: 1, startDate, endDate }, opts),
-    [fetchData]
-  );
+  const refetch = () => {
+    fetchNotifications(undefined, true);
+  };
 
   return {
+    notifications,
     loading,
-    data,
-    count,
-    next,
-    previous,
-    refresh,
-    goToNextPage,
-    goToPreviousPage,
-    filterByStatus,
-    filterByDate,
-    setParams,
+    error,
+    nextPageUrl,
+    previousPageUrl,
+    loadNext,
+    loadPrevious,
+    setSearchTerm,
+    setIsRead,     // ✅ now you can filter read/unread
+    setStartDate,
+    setEndDate,
+    refetch,
   };
-}
+};
+
 
 export const useMarkAsRead = () => {
   const [loading, setLoading] = useState(false);
 
-  const markAsRead = async (ids: number[], onSuccess?: () => void) => {
+  const markAsRead = async (
+    ids: string | string[],
+    successCallback?: () => void
+  ) => {
     setLoading(true);
     try {
-      NotificationService.markNotificationAsRead({ ids });
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      console.error("Failed to mark notifications as read", err);
+      const res = await NotificationService.markNotificationAsRead(ids);
+
+      if (res.status === 200) {
+        const { message = "🚀 Notification marked as read", description = "" } =
+          res.data || {};
+
+        showSuccessToast({ message, description });
+        if (successCallback) successCallback();
+      }
+    } catch (error: any) {
+      showErrorToast({
+        message: "Unable to mark as read at the moment!",
+      });
     } finally {
       setLoading(false);
     }
@@ -134,24 +140,34 @@ export const useMarkAsRead = () => {
   return { markAsRead, loading };
 };
 
-export const useDeleteNotifications = () => {
+export const useDeleteNotification = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleDelete = async (notificationIds: string[]) => {
+  const deleteNotification = async (
+    ids: string | string[],
+    successCallback?: () => void
+  ) => {
     setLoading(true);
-    setError(null);
-
     try {
-      await NotificationService.deleteNotification({ ids: notificationIds });
+      const res = await NotificationService.deleteNotification(ids);
+
+      if (res.status === 200) {
+        const {
+          message = "🚀 Notification deleted successfully",
+          description = "",
+        } = res.data || {};
+
+        showSuccessToast({ message, description });
+        if (successCallback) successCallback();
+      }
+    } catch (error: any) {
+      showErrorToast({
+        message: "Unable to delete notification at the moment!",
+      });
+    } finally {
       setLoading(false);
-      return true; // success
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete notifications");
-      setLoading(false);
-      return false; // failure
     }
   };
 
-  return { handleDelete, loading, error };
+  return { deleteNotification, loading };
 };

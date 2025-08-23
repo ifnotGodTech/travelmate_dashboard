@@ -19,13 +19,22 @@ class NotificationService {
     return instance.get(url);
   }
 
-  markNotificationAsRead = (payload: { ids: number[] }) => {
-    return instance.patch(env.api.notification + "/mark-all-read", payload);
+  markNotificationAsRead(ids: string | string[]) {
+    const idsArray = Array.isArray(ids) ? ids : [ids];
+
+    return instance.post(env.api.notification + "bulk_mark_read/", {
+      notification_ids: idsArray,
+    });
+  }
+
+  deleteNotification = (ids: string | string[]) => {
+    const idsArray = Array.isArray(ids) ? ids : [ids];
+    return instance.post(env.api.notification + "bulk_delete/", {
+      notification_ids: idsArray,
+    });
   };
 
-  deleteNotification = (payload: any) => {
-    return instance.delete(env.api.notification + "/delete-Notification", payload);
-  };
+  // /api/notifications/bulk_delete/
 }
 
 export default new NotificationService();

@@ -11,7 +11,7 @@ export default function BookingDetailsPage() {
   const id = params?.id;
   const router = useRouter();
 
-  const dataType = "flight";
+  const dataType = "cars";
 
   return (
     <div className="space-y-[24px]">

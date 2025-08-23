@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   useGetAllNotifications,
   useMarkAsRead,
+  useDeleteNotification,
 } from "@/hooks/api/notification";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -32,24 +33,29 @@ const NotificationTable = () => {
   const [selectedStatus, setSelectedStatus] = useState<
     "all" | "read" | "unread"
   >("all");
-  const [selectedNotifications, setSelectedNotifications] = useState<number[]>(
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>(
     []
   );
+  const [searchInput, setSearchInput] = useState(""); // ✅ local input state
 
   const {
-    data,
+    notifications: data,
     loading,
-    refresh,
-    goToNextPage,
-    goToPreviousPage,
-    filterByStatus,
-  } = useGetAllNotifications({ initialParams: { status: "all" } });
+    refetch,
+    loadNext,
+    loadPrevious,
+    setSearchTerm,
+    setIsRead,
+    setStartDate,
+    setEndDate,
+  } = useGetAllNotifications();
 
   const { markAsRead, loading: marking } = useMarkAsRead();
+  const { deleteNotification, loading: deleting } = useDeleteNotification();
 
   const toggleDropdown = () => setFilterDropdown((prev) => !prev);
 
-  const handleSelect = (id: number) => {
+  const handleSelect = (id: string) => {
     setSelectedNotifications((prev) =>
       prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id]
     );
@@ -59,20 +65,31 @@ const NotificationTable = () => {
     if (selectedNotifications.length === data.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(data.map((n) => n.id));
+      setSelectedNotifications(data.map((n: any) => String(n.id)));
     }
   };
 
-  const handleSingleMarkRead = (id: number) => {
-    markAsRead([id], () => {
-      refresh({ silent: true });
+  const handleSingleMarkRead = (id: string) => {
+    markAsRead(id, () => {
+      refetch();
     });
   };
 
   const handleBulkMarkRead = () => {
     markAsRead(selectedNotifications, () => {
       setSelectedNotifications([]);
-      refresh({ silent: true });
+      refetch();
+    });
+  };
+
+  const hasUnreadSelected = data.some(
+    (n: any) => selectedNotifications.includes(String(n.id)) && !n.is_read
+  );
+
+  const handleBulkDelete = async () => {
+    await deleteNotification(selectedNotifications, () => {
+      setSelectedNotifications([]);
+      refetch();
     });
   };
 
@@ -91,7 +108,7 @@ const NotificationTable = () => {
               onChange={handleSelectAll}
             />
             <button
-              onClick={() => refresh()}
+              onClick={() => refetch()}
               className="flex items-center space-x-2 p-[10px] border border-[#EBECED] rounded-[28px] text-sm font-medium text-[#181818] cursor-pointer"
             >
               <img src="/assets/icons/Refresh.svg" alt="" />
@@ -107,12 +124,25 @@ const NotificationTable = () => {
               <input
                 type="text"
                 placeholder="Search Notifications"
+                value={searchInput}
                 className="text-sm w-full outline-none"
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setSearchTerm(searchInput.trim()); // ✅ search only on Enter
+                  }
+                }}
               />
             </div>
 
             {/* Date filter */}
-            <div className="flex border-[#ACAEB3] border rounded-[1000px] py-[10px] px-6 space-x-4 cursor-pointer">
+            <div
+              className="flex border-[#ACAEB3] border rounded-[1000px] py-[10px] px-6 space-x-4 cursor-pointer"
+              onClick={() => {
+                const today = new Date().toISOString().split("T")[0];
+                setStartDate(today);
+              }}
+            >
               <img src="/assets/icons/calendar.svg" alt="" />
               <span>Filter by Date</span>
             </div>
@@ -137,13 +167,19 @@ const NotificationTable = () => {
                 )}
               </button>
               {filterDropdown && (
-                <div className="absolute top-10 right-0 w-40 bg-white border rounded-lg shadow-md z-10">
+                <div className="absolute top-10 right-0 w-40 bg-white border rounded-lg shadow-md z-100">
                   {["all", "read", "unread"].map((status) => (
                     <button
                       key={status}
                       onClick={() => {
                         setSelectedStatus(status as "all" | "read" | "unread");
-                        filterByStatus(status as "all" | "read" | "unread");
+                        if (status === "all") {
+                          setIsRead(null);
+                        } else if (status === "read") {
+                          setIsRead(true);
+                        } else {
+                          setIsRead(false);
+                        }
                         setFilterDropdown(false);
                       }}
                       className="block w-full text-left px-4 py-2 hover:bg-gray-100"
@@ -154,31 +190,31 @@ const NotificationTable = () => {
                 </div>
               )}
             </div>
-
-            <button
-              onClick={() => filterByStatus(selectedStatus)}
-              className="px-4 py-2 text-[#023E8A] rounded-lg border border-[#023E8A] cursor-pointer"
-            >
-              Apply
-            </button>
           </div>
         </div>
 
-        {/* Bulk action buttons */}
         {selectedNotifications.length > 0 && (
           <div className="my-3 gap-3 flex items-center px-[24px]">
-            <div className="bg-[#D72638] text-white cursor-pointer p-[10px] rounded-[28px] flex items-center space-x-2">
-              <img src="/assets/icons/NotDel.svg" alt="" />
-              <span className="text-[12px] font-[500]">Delete</span>
-            </div>
             <div
-              onClick={handleBulkMarkRead}
-              className="border-[#EBECED] border cursor-pointer p-[10px] rounded-[28px] flex items-center space-x-2"
+              onClick={handleBulkDelete}
+              className="bg-[#D72638] text-white cursor-pointer p-[10px] rounded-[28px] flex items-center space-x-2"
             >
-              <span className="text-[12px] text-[#181818] font-[500]">
-                {marking ? "Marking..." : "Mark as Read"}
+              <img src="/assets/icons/NotDel.svg" alt="" />
+              <span className="text-[12px] font-[500]">
+                {deleting ? "Deleting..." : "Delete"}
               </span>
             </div>
+
+            {hasUnreadSelected && (
+              <div
+                onClick={handleBulkMarkRead}
+                className="border-[#EBECED] border cursor-pointer p-[10px] rounded-[28px] flex items-center space-x-2"
+              >
+                <span className="text-[12px] text-[#181818] font-[500]">
+                  {marking ? "Marking..." : "Mark as Read"}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -186,8 +222,14 @@ const NotificationTable = () => {
         <div>
           {loading ? (
             <Skeleton />
+          ) : data.length === 0 ? (
+            // ✅ Empty state
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <img src="/assets/icons/empty.svg" alt="" className="w-12 h-12 mb-3" />
+              <p className="text-sm font-medium">No notifications found</p>
+            </div>
           ) : (
-            data.map((n) => (
+            data.map((n: any) => (
               <div
                 key={n.id}
                 className={`flex items-start justify-between w-full px-[32px] py-3 cursor-pointer ${
@@ -198,17 +240,15 @@ const NotificationTable = () => {
                   <input
                     type="checkbox"
                     className="form-checkbox h-5 w-5"
-                    checked={selectedNotifications.includes(n.id)}
-                    onChange={() => handleSelect(n.id)}
+                    checked={selectedNotifications.includes(String(n.id))}
+                    onChange={() => handleSelect(String(n.id))}
                   />
                   <div className="space-y-2 flex-1">
-                    <div className="flex justify-between items-center w-full">
-                      <p className="text-[18px] font-[500] text-[#181818]">
-                        {n.notification_type}
-                      </p>
-                    </div>
+                    <p className="text-[18px] font-[500] text-[#181818]">
+                      {n.notification_details.title}
+                    </p>
                     <p className="text-[16px] text-[#4E4F52] font-[400]">
-                      {n.message}
+                      {n.notification_details.message}
                     </p>
                     <div className="flex items-center space-x-[4px]">
                       <p className="text-[13px] font-[500] text-[#181818]">
@@ -245,13 +285,13 @@ const NotificationTable = () => {
       {/* Pagination */}
       <div className="flex justify-end space-x-5 mt-3">
         <div
-          onClick={() => goToPreviousPage}
+          onClick={loadPrevious}
           className="border-[#9B9EA4] border rounded-[8px] p-[12px] text-[14px] text-[#9B9EA4] cursor-pointer"
         >
           Previous
         </div>
         <div
-          onClick={() => goToNextPage}
+          onClick={loadNext}
           className="border-[#9B9EA4] border rounded-[8px] p-[12px] text-[14px] text-[#9B9EA4] cursor-pointer"
         >
           Next
@@ -260,6 +300,7 @@ const NotificationTable = () => {
     </>
   );
 };
+
 
 export default page;
 

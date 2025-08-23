@@ -80,7 +80,6 @@ export const useGetUsers = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isActive, setIsActive] = useState<string | null>(null);
 
-  // New states for date filter
   const [dateJoinedAfter, setDateJoinedAfter] = useState<string | null>(null);
   const [dateJoinedBefore, setDateJoinedBefore] = useState<string | null>(null);
 
@@ -105,7 +104,7 @@ export const useGetUsers = () => {
       const response = await instance.get(endpoint);
       const data: UsersResponse = response.data;
 
-      setUsers(reset ? data.results : [...users, ...data.results]);
+      setUsers((prev) => (reset ? data.results : [...prev, ...data.results]));
       setNextPageUrl(data.next);
       setPreviousPageUrl(data.previous);
     } catch (err) {
@@ -131,11 +130,11 @@ export const useGetUsers = () => {
   }, [searchTerm, isActive, dateJoinedAfter, dateJoinedBefore]);
 
   const loadNext = () => {
-    if (nextPageUrl) fetchUsers(nextPageUrl, true);
+    if (nextPageUrl) fetchUsers(nextPageUrl, false);
   };
 
   const loadPrevious = () => {
-    if (previousPageUrl) fetchUsers(previousPageUrl, true);
+    if (previousPageUrl) fetchUsers(previousPageUrl, false);
   };
 
   const refetch = () => {
@@ -152,12 +151,12 @@ export const useGetUsers = () => {
     previousPageUrl,
     setSearchTerm,
     setIsActive,
-    // expose setters for date filters
     setDateJoinedAfter,
     setDateJoinedBefore,
-    refetch, // Expose the refetch method
+    refetch,
   };
 };
+
 
 export const useGetDeletedUsers = () => {
   const BASE_URL =

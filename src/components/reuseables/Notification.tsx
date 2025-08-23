@@ -1,26 +1,52 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
-import { useGetAllNotifications } from "@/hooks/api/notification";
+import {
+  useGetAllNotifications,
+  useMarkAsRead,
+} from "@/hooks/api/notification";
+
 export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
   const router = useRouter();
 
-  const { data, loading } = useGetAllNotifications({
-    initialParams: { status: "all", page: 1 },
-  });
+  const {
+    notifications: data,
+    loading,
+    refetch,
+  } = useGetAllNotifications();
 
-  // Close modal on route change
+  const { markAsRead, loading: marking } = useMarkAsRead();
+
+  // close modal on route change
   useEffect(() => {
     const handleRouteChange = () => {
       onClose();
     };
-    // `router.events` does not exist in next/navigation, so this is just a cleanup precaution
-    // If you use next/router, it will work. For next/navigation, you'll use `router.push` listener patterns.
     router.events?.on("routeChangeStart", handleRouteChange);
     return () => {
       router.events?.off("routeChangeStart", handleRouteChange);
     };
   }, [router, onClose]);
+
+  // ✅ Grab first 3 IDs & send to hook
+  useEffect(() => {
+    if (data.length > 0) {
+      const firstThreeIds = data.slice(0, 3).map((n: any) => n.id);
+
+    }
+  }, [data]);
+
+  // ✅ Check if there’s at least one unread
+  const hasUnread = useMemo(() => data.some((n: any) => !n.is_read), [data]);
+
+  const handleMarkAllRead = () => {
+    const unreadIds = data.filter((n: any) => !n.is_read).map((n: any) => n.id);
+    if (unreadIds.length > 0) {
+      markAsRead(unreadIds, () => {
+        refetch();
+      });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
@@ -35,7 +61,7 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
         className="absolute top-[120px] mx-4 md:mx-auto md:right-[5vw] bg-white md:w-[616px] max-h-[80vh] overflow-auto max-w-[616px] rounded-[12px] shadow-lg border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between px-[32px] py-[19px] border-b border-[#9B9EA4]">
           <h2 className="text-[28px] font-[600] text-[#181818]">
             Notifications
@@ -48,12 +74,17 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
           </button>
         </div>
 
-        {/* Mark All as Read */}
-        <div className="text-end px-[32px] pt-[19px]">
-          <h1 className="cursor-pointer text-[18px] font-[600] text-[#023E8A]">
-            Mark all as read
-          </h1>
-        </div>
+        {/* Mark All as Read (only if unread) */}
+        {hasUnread && (
+          <div className="text-end px-[32px] pt-[19px]">
+            <h1
+              className="cursor-pointer text-[18px] font-[600] text-[#023E8A]"
+              onClick={handleMarkAllRead}
+            >
+              {marking ? "Marking..." : "Mark all as read"}
+            </h1>
+          </div>
+        )}
 
         {/* Notifications List */}
         <div className="py-[19px] space-y-4">
@@ -64,7 +95,7 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
               No notifications found.
             </p>
           ) : (
-            data.slice(0, 3).map((n) => (
+            data.map((n: any) => (
               <div
                 key={n.id}
                 className={`flex items-start justify-between w-full px-[32px] py-3 cursor-pointer ${
@@ -73,13 +104,11 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
               >
                 <div className="flex items-start space-x-4">
                   <div className="space-y-2 flex-1 w-full">
-                    <div className="flex justify-between items-center w-full">
-                      <p className="text-[18px] font-[500] text-[#181818]">
-                        {n.notification_type}
-                      </p>
-                    </div>
-                    <p className="text-[16px] text-[#4E4F52] font-[400] leading-[100%] ">
-                      {n.message}
+                    <p className="text-[18px] font-[500] text-[#181818]">
+                      {n.notification_details.title}
+                    </p>
+                    <p className="text-[16px] text-[#4E4F52] font-[400]">
+                      {n.notification_details.message}
                     </p>
                     <div className="flex items-center space-x-[4px]">
                       <p className="text-[13px] font-[500] leading-[100%] text-[#181818] ">
@@ -90,9 +119,8 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
                         {formatDistanceToNow(new Date(n.created_at), {
                           addSuffix: true,
                         })
-                          .replace("about ", "") // optional cleanup
-                          .replace(/^./, (str) => str.toUpperCase())}{" "}
-                        {/* Capitalize first letter */}
+                          .replace("about ", "")
+                          .replace(/^./, (str) => str.toUpperCase())}
                       </p>
                     </div>
                   </div>
@@ -102,7 +130,7 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
           )}
         </div>
 
-        {/* See All Notifications */}
+        {/* Footer */}
         <div className="px-[32px] py-[19px] border-t border-[#9B9EA4] text-center">
           <button
             className="text-[20px] text-[#023E8A] font-[600] cursor-pointer"
@@ -116,24 +144,22 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-const Skeleton = () => {
-  return (
-    <>
-      {Array.from({ length: 2 }).map((_, index) => (
-        <div
-          key={index}
-          className="flex items-start justify-between w-full px-[20px] py-3 cursor-pointer"
-        >
-          <div className="flex space-x-2">
-            <div className="w-6 h-6 bg-[#a1adbc33] animate-pulse"></div>
-            <div className="space-y-2">
-              <div className="w-[300px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
-              <div className="w-[200px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
-              <div className="w-[100px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
-            </div>
+const Skeleton = () => (
+  <>
+    {Array.from({ length: 2 }).map((_, index) => (
+      <div
+        key={index}
+        className="flex items-start justify-between w-full px-[20px] py-3 cursor-pointer"
+      >
+        <div className="flex space-x-2">
+          <div className="w-6 h-6 bg-[#a1adbc33] animate-pulse"></div>
+          <div className="space-y-2">
+            <div className="w-[300px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
+            <div className="w-[200px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
+            <div className="w-[100px] h-5 bg-[#a1adbc33] animate-pulse rounded-[4px]"></div>
           </div>
         </div>
-      ))}
-    </>
-  );
-};
+      </div>
+    ))}
+  </>
+);
