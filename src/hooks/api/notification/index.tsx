@@ -4,6 +4,7 @@ import NotificationService from "@/services/notification";
 import { useState, useEffect, useCallback, useRef } from "react";
 import instance from "@/hooks/initializers/useAxiosDefaults";
 import { showSuccessToast, showErrorToast } from "@/utils/toasters";
+import { getCookies } from "@/context/Auth-Cookies";
 
 type NotificationStatus = "read" | "unread" | "all";
 
@@ -13,7 +14,6 @@ interface FetchParams {
   startDate?: string;
   endDate?: string;
 }
-
 
 export const useGetAllNotifications = () => {
   const BASE_URL =
@@ -102,13 +102,12 @@ export const useGetAllNotifications = () => {
     loadNext,
     loadPrevious,
     setSearchTerm,
-    setIsRead,     // ✅ now you can filter read/unread
+    setIsRead, // ✅ now you can filter read/unread
     setStartDate,
     setEndDate,
     refetch,
   };
 };
-
 
 export const useMarkAsRead = () => {
   const [loading, setLoading] = useState(false);
@@ -171,3 +170,66 @@ export const useDeleteNotification = () => {
 
   return { deleteNotification, loading };
 };
+
+export const useWebSocketService = (accessToken: string | null) => {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+
+  
+  useEffect(() => {
+    if (!accessToken) return;
+
+    // Attach access token as query param
+    const url = `wss://travelmate-backend-0suw.onrender.com/ws/notifications/?authorization=${accessToken}`;
+    const ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      console.log("✅ WebSocket connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (!prev.some((msg) => msg.id === data.id)) {
+            return [...prev, data];
+          }
+          return prev;
+        });
+      } catch (err) {
+        console.error("Invalid WS message:", err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("❌ WebSocket error:", error);
+    };
+
+    ws.onclose = (event) => {
+      console.warn("⚠️ WebSocket closed:", event.reason);
+      // Reconnect after 3s
+      setTimeout(() => {
+        console.log("🔄 Reconnecting WebSocket...");
+        setSocket(new WebSocket(url));
+      }, 3000);
+    };
+
+    setSocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, [accessToken]);
+
+  const send = (message: any) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+    } else {
+      console.error("WebSocket is not connected.");
+    }
+  };
+
+  return { messages, send, socket };
+};
+

@@ -71,7 +71,7 @@ export const BookingTableDropdown = ({}: {}) => {
           {options.map((option, index) => (
             <DropdownMenuItem
               key={index}
-              onClick={option.action}
+              onClick={option.action as any}
               className={`cursor-pointer select-none ${
                 option.label === "Cancel Booking"
                   ? "text-red-500 hover:text-red-600 "
@@ -107,37 +107,110 @@ export const LocationTag = () => {
   );
 };
 
-export const Filter = ({ datePickerOpen, setDatePickerOpen }: any) => {
-  //   const [inputValue, setInputValue] = useState("");
+interface FilterProps {
+  datePickerOpen: boolean;
+  setDatePickerOpen: (open: boolean) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedOption: string;
+  setSelectedOption: (option: string) => void;
+  selectedStartDate?: string;
+  setSelectedStartDate: (date: string | undefined) => void;
+  selectedEndDate?: string;
+  setSelectedEndDate: (date: string | undefined) => void;
+  selectedDate?: string;
+  setSelectedDate: (date: string | undefined) => void;
+}
 
-  //   useEffect(() => {
-  //     setSearchTerm("");
-  //     setInputValue("");
-  //   }, [activeTab]);
+export const Filter: React.FC<FilterProps> = ({ 
+  datePickerOpen, 
+  setDatePickerOpen,
+  searchTerm,
+  setSearchTerm,
+  selectedOption,
+  setSelectedOption,
+  selectedStartDate,
+  setSelectedStartDate,
+  selectedEndDate,
+  setSelectedEndDate,
+  selectedDate,
+  setSelectedDate
+}) => {
+  const [inputValue, setInputValue] = useState("");
 
-  //   const handleApply = () => {
-  //     if (activeTab === "chat") {
-  //       console.log("Applying range:", selectedStartDate, selectedEndDate);
-  //     } else {
-  //       console.log("Applying single date:", selectedDate);
-  //     }
-  //   };
+  // Sync inputValue with searchTerm
+  useEffect(() => {
+    setInputValue(searchTerm);
+  }, [searchTerm]);
+
+  // Handle search input
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    
+    // Debounce search or trigger immediately if empty
+    if (val === "") {
+      setSearchTerm("");
+    }
+  };
+
+  const handleSearchEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      setSearchTerm(inputValue);
+    }
+  };
+
+  // Format date display
+  const formatDateDisplay = () => {
+    if (selectedStartDate && selectedEndDate) {
+      return `${selectedStartDate} - ${selectedEndDate}`;
+    } else if (selectedStartDate || selectedEndDate) {
+      return selectedStartDate || selectedEndDate;
+    }
+    return "yyyy-mm-dd - yyyy-mm-dd";
+  };
+
+  // Filter options based on booking type context
+  const getFilterOptions = () => {
+    return [
+      {
+        id: 1,
+        label: "PAID",
+        value: "PAID"
+      },
+      {
+        id: 2,
+        label: "PENDING",
+        value: "PENDING"
+      },
+      {
+        id: 3,
+        label: "FAILED", 
+        value: "FAILED"
+      },
+      {
+        id: 4,
+        label: "Ongoing",
+        value: "ongoing"
+      },
+      {
+        id: 5,
+        label: "Completed",
+        value: "completed"
+      },
+      {
+        id: 6,
+        label: "Cancelled",
+        value: "cancelled"
+      }
+    ];
+  };
 
   return (
     <div className="w-full px-4 lg:px-0">
-      <div
-        className="
-          flex justify-between items-center gap-4 flex-col lg:flex-row w-full
-          lg:space-x-12
-        "
-      >
-        <div
-          className="
-            flex items-center flex-grow min-w-[220px] max-w-full
-            border border-[#ACAEB3] rounded-full
-            py-2 px-4 w-full
-          "
-        >
+      <div className="flex justify-between items-center gap-4 flex-col lg:flex-row w-full lg:space-x-12">
+        {/* Search Input */}
+        <div className="flex items-center flex-grow min-w-[220px] max-w-full border border-[#ACAEB3] rounded-full py-2 px-4 w-full">
           <img
             src="/assets/icons/search.svg"
             alt="Search Icon"
@@ -147,57 +220,61 @@ export const Filter = ({ datePickerOpen, setDatePickerOpen }: any) => {
           <input
             type="text"
             className="flex-grow ml-2 text-[16px] placeholder:text-[#9B9EA4] text-[#181818] placeholder:font-light focus:outline-none placeholder:text-[16px] font-[400] min-w-0"
-            placeholder="Search by Name, Type, Location"
-            // value={inputValue}
-            // onChange={(e) => {
-            //   const val = e.target.value;
-            //   setInputValue(val);
-            //   if (val === "") {
-            //     setSearchTerm("");
-            //   }
-            // }}
-            // onKeyDown={(e) => {
-            //   if (e.key === "Enter") {
-            //     setSearchTerm(inputValue);
-            //   }
-            // }}
+            placeholder="Search by Name, Reference, Location"
+            value={inputValue}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchEnter}
+            onBlur={() => setSearchTerm(inputValue)}
           />
         </div>
 
-        <div className="flex justify-between w-full items-center ">
-          <FilterDropdown
-            options={[
-              {
-                id: 1,
-                label: "Paid",
-              },
-              {
-                id: 2,
-                label: "Cancelled",
-              },
-              {
-                id: 3,
-                label: "Pending Refund",
-              },
-              {
-                id: 4,
-                label: "Refunded",
-              },
-            ]}
-          />
+        <div className="flex justify-between w-full items-center">
+          {/* Filter Dropdown */}
+          <div className="mr-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center bg-white border border-[#EBECED] rounded-full py-3 px-5 cursor-pointer shadow-sm lg:shadow-none">
+                  <img
+                    src="/assets/icons/filter.svg"
+                    alt="Filter Icon"
+                    className="w-4 h-4 flex-shrink-0"
+                  />
+                  <span className="ml-2 text-[14px] font-light text-[#181818]">
+                    {selectedOption || "Filter"}
+                  </span>
+                  <img
+                    src="/assets/icons/chevron-down.svg"
+                    alt="Chevron"
+                    className="w-4 h-4 ml-2 flex-shrink-0"
+                  />
+                </div>
+              </DropdownMenuTrigger>
 
+              <DropdownMenuContent className="w-48 mt-1 border border-gray-300 rounded-lg bg-white shadow-lg">
+                <DropdownMenuItem
+                  className="px-3 py-2 font-[400] text-[12px] text-[#181818] cursor-pointer"
+                  onClick={() => setSelectedOption("")}
+                >
+                  All
+                </DropdownMenuItem>
+                {getFilterOptions().map((option) => (
+                  <DropdownMenuItem
+                    key={option.id}
+                    className="px-3 py-2 font-[400] text-[12px] text-[#181818] cursor-pointer"
+                    onClick={() => setSelectedOption(option.value)}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Date Picker */}
           <div className="flex space-x-3">
-            <div
-              className="
-            flex items-center w-full gap-3
-          "
-            >
+            <div className="flex items-center w-full gap-3">
               <div
-                className="
-              flex items-center bg-white border border-[#EBECED] rounded-full
-              py-3 px-5 cursor-pointer flex-shrink-0
-              shadow-sm lg:shadow-none
-            "
+                className="flex items-center bg-white border border-[#EBECED] rounded-full py-3 px-5 cursor-pointer flex-shrink-0 shadow-sm lg:shadow-none"
                 onClick={() => setDatePickerOpen(true)}
               >
                 <img
@@ -210,7 +287,7 @@ export const Filter = ({ datePickerOpen, setDatePickerOpen }: any) => {
                     Select Date
                   </span>
                   <span className="text-[14px] font-light text-[#9B9EA4] hidden xl:inline-block lg:ml-1 truncate">
-                    {"yyyy-mm-dd"} - {"yyyy-mm-dd"}
+                    {formatDateDisplay()}
                   </span>
                 </div>
               </div>
@@ -219,13 +296,14 @@ export const Filter = ({ datePickerOpen, setDatePickerOpen }: any) => {
         </div>
       </div>
 
+      {/* Date Picker Dialog */}
       <DatePairDialog
         isOpen={datePickerOpen}
         onClose={() => setDatePickerOpen(false)}
-        // selectedStartDate={selectedStartDate}
-        // setSelectedStartDate={setSelectedStartDate}
-        // selectedEndDate={selectedEndDate}
-        // setSelectedEndDate={setSelectedEndDate}
+        selectedStartDate={selectedStartDate}
+        setSelectedStartDate={setSelectedStartDate}
+        selectedEndDate={selectedEndDate}
+        setSelectedEndDate={setSelectedEndDate}
       />
     </div>
   );

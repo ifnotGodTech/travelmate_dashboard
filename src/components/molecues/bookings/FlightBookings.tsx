@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
   TableHeader,
@@ -21,7 +21,7 @@ interface FilterProps {
 }
 
 // Define the interface for component props
-interface BookingTableProps {
+interface FlightBookingsProps {
   title: string;
   filterProps: FilterProps;
   bookings: any[];
@@ -30,9 +30,9 @@ interface BookingTableProps {
   hasMore: boolean;
 }
 
-const BookingTable: React.FC<BookingTableProps> = ({
-  title,
-  filterProps,
+const FlightBookings: React.FC<FlightBookingsProps> = ({ 
+  title, 
+  filterProps, 
   bookings = [],
   loading,
   onLoadMore,
@@ -72,30 +72,13 @@ const BookingTable: React.FC<BookingTableProps> = ({
     if (filterProps.currency === "USD") {
       return `$${numAmount.toFixed(2)}`;
     }
-    return `₦${(numAmount * 1500).toLocaleString()}`; // Convert USD to NGN roughly
+    return `₦${numAmount.toLocaleString()}`; // Keep NGN as is
   };
 
   // Format date
   const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB');
-  };
-
-  // Format check-in and check-out dates
-  const formatStayDates = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return "N/A";
-    return `${formatDate(checkIn)} - ${formatDate(checkOut)}`;
-  };
-
-  // Calculate nights
-  const calculateNights = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return 0;
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
   };
 
   // Get status counts for tabs
@@ -131,6 +114,27 @@ const BookingTable: React.FC<BookingTableProps> = ({
     }
   };
 
+  // Helper function to get route summary from flight details
+  const getRouteSummary = (flightDetails: any[]) => {
+    if (!flightDetails || flightDetails.length === 0) return 'N/A';
+    const firstFlight = flightDetails[0];
+    const lastFlight = flightDetails[flightDetails.length - 1];
+    return `${firstFlight.departure_airport} → ${lastFlight.arrival_airport}`;
+  };
+
+  // Helper function to get passenger name
+  const getPassengerName = (passengers: any[]) => {
+    if (!passengers || passengers.length === 0) return 'N/A';
+    const primaryPassenger = passengers[0];
+    return `${primaryPassenger.first_name} ${primaryPassenger.last_name}`;
+  };
+
+  // Helper function to get departure date
+  const getDepartureDate = (flightDetails: any[]) => {
+    if (!flightDetails || flightDetails.length === 0) return 'N/A';
+    return formatDate(flightDetails[0].departure_datetime);
+  };
+
   return (
     <div className="bg-white border border-gray-300 rounded-lg py-4">
       <h2 className="text-lg font-semibold px-4 mb-4">{title}</h2>
@@ -154,12 +158,12 @@ const BookingTable: React.FC<BookingTableProps> = ({
               <TableRow className="border-none">
                 {[
                   "ID",
-                  "Hotel Name",
-                  "Guest Name",
+                  "Booking Reference",
+                  "Passenger Name",
+                  "Route",
+                  "Departure Date",
                   "Booked On",
-                  "Check-in - Check-out",
-                  "Nights",
-                  "Room Type",
+                  "Flight Type",
                   "Total Amount",
                   "Payment Status",
                   "Booking Status",
@@ -199,45 +203,43 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {item.reference || "N/A"}
+                        {item.id ? String(item.id).substring(0, 8) + "..." : "N/A"}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {item.hotel_name || "N/A"}
+                        {item.booking_reference || "N/A"}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {item.customer_details?.name && item.customer_details?.surname 
-                          ? `${item.customer_details.name} ${item.customer_details.surname}`
-                          : "N/A"}
+                        {getPassengerName(item.passengers)}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        N/A
+                        {getRouteSummary(item.flight_details)}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {formatStayDates(item.check_in, item.check_out)}
+                        {getDepartureDate(item.flight_details)}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {calculateNights(item.check_in, item.check_out)}
+                        {item.date_booked ? formatDate(item.date_booked) : "N/A"}
                       </TableCell>
                       <TableCell
                         className="text-[14px] font-[400] text-[#181818] py-3 px-4"
                         style={{ minWidth: "192.5px" }}
                       >
-                        {item.rooms?.length > 0 ? item.rooms[0].room_type || "Standard" : "Standard"}
+                        {item.flight_booking_type || "One Way"}
                       </TableCell>
                       <TableCell
                         className="py-5 px-4 text-gray-800"
@@ -308,4 +310,4 @@ const BookingTable: React.FC<BookingTableProps> = ({
   );
 };
 
-export default BookingTable;
+export default FlightBookings;

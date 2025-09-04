@@ -1,21 +1,53 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   useGetAllNotifications,
   useMarkAsRead,
+  useWebSocketService,
 } from "@/hooks/api/notification";
-
-export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
+export const NotificationModal = ({
+  onClose,
+  accessToken,
+}: {
+  onClose: () => void;
+  accessToken: string;
+}) => {
   const router = useRouter();
 
-  const {
-    notifications: data,
-    loading,
-    refetch,
-  } = useGetAllNotifications();
+  const { notifications: apiData, loading, refetch } = useGetAllNotifications();
 
   const { markAsRead, loading: marking } = useMarkAsRead();
+
+  // ✅ WebSocket live messages
+  const { messages: wsMessages } = useWebSocketService(accessToken);
+
+  // ✅ Local state for displaying only 3 notifications
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Load initial 3 notifications from API
+  useEffect(() => {
+    if (apiData && apiData.length > 0) {
+      setNotifications(apiData.slice(0, 3));
+    }
+  }, [apiData]);
+
+  // When new notification arrives, prepend it and drop the last one
+  useEffect(() => {
+    if (wsMessages.length > 0) {
+      const latest = wsMessages[wsMessages.length - 1];
+      console.log("📩 New WS notification:", latest);
+
+      setNotifications((prev) => {
+        // Prevent duplicates
+        if (prev.some((n) => n.id === latest.id)) return prev;
+
+        // Prepend new one and keep max of 3
+        const updated = [latest, ...prev];
+        return updated.slice(0, 3);
+      });
+    }
+  }, [wsMessages]);
 
   // close modal on route change
   useEffect(() => {
@@ -28,21 +60,24 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
     };
   }, [router, onClose]);
 
-  // ✅ Grab first 3 IDs & send to hook
-  useEffect(() => {
-    if (data.length > 0) {
-      const firstThreeIds = data.slice(0, 3).map((n: any) => n.id);
-
-    }
-  }, [data]);
-
   // ✅ Check if there’s at least one unread
-  const hasUnread = useMemo(() => data.some((n: any) => !n.is_read), [data]);
+  const hasUnread = useMemo(
+    () => notifications.some((n: any) => !n.is_read),
+    [notifications]
+  );
 
+  // ✅ Mark all as read
   const handleMarkAllRead = () => {
-    const unreadIds = data.filter((n: any) => !n.is_read).map((n: any) => n.id);
+    const unreadIds = notifications
+      .filter((n: any) => !n.is_read)
+      .map((n: any) => n.id);
     if (unreadIds.length > 0) {
       markAsRead(unreadIds, () => {
+        setNotifications((prev) =>
+          prev.map((n) =>
+            unreadIds.includes(n.id) ? { ...n, is_read: true } : n
+          )
+        );
         refetch();
       });
     }
@@ -90,12 +125,12 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
         <div className="py-[19px] space-y-4">
           {loading ? (
             <Skeleton />
-          ) : data.length === 0 ? (
+          ) : notifications.length === 0 ? (
             <p className="px-[32px] text-sm text-gray-500">
               No notifications found.
             </p>
           ) : (
-            data.map((n: any) => (
+            notifications.map((n: any) => (
               <div
                 key={n.id}
                 className={`flex items-start justify-between w-full px-[32px] py-3 cursor-pointer ${
@@ -111,7 +146,7 @@ export const NotificationModal = ({ onClose }: { onClose: () => void }) => {
                       {n.notification_details.message}
                     </p>
                     <div className="flex items-center space-x-[4px]">
-                      <p className="text-[13px] font-[500] leading-[100%] text-[#181818] ">
+                      <p className="text-[13px] font-[500] leading-[100%] text-[#181818]">
                         {format(new Date(n.created_at), "d/M/yyyy")}
                       </p>
                       <span className="w-[6px] h-[6px] rounded-full bg-[#9B9EA4]" />

@@ -51,7 +51,6 @@ export const MessageTabContent: React.FC<any> = ({
     error: chatError,
     nextPageUrl,
     setFilters,
-    isFetchingNextPage,
   } = useGetAllChat();
 
   const [chats, setChats] = useState<any[]>([]); // Maintain local chat state
