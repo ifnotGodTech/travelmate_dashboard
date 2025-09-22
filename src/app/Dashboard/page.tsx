@@ -177,7 +177,7 @@ const page = () => {
   const filteredData = useMemo(() => {
     const now = new Date();
 
-    const filtered = allBookings.filter((item) => {
+    const filtered = allBookings?.filter((item) => {
       const createdAt = new Date(item.created_at);
 
       if (selectedOption === "This Week") {

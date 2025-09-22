@@ -217,7 +217,7 @@ const BookingTab: React.FC = () => {
           <BookingTable
             title="All Stays"
             filterProps={filterProps}
-            bookings={data || []}
+            bookings={data?.results || []}
             loading={loading}
             onLoadMore={loadNext}
             hasMore={hasNext}
@@ -228,7 +228,7 @@ const BookingTab: React.FC = () => {
           <FlightBookings
             title="All Flights"
             filterProps={filterProps}
-            bookings={data || []}
+            bookings={data?.results || []}
             loading={loading}
             onLoadMore={loadNext}
             hasMore={hasNext}

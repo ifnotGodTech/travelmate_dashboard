@@ -122,8 +122,8 @@ interface FilterProps {
   setSelectedDate: (date: string | undefined) => void;
 }
 
-export const Filter: React.FC<FilterProps> = ({ 
-  datePickerOpen, 
+export const Filter: React.FC<FilterProps> = ({
+  datePickerOpen,
   setDatePickerOpen,
   searchTerm,
   setSearchTerm,
@@ -134,7 +134,7 @@ export const Filter: React.FC<FilterProps> = ({
   selectedEndDate,
   setSelectedEndDate,
   selectedDate,
-  setSelectedDate
+  setSelectedDate,
 }) => {
   const [inputValue, setInputValue] = useState("");
 
@@ -147,7 +147,7 @@ export const Filter: React.FC<FilterProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
-    
+
     // Debounce search or trigger immediately if empty
     if (val === "") {
       setSearchTerm("");
@@ -176,33 +176,23 @@ export const Filter: React.FC<FilterProps> = ({
       {
         id: 1,
         label: "PAID",
-        value: "PAID"
-      },
-      {
-        id: 2,
-        label: "PENDING",
-        value: "PENDING"
-      },
-      {
-        id: 3,
-        label: "FAILED", 
-        value: "FAILED"
-      },
-      {
-        id: 4,
-        label: "Ongoing",
-        value: "ongoing"
-      },
-      {
-        id: 5,
-        label: "Completed",
-        value: "completed"
+        value: "PAID",
       },
       {
         id: 6,
         label: "Cancelled",
-        value: "cancelled"
-      }
+        value: "cancelled",
+      },
+      {
+        id: 2,
+        label: "PENDING REFUND",
+        value: "PENDING REFUND",
+      },
+      {
+        id: 3,
+        label: "REFUNDED",
+        value: "REFUNDED",
+      },
     ];
   };
 
@@ -228,24 +218,19 @@ export const Filter: React.FC<FilterProps> = ({
           />
         </div>
 
-        <div className="flex justify-between w-full items-center">
+        <div className="flex space-x-4 w-full items-center">
           {/* Filter Dropdown */}
           <div className="mr-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center bg-white border border-[#EBECED] rounded-full py-3 px-5 cursor-pointer shadow-sm lg:shadow-none">
-                  <img
-                    src="/assets/icons/filter.svg"
-                    alt="Filter Icon"
-                    className="w-4 h-4 flex-shrink-0"
-                  />
                   <span className="ml-2 text-[14px] font-light text-[#181818]">
-                    {selectedOption || "Filter"}
+                    {selectedOption || "Filter by Status"}
                   </span>
                   <img
                     src="/assets/icons/chevron-down.svg"
                     alt="Chevron"
-                    className="w-4 h-4 ml-2 flex-shrink-0"
+                    className="w-4 h-4 ml-2 flex-shrink-0 rotate-90"
                   />
                 </div>
               </DropdownMenuTrigger>
@@ -260,7 +245,7 @@ export const Filter: React.FC<FilterProps> = ({
                 {getFilterOptions().map((option) => (
                   <DropdownMenuItem
                     key={option.id}
-                    className="px-3 py-2 font-[400] text-[12px] text-[#181818] cursor-pointer"
+                    className="px-3 py-2 font-[400] text-[12px] text-[#181818] cursor-pointer capitalize"
                     onClick={() => setSelectedOption(option.value)}
                   >
                     {option.label}

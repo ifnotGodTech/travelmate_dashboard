@@ -26,7 +26,7 @@ export const useGetAllBookings = (filters: any = {}) => {
           url || BASE_URL,
           url ? {} : { params: defaultFilters }
         );
-        setData(response.data.results);
+        setData(response.data);
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||

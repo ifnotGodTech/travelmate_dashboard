@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useState, useMemo } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableHeader,
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { BookingTableDropdown } from "./reuseables";
 
-// Define the interface for filter props
 interface FilterProps {
   searchTerm: string;
   selectedOption: string;
@@ -20,8 +19,7 @@ interface FilterProps {
   currency: string;
 }
 
-// Define the interface for component props
-interface CarBookingTableProps {
+interface CarBookingsProps {
   title: string;
   filterProps: FilterProps;
   bookings: any[];
@@ -30,26 +28,24 @@ interface CarBookingTableProps {
   hasMore: boolean;
 }
 
-const CarBookingTable: React.FC<CarBookingTableProps> = ({ 
-  title, 
-  filterProps, 
+const CarBookings: React.FC<CarBookingsProps> = ({
+  title,
+  filterProps,
   bookings = [],
   loading,
   onLoadMore,
-  hasMore
+  hasMore,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
-  const [filteredData, setFilteredData] = useState<any[]>([]);
 
   const styling =
     "h-full data-[state=active]:text-[#181818] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:rounded-none data-[state=active]:border-b-[3px] data-[state=active]:border-b-[#181818] data-[state=active]:mb-0 flex items-center justify-center cursor-pointer bg-transparent shadow-none rounded-none text-[18px] text-[#4E4F52] font-[400] ";
 
-  // Filter data based on active sub-tab only (search is handled by API endpoint)
-  useEffect(() => {
-    let filtered = [...bookings];
+  // Filter bookings by active tab
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
 
-    // Filter by status based on active sub-tab
-    filtered = filtered.filter((item) => {
+    return bookings.filter((item) => {
       const status = item.booking_status?.toLowerCase();
       switch (activeSubTab) {
         case "ongoing":
@@ -62,43 +58,23 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
           return true;
       }
     });
-
-    setFilteredData(filtered);
   }, [bookings, activeSubTab]);
 
-  // Format amount based on currency
+  // Format amount
   const formatAmount = (amount: string | number) => {
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (filterProps.currency === "USD") {
-      return `$${numAmount.toFixed(2)}`;
-    }
-    return `₦${(numAmount * 1500).toLocaleString()}`; // Convert EUR to NGN roughly
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return filterProps.currency === "USD"
+      ? `$${numAmount.toFixed(2)}`
+      : `₦${numAmount.toLocaleString()}`;
   };
 
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
+    return date.toLocaleDateString("en-GB");
   };
 
-  // Get status counts for tabs
-  const getStatusCount = (status: string) => {
-    switch (status) {
-      case "ongoing":
-        return bookings.filter(item => 
-          item.booking_status?.toLowerCase() === "pending" || 
-          item.booking_status?.toLowerCase() === "confirmed"
-        ).length;
-      case "completed":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "completed").length;
-      case "cancelled":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "cancelled").length;
-      default:
-        return 0;
-    }
-  };
-
-  // Get status styling
+  // Status styling
   const getStatusStyling = (status: string) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -114,31 +90,27 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
     }
   };
 
-  // Extract location name from coordinates (simplified)
-  const formatLocation = (location: string) => {
-    if (!location) return "N/A";
-    if (location === "LOS") return "Lagos Airport";
-    // If it contains coordinates, extract the first part
-    if (location.includes("~")) {
-      return location.split("~")[0] || "Unknown Location";
-    }
-    return location;
+  // Helper: get passenger name
+  const getPassengerName = (passenger: any) => {
+    if (!passenger) return "N/A";
+    return `${passenger.first_name} ${passenger.last_name}`;
   };
 
   return (
     <div className="bg-white border border-gray-300 rounded-lg py-4">
       <h2 className="text-lg font-semibold px-4 mb-4">{title}</h2>
 
+      {/* Tabs for status filters */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <TabsList className="flex space-x-6 items-center bg-transparent shadow-none rounded-none pb-0">
           <TabsTrigger value="ongoing" className={styling}>
-            Ongoing ({getStatusCount("ongoing")})
+            Ongoing
           </TabsTrigger>
           <TabsTrigger value="completed" className={styling}>
-            Completed ({getStatusCount("completed")})
+            Completed
           </TabsTrigger>
           <TabsTrigger value="cancelled" className={styling}>
-            Cancelled ({getStatusCount("cancelled")})
+            Cancelled
           </TabsTrigger>
         </TabsList>
 
@@ -150,10 +122,10 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
                   "ID",
                   "Booking Reference",
                   "Passenger Name",
-                  "Pick Up Location",
-                  "Drop Off Location",
+                  "Car Type",
+                  "Pickup Date",
+                  "Dropoff Date",
                   "Booked On",
-                  "Transfer Type",
                   "Total Amount",
                   "Payment Status",
                   "Booking Status",
@@ -169,9 +141,10 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
                 ))}
               </TableRow>
             </TableHeader>
+
             <TableBody className="px-4">
               {loading ? (
-                // Loading skeleton
+                // Loading Skeleton
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {Array.from({ length: 11 }).map((_, cellIndex) => (
@@ -189,88 +162,67 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
                 <>
                   {filteredData.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.id ? String(item.id).substring(0, 8) + "..." : "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.id
+                          ? String(item.id).substring(0, 8) + "..."
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.booking_reference || "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.passenger_name || "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {getPassengerName(item.passenger)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {formatLocation(item.pickup_location)}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.car_type || "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {formatLocation(item.dropoff_location)}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.pickup_date
+                          ? formatDate(item.pickup_date)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.date_booked ? formatDate(item.date_booked) : "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.dropoff_date
+                          ? formatDate(item.dropoff_date)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.transfer_type === "N/A" ? "Standard" : item.transfer_type || "Standard"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.date_booked
+                          ? formatDate(item.date_booked)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4 text-gray-800"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.total_amount ? formatAmount(item.total_amount) : "N/A"}
+                      <TableCell className="py-5 px-4 text-gray-800">
+                        {item.total_amount
+                          ? formatAmount(item.total_amount)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-5 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.payment_status)}`}
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
+                            item.payment_status
+                          )}`}
                         >
                           {item.payment_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.booking_status)}`}
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
+                            item.booking_status
+                          )}`}
                         >
                           {item.booking_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4 cursor-pointer"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 cursor-pointer">
                         <BookingTableDropdown />
                       </TableCell>
                     </TableRow>
                   ))}
+
                   {hasMore && !loading && (
                     <TableRow>
-                      <TableCell
-                        colSpan={11}
-                        className="text-center py-4"
-                      >
+                      <TableCell colSpan={11} className="text-center py-4">
                         <button
                           onClick={onLoadMore}
                           disabled={loading}
@@ -288,7 +240,7 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
                     colSpan={11}
                     className="text-center py-8 text-[#4E4F52]"
                   >
-                    No bookings found matching your criteria
+                    No car bookings found matching your criteria
                   </TableCell>
                 </TableRow>
               )}
@@ -300,4 +252,4 @@ const CarBookingTable: React.FC<CarBookingTableProps> = ({
   );
 };
 
-export default CarBookingTable;
+export default CarBookings;

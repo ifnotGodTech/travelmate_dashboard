@@ -24,7 +24,7 @@ interface FilterProps {
 interface BookingTableProps {
   title: string;
   filterProps: FilterProps;
-  bookings: any[];
+  bookings: any[] | null | undefined; // can be null or undefined
   loading: boolean;
   onLoadMore: () => void;
   hasMore: boolean;
@@ -33,10 +33,10 @@ interface BookingTableProps {
 const BookingTable: React.FC<BookingTableProps> = ({
   title,
   filterProps,
-  bookings = [],
+  bookings = [], // default to empty array
   loading,
   onLoadMore,
-  hasMore
+  hasMore,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -44,12 +44,14 @@ const BookingTable: React.FC<BookingTableProps> = ({
   const styling =
     "h-full data-[state=active]:text-[#181818] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:rounded-none data-[state=active]:border-b-[3px] data-[state=active]:border-b-[#181818] data-[state=active]:mb-0 flex items-center justify-center cursor-pointer bg-transparent shadow-none rounded-none text-[18px] text-[#4E4F52] font-[400] ";
 
-  // Filter data based on active sub-tab only (search is handled by API endpoint)
+  /**
+   * Filter data based on active sub-tab
+   * This runs whenever bookings or the selected tab changes
+   */
   useEffect(() => {
-    let filtered = [...bookings];
+    const safeBookings = Array.isArray(bookings) ? bookings : [];
 
-    // Filter by status based on active sub-tab
-    filtered = filtered.filter((item) => {
+    const filtered = safeBookings.filter((item) => {
       const status = item.booking_status?.toLowerCase();
       switch (activeSubTab) {
         case "ongoing":
@@ -66,56 +68,44 @@ const BookingTable: React.FC<BookingTableProps> = ({
     setFilteredData(filtered);
   }, [bookings, activeSubTab]);
 
-  // Format amount based on currency
+
   const formatAmount = (amount: string | number) => {
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     if (filterProps.currency === "USD") {
       return `$${numAmount.toFixed(2)}`;
     }
-    return `₦${(numAmount * 1500).toLocaleString()}`; // Convert USD to NGN roughly
+    // Convert USD to NGN roughly for demo purposes
+    return `₦${(numAmount * 1500).toLocaleString()}`;
   };
 
-  // Format date
+  /**
+   * Format date into dd/mm/yyyy
+   */
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
+    return date.toLocaleDateString("en-GB");
   };
 
-  // Format check-in and check-out dates
+  /**
+   * Format stay dates
+   */
   const formatStayDates = (checkIn: string, checkOut: string) => {
     if (!checkIn || !checkOut) return "N/A";
     return `${formatDate(checkIn)} - ${formatDate(checkOut)}`;
   };
 
-  // Calculate nights
+  /**
+   * Calculate nights between two dates
+   */
   const calculateNights = (checkIn: string, checkOut: string) => {
     if (!checkIn || !checkOut) return 0;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Get status counts for tabs
-  const getStatusCount = (status: string) => {
-    switch (status) {
-      case "ongoing":
-        return bookings.filter(item => 
-          item.booking_status?.toLowerCase() === "pending" || 
-          item.booking_status?.toLowerCase() === "confirmed"
-        ).length;
-      case "completed":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "completed").length;
-      case "cancelled":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "cancelled").length;
-      default:
-        return 0;
-    }
-  };
-
-  // Get status styling
   const getStatusStyling = (status: string) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -138,13 +128,13 @@ const BookingTable: React.FC<BookingTableProps> = ({
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <TabsList className="flex space-x-6 items-center bg-transparent shadow-none rounded-none pb-0">
           <TabsTrigger value="ongoing" className={styling}>
-            Ongoing ({getStatusCount("ongoing")})
+            Ongoing
           </TabsTrigger>
           <TabsTrigger value="completed" className={styling}>
-            Completed ({getStatusCount("completed")})
+            Completed
           </TabsTrigger>
           <TabsTrigger value="cancelled" className={styling}>
-            Cancelled ({getStatusCount("cancelled")})
+            Cancelled
           </TabsTrigger>
         </TabsList>
 
@@ -175,9 +165,10 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 ))}
               </TableRow>
             </TableHeader>
+
             <TableBody className="px-4">
+              {/* Loading Skeleton */}
               {loading ? (
-                // Loading skeleton
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {Array.from({ length: 11 }).map((_, cellIndex) => (
@@ -195,90 +186,66 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 <>
                   {filteredData.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
                         {item.reference || "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
                         {item.hotel_name || "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.customer_details?.name && item.customer_details?.surname 
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                        {item.customer_details?.name &&
+                        item.customer_details?.surname
                           ? `${item.customer_details.name} ${item.customer_details.surname}`
                           : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                        {/* Booked On - Replace with actual booked date when available */}
                         N/A
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
                         {formatStayDates(item.check_in, item.check_out)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
                         {calculateNights(item.check_in, item.check_out)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.rooms?.length > 0 ? item.rooms[0].room_type || "Standard" : "Standard"}
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                        {item.rooms?.length > 0
+                          ? item.rooms[0].room_type || "Standard"
+                          : "Standard"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4 text-gray-800"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.total_amount ? formatAmount(item.total_amount) : "N/A"}
+                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                        {item.total_amount
+                          ? formatAmount(item.total_amount)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.payment_status)}`}
+                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                            item.payment_status
+                          )}`}
                         >
                           {item.payment_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.booking_status)}`}
+                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                            item.booking_status
+                          )}`}
                         >
                           {item.booking_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4 cursor-pointer"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 cursor-pointer">
                         <BookingTableDropdown />
                       </TableCell>
                     </TableRow>
                   ))}
+
+                  {/* Load More Button */}
                   {hasMore && !loading && (
                     <TableRow>
-                      <TableCell
-                        colSpan={11}
-                        className="text-center py-4"
-                      >
+                      <TableCell colSpan={11} className="text-center py-4">
                         <button
                           onClick={onLoadMore}
                           disabled={loading}

@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useState, useMemo } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableHeader,
@@ -30,26 +30,24 @@ interface FlightBookingsProps {
   hasMore: boolean;
 }
 
-const FlightBookings: React.FC<FlightBookingsProps> = ({ 
-  title, 
-  filterProps, 
+const FlightBookings: React.FC<FlightBookingsProps> = ({
+  title,
+  filterProps,
   bookings = [],
   loading,
   onLoadMore,
-  hasMore
+  hasMore,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
-  const [filteredData, setFilteredData] = useState<any[]>([]);
 
   const styling =
     "h-full data-[state=active]:text-[#181818] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:rounded-none data-[state=active]:border-b-[3px] data-[state=active]:border-b-[#181818] data-[state=active]:mb-0 flex items-center justify-center cursor-pointer bg-transparent shadow-none rounded-none text-[18px] text-[#4E4F52] font-[400] ";
 
-  // Filter data based on active sub-tab only (search is handled by API endpoint)
-  useEffect(() => {
-    let filtered = [...bookings];
+  // Filtered data memoized to prevent re-renders
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
 
-    // Filter by status based on active sub-tab
-    filtered = filtered.filter((item) => {
+    return bookings.filter((item) => {
       const status = item.booking_status?.toLowerCase();
       switch (activeSubTab) {
         case "ongoing":
@@ -62,40 +60,20 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
           return true;
       }
     });
-
-    setFilteredData(filtered);
   }, [bookings, activeSubTab]);
 
   // Format amount based on currency
   const formatAmount = (amount: string | number) => {
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    if (filterProps.currency === "USD") {
-      return `$${numAmount.toFixed(2)}`;
-    }
-    return `₦${numAmount.toLocaleString()}`; // Keep NGN as is
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return filterProps.currency === "USD"
+      ? `$${numAmount.toFixed(2)}`
+      : `₦${numAmount.toLocaleString()}`;
   };
 
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
-  };
-
-  // Get status counts for tabs
-  const getStatusCount = (status: string) => {
-    switch (status) {
-      case "ongoing":
-        return bookings.filter(item => 
-          item.booking_status?.toLowerCase() === "pending" || 
-          item.booking_status?.toLowerCase() === "confirmed"
-        ).length;
-      case "completed":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "completed").length;
-      case "cancelled":
-        return bookings.filter(item => item.booking_status?.toLowerCase() === "cancelled").length;
-      default:
-        return 0;
-    }
+    return date.toLocaleDateString("en-GB");
   };
 
   // Get status styling
@@ -114,9 +92,9 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
     }
   };
 
-  // Helper function to get route summary from flight details
+  // Helper function to get route summary
   const getRouteSummary = (flightDetails: any[]) => {
-    if (!flightDetails || flightDetails.length === 0) return 'N/A';
+    if (!flightDetails || flightDetails.length === 0) return "N/A";
     const firstFlight = flightDetails[0];
     const lastFlight = flightDetails[flightDetails.length - 1];
     return `${firstFlight.departure_airport} → ${lastFlight.arrival_airport}`;
@@ -124,14 +102,14 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
 
   // Helper function to get passenger name
   const getPassengerName = (passengers: any[]) => {
-    if (!passengers || passengers.length === 0) return 'N/A';
+    if (!passengers || passengers.length === 0) return "N/A";
     const primaryPassenger = passengers[0];
     return `${primaryPassenger.first_name} ${primaryPassenger.last_name}`;
   };
 
   // Helper function to get departure date
   const getDepartureDate = (flightDetails: any[]) => {
-    if (!flightDetails || flightDetails.length === 0) return 'N/A';
+    if (!flightDetails || flightDetails.length === 0) return "N/A";
     return formatDate(flightDetails[0].departure_datetime);
   };
 
@@ -142,13 +120,13 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <TabsList className="flex space-x-6 items-center bg-transparent shadow-none rounded-none pb-0">
           <TabsTrigger value="ongoing" className={styling}>
-            Ongoing ({getStatusCount("ongoing")})
+            Ongoing
           </TabsTrigger>
           <TabsTrigger value="completed" className={styling}>
-            Completed ({getStatusCount("completed")})
+            Completed
           </TabsTrigger>
           <TabsTrigger value="cancelled" className={styling}>
-            Cancelled ({getStatusCount("cancelled")})
+            Cancelled
           </TabsTrigger>
         </TabsList>
 
@@ -199,88 +177,63 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
                 <>
                   {filteredData.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.id ? String(item.id).substring(0, 8) + "..." : "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.id
+                          ? String(item.id).substring(0, 8) + "..."
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.booking_reference || "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {getPassengerName(item.passengers)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {getRouteSummary(item.flight_details)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {getDepartureDate(item.flight_details)}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.date_booked ? formatDate(item.date_booked) : "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.date_booked
+                          ? formatDate(item.date_booked)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="text-[14px] font-[400] text-[#181818] py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.flight_booking_type || "One Way"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4 text-gray-800"
-                        style={{ minWidth: "192.5px" }}
-                      >
-                        {item.total_amount ? formatAmount(item.total_amount) : "N/A"}
+                      <TableCell className="py-5 px-4 text-gray-800">
+                        {item.total_amount
+                          ? formatAmount(item.total_amount)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell
-                        className="py-5 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-5 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.payment_status)}`}
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
+                            item.payment_status
+                          )}`}
                         >
                           {item.payment_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4">
                         <div
-                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(item.booking_status)}`}
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
+                            item.booking_status
+                          )}`}
                         >
                           {item.booking_status || "PENDING"}
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-3 px-4 cursor-pointer"
-                        style={{ minWidth: "192.5px" }}
-                      >
+                      <TableCell className="py-3 px-4 cursor-pointer">
                         <BookingTableDropdown />
                       </TableCell>
                     </TableRow>
                   ))}
+
                   {hasMore && !loading && (
                     <TableRow>
-                      <TableCell
-                        colSpan={11}
-                        className="text-center py-4"
-                      >
+                      <TableCell colSpan={11} className="text-center py-4">
                         <button
                           onClick={onLoadMore}
                           disabled={loading}
