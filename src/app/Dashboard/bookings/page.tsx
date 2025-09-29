@@ -49,7 +49,7 @@ const BookingTab: React.FC = () => {
       case "flights":
         return "flights";
       case "cars":
-        return "Transfers";
+        return "transfers";
       default:
         return "stays";
     }
@@ -217,7 +217,7 @@ const BookingTab: React.FC = () => {
           <BookingTable
             title="All Stays"
             filterProps={filterProps}
-            bookings={data?.results || []}
+            bookings={data || []}
             loading={loading}
             onLoadMore={loadNext}
             hasMore={hasNext}
@@ -228,7 +228,7 @@ const BookingTab: React.FC = () => {
           <FlightBookings
             title="All Flights"
             filterProps={filterProps}
-            bookings={data?.results || []}
+            bookings={data || []}
             loading={loading}
             onLoadMore={loadNext}
             hasMore={hasNext}

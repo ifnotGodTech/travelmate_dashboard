@@ -1,5 +1,7 @@
+"use client"
 import { useState, useEffect, useCallback } from "react";
 import instance from "@/hooks/initializers/useAxiosDefaults";
+import BookingService from "@/services/booking";
 
 export const useGetAllBookings = (filters: any = {}) => {
   const BASE_URL =
@@ -26,7 +28,7 @@ export const useGetAllBookings = (filters: any = {}) => {
           url || BASE_URL,
           url ? {} : { params: defaultFilters }
         );
-        setData(response.data);
+        setData(response.data.results.results);
       } catch (err: any) {
         setError(
           err?.response?.data?.message ||
@@ -72,3 +74,42 @@ export const useGetAllBookings = (filters: any = {}) => {
     hasPrevious: Boolean(data?.previous),
   };
 };
+
+export function useGetBooking({
+  bookingRef,
+  initalFetch = true,
+  successCallback,
+  errorCallback,
+}: {
+  bookingRef?: string;
+  initalFetch?: boolean;
+  successCallback?: (message: string) => void;
+  errorCallback?: (props: { message?: string; description?: string }) => void;
+}) {
+  const [loadingBooking, setLoading] = useState(false);
+  const [booking, setData] = useState<any>(null);
+
+  const fetchBooking = async () => {
+    if (!bookingRef) return;
+    setLoading(true);
+    try {
+      const res = await BookingService.getSingleBooking({ bookingRef });
+      setData(res.data);
+      if (successCallback) successCallback("Booking fetched successfully.");
+    } catch (error: any) {
+      if (errorCallback)
+        errorCallback({
+          message: "An error occurred while fetching the ticket",
+          description: error?.message || "Unknown error",
+        });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initalFetch) fetchBooking();
+  }, [initalFetch, bookingRef]);
+
+  return { loadingBooking, booking };
+}

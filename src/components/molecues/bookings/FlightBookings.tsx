@@ -9,6 +9,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { BookingTableDropdown } from "./reuseables";
+import { format } from "path";
 
 // Define the interface for filter props
 interface FilterProps {
@@ -38,6 +39,7 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
   onLoadMore,
   hasMore,
 }) => {
+  console.log(bookings);
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
 
   const styling =
@@ -69,6 +71,8 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
       ? `$${numAmount.toFixed(2)}`
       : `₦${numAmount.toLocaleString()}`;
   };
+
+  
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -108,7 +112,7 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
   };
 
   // Helper function to get departure date
-  const getDepartureDate = (flightDetails: any[]) => {
+  const getClass = (flightDetails: any[]) => {
     if (!flightDetails || flightDetails.length === 0) return "N/A";
     return formatDate(flightDetails[0].departure_datetime);
   };
@@ -137,10 +141,9 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
                 {[
                   "ID",
                   "Booking Reference",
-                  "Passenger Name",
-                  "Route",
-                  "Departure Date",
+                  "Passengers",
                   "Booked On",
+                  "Class",
                   "Flight Type",
                   "Total Amount",
                   "Payment Status",
@@ -149,7 +152,7 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
                 ].map((header) => (
                   <TableCell
                     key={header}
-                    className="font-[400] text-[#181818] text-[14px] py-5 px-4"
+                    className="font-[500] text-[#181818] text-[14px] py-5 px-4"
                     style={{ minWidth: "192.5px" }}
                   >
                     {header}
@@ -173,34 +176,29 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
                     ))}
                   </TableRow>
                 ))
-              ) : filteredData.length > 0 ? (
+              ) : bookings.length > 0 ? (
                 <>
-                  {filteredData.map((item) => (
+                  {bookings.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.id
-                          ? String(item.id).substring(0, 8) + "..."
-                          : "N/A"}
+                        {item.id ? `BK_00${item.id}` : "N/A"}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.booking_reference || "N/A"}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {getPassengerName(item.passengers)}
+                        {item.passenger_count}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {getRouteSummary(item.flight_details)}
+                        {formatDate(item.date_booked)}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {getDepartureDate(item.flight_details)}
-                      </TableCell>
-                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.date_booked
-                          ? formatDate(item.date_booked)
+                        {item.flight_details?.length > 0
+                          ? item.flight_details[0].cabin_class || "N/A"
                           : "N/A"}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.flight_booking_type || "One Way"}
+                        {item.flight_booking_type}
                       </TableCell>
                       <TableCell className="py-5 px-4 text-gray-800">
                         {item.total_amount
@@ -226,7 +224,9 @@ const FlightBookings: React.FC<FlightBookingsProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 cursor-pointer">
-                        <BookingTableDropdown />
+                        <BookingTableDropdown
+                          booking_refrence={item.booking_reference}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

@@ -122,10 +122,10 @@ const CarBookings: React.FC<CarBookingsProps> = ({
                   "ID",
                   "Booking Reference",
                   "Passenger Name",
-                  "Car Type",
-                  "Pickup Date",
-                  "Dropoff Date",
+                  "Pickup Location",
+                  "Dropoff location",
                   "Booked On",
+                  "Car Type",
                   "Total Amount",
                   "Payment Status",
                   "Booking Status",
@@ -133,7 +133,7 @@ const CarBookings: React.FC<CarBookingsProps> = ({
                 ].map((header) => (
                   <TableCell
                     key={header}
-                    className="font-[400] text-[#181818] text-[14px] py-5 px-4"
+                    className="font-[500] text-[#181818] text-[14px] py-5 px-4"
                     style={{ minWidth: "192.5px" }}
                   >
                     {header}
@@ -158,38 +158,38 @@ const CarBookings: React.FC<CarBookingsProps> = ({
                     ))}
                   </TableRow>
                 ))
-              ) : filteredData.length > 0 ? (
+              ) : bookings.length > 0 ? (
                 <>
-                  {filteredData.map((item) => (
+                  {bookings.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.booking_reference || "N/A"}
+                      </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.id
                           ? String(item.id).substring(0, 8) + "..."
                           : "N/A"}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.booking_reference || "N/A"}
+                        {item.passenger_name}
                       </TableCell>
-                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {getPassengerName(item.passenger)}
-                      </TableCell>
-                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.car_type || "N/A"}
-                      </TableCell>
-                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.pickup_date
-                          ? formatDate(item.pickup_date)
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-2 whitespace-normal break-words max-w-[350px]">
+                        {item.pickup_location_label
+                          ? item.pickup_location_label
                           : "N/A"}
                       </TableCell>
-                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
-                        {item.dropoff_date
-                          ? formatDate(item.dropoff_date)
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-2 whitespace-normal break-words max-w-[350px]">
+                        {item.dropoff_location_label
+                          ? item.dropoff_location_label
                           : "N/A"}
                       </TableCell>
                       <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
                         {item.date_booked
                           ? formatDate(item.date_booked)
                           : "N/A"}
+                      </TableCell>
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.transfer_type || "N/A"}
                       </TableCell>
                       <TableCell className="py-5 px-4 text-gray-800">
                         {item.total_amount
@@ -215,7 +215,7 @@ const CarBookings: React.FC<CarBookingsProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 cursor-pointer">
-                        <BookingTableDropdown />
+                        <BookingTableDropdown booking_refrence = {item.booking_reference} />
                       </TableCell>
                     </TableRow>
                   ))}

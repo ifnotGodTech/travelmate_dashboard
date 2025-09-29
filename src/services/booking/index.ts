@@ -27,8 +27,8 @@ class Service {
     return instance.get(`${env.api.bookings}/${designId}?${queryParams}`);
   }
 
-  getSingleBooking({ bookingId }: { bookingId?: string }) {
-    return instance.get(env.api.bookings + "/" + bookingId + "/");
+  getSingleBooking({ bookingRef }: { bookingRef?: any }) {
+    return instance.get(env.api.bookingHistory + "/" + bookingRef + "/");
   }
 
   cancelBooking({ bookingId }: { bookingId?: string }) {

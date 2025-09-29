@@ -1,3 +1,5 @@
+"use client"
+
 import { DatePairDialog } from "@/components/reuseables/DateDialog";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
 import { useState, useEffect } from "react";
@@ -8,6 +10,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export const GridValues = ({ title, value }: any) => {
   return (
@@ -53,8 +56,23 @@ export const Policy = ({ List }: any) => {
   );
 };
 
-export const BookingTableDropdown = ({}: {}) => {
-  const options = [{ label: "View Details" }, { label: "Cancel Booking" }];
+export const BookingTableDropdown = ({ booking_refrence }: { booking_refrence: string }) => {
+  const router = useRouter();
+
+  console.log(booking_refrence); // ✅ Now logs the actual booking reference string
+
+  const handleViewDetails = () => {
+    router.push(`/Dashboard/bookings/${booking_refrence}`);
+  };
+
+  const options = [
+    { id: 1, label: "View Details", linkTo: `/bookings/${booking_refrence}` },
+    {
+      id: 2,
+      label: "Cancel Booking",
+      linkTo: `/bookings/${booking_refrence}/process-cancel`,
+    },
+  ];
 
   return (
     <div className="relative overflow-visible">
@@ -68,15 +86,15 @@ export const BookingTableDropdown = ({}: {}) => {
           align="end"
           className="z-50 max-w-[180px] shadow-lg border border-gray-200 rounded-md bg-white"
         >
-          {options.map((option, index) => (
+          {options.map((option) => (
             <DropdownMenuItem
-              key={index}
-              onClick={option.action as any}
+              key={option.id}
+              onClick={option.id === 1 ? handleViewDetails : undefined}
               className={`cursor-pointer select-none ${
                 option.label === "Cancel Booking"
-                  ? "text-red-500 hover:text-red-600 "
+                  ? "text-red-500 hover:text-red-600"
                   : ""
-              } `}
+              }`}
             >
               {option.label}
             </DropdownMenuItem>
@@ -86,6 +104,7 @@ export const BookingTableDropdown = ({}: {}) => {
     </div>
   );
 };
+
 
 export const LocationTag = () => {
   return (
