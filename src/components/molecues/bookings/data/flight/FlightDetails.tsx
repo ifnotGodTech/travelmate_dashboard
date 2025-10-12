@@ -13,12 +13,12 @@ const FlightDetails = ({ data }: any) => {
   );
 };
 
-const BookingDetails = ({ data }: any) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB");
-  };
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-GB");
+};
 
+const BookingDetails = ({ data }: any) => {
   const getStatusStyling = (status: string) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -93,14 +93,117 @@ export const GridDetails = ({ data }: any) => {
     setOpenPassengerIndex(openPassengerIndex === index ? null : index);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB");
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const d = new Date(dateString);
+    return d.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatTime12 = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const d = new Date(dateString);
+    const raw = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return raw.replace("AM", "am").replace("PM", "pm");
+  };
+
+  const formatDuration = (duration?: {
+    day?: number;
+    hr?: number;
+    min?: number;
+  }) => {
+    if (!duration) return "N/A";
+    const parts: string[] = [];
+    if (duration.day) parts.push(`${duration.day}d`);
+    if (duration.hr || duration.hr === 0) parts.push(`${duration.hr}h`);
+    if (duration.min || duration.min === 0) parts.push(`${duration.min}m`);
+    return parts.join(" ");
+  };
+
+  const formatAirportLabel = (code?: string, label?: string) => {
+    if (!code && !label) return "N/A";
+    if (label) return label;
+    return code || "N/A";
+  };
+
+  const isRoundTrip =
+    Array.isArray(data?.flight_itinerary) &&
+    data.flight_itinerary.some((l: any) => l.leg === "RETURN");
+
+  const SubStops = ({ leg }: { leg: any }) => {
+    const segments = Array.isArray(leg?.segments) ? leg.segments : [];
+    return (
+      <div className="space-y-[12px]">
+        {segments.map((seg: any, idx: number) => {
+          const layover = seg.layover_to_next;
+          return (
+            <div key={idx} className="bg-[#FAFAFA] rounded-[12px] p-[12px] space-y-3">
+              <h1 className="text-[#181818] font-[500] text-[18px] leading-[100%]">
+                Stop {seg.sequence || idx + 1}
+              </h1>
+              <LocationTag
+                departureTime={
+                  seg.departure_datetime
+                    ? formatTime12(seg.departure_datetime)
+                    : undefined
+                }
+                departureLabel={formatAirportLabel(
+                  seg.from?.airport,
+                  seg.from?.label
+                )}
+                arrivalTime={
+                  seg.arrival_datetime
+                    ? formatTime12(seg.arrival_datetime)
+                    : undefined
+                }
+                arrivalLabel={formatAirportLabel(
+                  seg.to?.airport,
+                  seg.to?.label
+                )}
+              />
+              <FlexValues
+                title="Date"
+                value={seg.departure_datetime ? formatDate(seg.departure_datetime) : "N/A"}
+              />
+              <FlexValues
+                title="Duration"
+                value={formatDuration(seg.duration)}
+              />
+              <FlexValues title="Aircraft" value={seg.aircraft_code || "N/A"} />
+              <FlexValues
+                title="Layover"
+                value={
+                  layover
+                    ? `${layover.duration?.hr ?? 0}h ${
+                        layover.duration?.min ?? 0
+                      }m`
+                    : "N/A"
+                }
+              />
+              {seg.change_of_aircraft && seg.aircraft_change_to ? (
+                <FlexValues
+                  title="Aircraft Change to"
+                  value={`${seg.aircraft_change_to.airline_code || ""} ${
+                    seg.aircraft_change_to.flight_number || ""
+                  } (${seg.aircraft_change_to.aircraft_code || ""})`}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
     <div className="grid grid-cols-2 gap-[24px]">
-      <div className="space-y-6">
+      <div className="space-y-6 lg:sticky lg:top-4 self-start">
         <div className="bg-white p-[24px] space-y-5 rounded-[12px]">
           <h1 className="text-[16px] font-semibold text-[#181818]">
             Passenger Details ({data.passenger_count}{" "}
@@ -218,95 +321,258 @@ export const GridDetails = ({ data }: any) => {
             <h1 className="text-[20px] font-[600] text-[#181818]">
               Departure Flight Details
             </h1>
-            <LocationTag />
+            {Array.isArray(data.flight_itinerary) ? (
+              (() => {
+                const depLeg = data.flight_itinerary.find(
+                  (l: any) => l.leg === "DEPARTURE"
+                );
+                if (!depLeg) return <LocationTag />;
+                const summary = depLeg.summary || {};
+                const depTime = summary.departure_datetime
+                  ? formatTime12(summary.departure_datetime)
+                  : undefined;
+                const arrTime = summary.arrival_datetime
+                  ? formatTime12(summary.arrival_datetime)
+                  : undefined;
+                const depLabel =
+                  summary.from?.label ||
+                  (summary.from?.airport
+                    ? `${summary.from.airport}`
+                    : undefined);
+                const arrLabel =
+                  summary.to?.label ||
+                  (summary.to?.airport ? `${summary.to.airport}` : undefined);
+                return (
+                  <LocationTag
+                    departureTime={depTime}
+                    departureLabel={depLabel}
+                    arrivalTime={arrTime}
+                    arrivalLabel={arrLabel}
+                  />
+                );
+              })()
+            ) : (
+              <LocationTag />
+            )}
             <div className="space-y-4">
-              <FlexValues
-                title="Airline"
-                value={data.departure?.airline || "N/A"}
-              />
-              <FlexValues
-                title="Flight Number"
-                value={data.departure?.flight_number || "N/A"}
-              />
-              <FlexValues
-                title="Class"
-                value={data.departure?.cabin_class || "N/A"}
-              />
-              <FlexValues
-                title="Date"
-                value={
-                  data.departure?.departure_datetime
-                    ? formatDate(data.departure.departure_datetime)
-                    : "N/A"
-                }
-              />
-              <FlexValues
-                title="Air Craft Type"
-                value={data.departure?.aircraft_type || "N/A"}
-              />
-              <FlexValues
-                title="Duration"
-                value={data.departure?.duration || "N/A"}
-              />
-              <FlexValues
-                title="Baggage"
-                value={data.departure?.baggage || "N/A"}
-              />
-              <FlexValues title="Stops" value={data.departure?.stops || "0"} />
+              {(() => {
+                const depLeg =
+                  Array.isArray(data.flight_itinerary) &&
+                  data.flight_itinerary.find((l: any) => l.leg === "DEPARTURE");
+                const summary = depLeg?.summary;
+                const firstSeg = depLeg?.segments?.[0];
+                return (
+                  <>
+                    <FlexValues
+                      title="Airline"
+                      value={firstSeg?.airline_code || "N/A"}
+                    />
+                    <FlexValues
+                      title="Flight Number"
+                      value={firstSeg?.flight_number || "N/A"}
+                    />
+                    <FlexValues
+                      title="Class"
+                      value={
+                        summary?.cabin_class || firstSeg?.cabin_class || "N/A"
+                      }
+                    />
+                    <FlexValues
+                      title="Date"
+                      value={
+                        summary?.departure_datetime
+                          ? formatDate(summary.departure_datetime)
+                          : firstSeg?.departure_datetime
+                          ? formatDate(firstSeg.departure_datetime)
+                          : "N/A"
+                      }
+                    />
+                    <FlexValues
+                      title="Air Craft Type"
+                      value={firstSeg?.aircraft_code || "N/A"}
+                    />
+                    <FlexValues
+                      title="Duration"
+                      value={
+                        summary
+                          ? `${
+                              summary.total_duration?.day
+                                ? `${summary.total_duration.day}d `
+                                : ""
+                            }${summary.total_duration?.hr ?? 0}h ${
+                              summary.total_duration?.min ?? 0
+                            }m`
+                          : "N/A"
+                      }
+                    />
+                    <FlexValues
+                      title="Baggage"
+                      value={
+                        typeof summary?.baggage_summary
+                          ?.included_checked_bags !== "undefined"
+                          ? `${summary.baggage_summary.included_checked_bags}`
+                          : typeof firstSeg?.included_checked_bags !==
+                            "undefined"
+                          ? `${firstSeg.included_checked_bags}`
+                          : "N/A"
+                      }
+                    />
+                    <FlexValues
+                      title="Stops"
+                      value={
+                        typeof summary?.stops_count !== "undefined"
+                          ? `${summary.stops_count}`
+                          : `${Math.max(
+                              (depLeg?.segments?.length || 1) - 1,
+                              0
+                            )}`
+                      }
+                    />
+                    <div className="border-b-[0.5px] border-[#9B9EA4]"></div>
+                    {depLeg && depLeg.segments && depLeg.segments.length > 1 ? (
+                      <SubStops leg={depLeg} />
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
 
-        {/* Return Flight */}
-        <div className="bg-[#fff] space-y-[22px] p-[24px] rounded-[12px]">
-          <div className="space-y-4">
-            <h1 className="text-[20px] font-[600] text-[#181818]">
-              Return Flight Details
-            </h1>
-            <LocationTag />
+        {/* Return Flight - only show for round trips */}
+        {isRoundTrip && (
+          <div className="bg-[#fff] space-y-[22px] p-[24px] rounded-[12px]">
             <div className="space-y-4">
-              <FlexValues
-                title="Airline"
-                value={data.return?.airline || "N/A"}
-              />
-              <FlexValues
-                title="Flight Number"
-                value={data.return?.flight_number || "N/A"}
-              />
-              <FlexValues
-                title="Class"
-                value={data.return?.cabin_class || "N/A"}
-              />
-              <FlexValues
-                title="Date"
-                value={
-                  data.return?.departure_datetime
-                    ? formatDate(data.return.departure_datetime)
-                    : "N/A"
-                }
-              />
-              <FlexValues
-                title="Air Craft Type"
-                value={data.return?.aircraft_type || "N/A"}
-              />
-              <FlexValues
-                title="Duration"
-                value={data.return?.duration || "N/A"}
-              />
-              <FlexValues
-                title="Baggage"
-                value={data.return?.baggage || "N/A"}
-              />
-              <FlexValues title="Stops" value={data.return?.stops || "0"} />
+              <h1 className="text-[20px] font-[600] text-[#181818]">
+                Return Flight Details
+              </h1>
+              {Array.isArray(data.flight_itinerary) ? (
+                (() => {
+                  const retLeg = data.flight_itinerary.find(
+                    (l: any) => l.leg === "RETURN"
+                  );
+                  if (!retLeg) return <LocationTag />;
+                  const summary = retLeg.summary || {};
+                  const depTime = summary.departure_datetime
+                    ? formatTime12(summary.departure_datetime)
+                    : undefined;
+                  const arrTime = summary.arrival_datetime
+                    ? formatTime12(summary.arrival_datetime)
+                    : undefined;
+                  const depLabel =
+                    summary.from?.label ||
+                    (summary.from?.airport
+                      ? `${summary.from.airport}`
+                      : undefined);
+                  const arrLabel =
+                    summary.to?.label ||
+                    (summary.to?.airport ? `${summary.to.airport}` : undefined);
+                  return (
+                    <LocationTag
+                      departureTime={depTime}
+                      departureLabel={depLabel}
+                      arrivalTime={arrTime}
+                      arrivalLabel={arrLabel}
+                    />
+                  );
+                })()
+              ) : (
+                <LocationTag />
+              )}
+              <div className="space-y-4">
+                {(() => {
+                  const retLeg =
+                    Array.isArray(data.flight_itinerary) &&
+                    data.flight_itinerary.find((l: any) => l.leg === "RETURN");
+                  const summary = retLeg?.summary;
+                  const firstSeg = retLeg?.segments?.[0];
+                  return (
+                    <>
+                      <FlexValues
+                        title="Airline"
+                        value={firstSeg?.airline_code || "N/A"}
+                      />
+                      <FlexValues
+                        title="Flight Number"
+                        value={firstSeg?.flight_number || "N/A"}
+                      />
+                      <FlexValues
+                        title="Class"
+                        value={
+                          summary?.cabin_class || firstSeg?.cabin_class || "N/A"
+                        }
+                      />
+                      <FlexValues
+                        title="Date"
+                        value={
+                          summary?.departure_datetime
+                            ? formatDate(summary.departure_datetime)
+                            : firstSeg?.departure_datetime
+                            ? formatDate(firstSeg.departure_datetime)
+                            : "N/A"
+                        }
+                      />
+                      <FlexValues
+                        title="Air Craft Type"
+                        value={firstSeg?.aircraft_code || "N/A"}
+                      />
+                      <FlexValues
+                        title="Duration"
+                        value={
+                          summary
+                            ? `${
+                                summary.total_duration?.day
+                                  ? `${summary.total_duration.day}d `
+                                  : ""
+                              }${summary.total_duration?.hr ?? 0}h ${
+                                summary.total_duration?.min ?? 0
+                              }m`
+                            : "N/A"
+                        }
+                      />
+                      <FlexValues
+                        title="Baggage"
+                        value={
+                          typeof summary?.baggage_summary
+                            ?.included_checked_bags !== "undefined"
+                            ? `${summary.baggage_summary.included_checked_bags}`
+                            : typeof firstSeg?.included_checked_bags !==
+                              "undefined"
+                            ? `${firstSeg.included_checked_bags}`
+                            : "N/A"
+                        }
+                      />
+                      <FlexValues
+                        title="Stops"
+                        value={
+                          typeof summary?.stops_count !== "undefined"
+                            ? `${summary.stops_count}`
+                            : `${Math.max(
+                                (retLeg?.segments?.length || 1) - 1,
+                                0
+                              )}`
+                        }
+                      />
+                      <div className="border-b-[0.5px] border-[#9B9EA4]"></div>
+                      {retLeg && retLeg.segments && retLeg.segments.length > 1 ? (
+                        <SubStops leg={retLeg} />
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
 export const Transaction = ({ data }: any) => {
+  const isRoundTrip =
+    Array.isArray(data?.flight_itinerary) &&
+    data.flight_itinerary.some((l: any) => l.leg === "RETURN");
   return (
     <div className="bg-[#fff] p-[24px] rounded-[12px]">
       <h1 className="text-[20px] font-[600] text-[#181818] mb-[16px]">
@@ -314,14 +580,29 @@ export const Transaction = ({ data }: any) => {
       </h1>
       <div className="space-y-4">
         <FlexValues
-          title={`Round Trip (${data.passenger_count} ${
+          title={`${isRoundTrip ? "Round Trip" : "One Way"} (${data.passenger_count} ${
             data.passenger_count === 1 ? "Passenger" : "Passengers"
           })`}
-          value={`₦${Number(data.total_amount).toLocaleString()}`}
+          value={`₦${Number(data.total_amount ?? 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
         />
-        <FlexValues title="Taxes & Fees" value={`₦${data.tax}` || "N/A"} />
+        <FlexValues
+          title="Taxes & Fees"
+          value={`₦${Number(data.tax ?? 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+        />
         <div className="borde-[1px] border-[#ACAEB3] border-b "></div>
-        <FlexValues title="Total" value="₦80,000" />
+        <FlexValues
+          title="Total"
+          value={`₦${Number((data.total_amount ?? 0) + (data.tax ?? 0)).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+        />
       </div>
     </div>
   );

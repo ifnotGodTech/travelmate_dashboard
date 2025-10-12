@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { DatePairDialog } from "@/components/reuseables/DateDialog";
 import { FilterDropdown } from "@/components/reuseables/FilterDropdown";
@@ -56,7 +56,11 @@ export const Policy = ({ List }: any) => {
   );
 };
 
-export const BookingTableDropdown = ({ booking_refrence }: { booking_refrence: string }) => {
+export const BookingTableDropdown = ({
+  booking_refrence,
+}: {
+  booking_refrence: string;
+}) => {
   const router = useRouter();
 
   console.log(booking_refrence); // ✅ Now logs the actual booking reference string
@@ -105,21 +109,36 @@ export const BookingTableDropdown = ({ booking_refrence }: { booking_refrence: s
   );
 };
 
-
-export const LocationTag = () => {
+export const LocationTag = ({
+  departureTime,
+  departureLabel,
+  arrivalTime,
+  arrivalLabel,
+}: {
+  departureTime?: string;
+  departureLabel?: string;
+  arrivalTime?: string;
+  arrivalLabel?: string;
+}) => {
   return (
     <div className="">
       <div className="flex justify-center items-center space-x-4 border-[1px] border-[#9B9EA4] py-[16px] rounded-[12px] space-y-[8px] ">
-        <div className="text-center">
-          <p className="text-[18px] font-[600] text-[#181818] ">2:00pm</p>
-          <p className="text-[18px] font-[600] text-[#67696D] ">Lagos (LOS)</p>
+        <div className="text-center w-[40%] p-2">
+          <p className="text-[18px] font-[600] text-[#181818] ">
+            {departureTime}
+          </p>
+          <p className="text-[14px] font-[600] text-[#67696D] ">
+            {departureLabel}
+          </p>
         </div>
-        <div className="text-center text-gray-500 text-xl">
-          {"------------->"}
-        </div>
-        <div className="text-center space-y-[8px] ">
-          <p className="text-[18px] font-[600] text-[#181818] ">4:00pm</p>
-          <p className="text-[18px] font-[600] text-[#67696D]">Abuja (ABV)</p>
+        <div className="text-center text-gray-500 text-xlw-[150%] p-1">{"------->"}</div>
+        <div className="text-center space-y-[8px] w-[40%] p-2">
+          <p className="text-[18px] font-[600] text-[#181818] ">
+            {arrivalTime}
+          </p>
+          <p className="text-[14px] font-[600] text-[#67696D]">
+            {arrivalLabel}
+          </p>
         </div>
       </div>
     </div>
