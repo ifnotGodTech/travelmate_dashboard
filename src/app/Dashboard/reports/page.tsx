@@ -30,11 +30,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import axios from "axios";
 import env from "@/config/env";
 import { useAuthContext } from "@/context/AuthContext";
-import Loading from "../admin/loading";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
+import { exportStats, fetchReports } from "@/services/reports";
 
 type Summary = {
   booking_growth_percentage: number;
@@ -49,10 +48,10 @@ type Breakdown = {
   label: string;
   flight_bookings: number;
   car_bookings: number;
-  hotel_bookings?: number; // Added hotel bookings
+  hotel_bookings?: number;
   flight_revenue: number;
   car_revenue: number;
-  hotel_revenue?: number; // Added hotel revenue
+  hotel_revenue?: number;
 };
 
 type Combined = {
@@ -139,22 +138,15 @@ export default function ReportsPage() {
     const { breakdown, summary, combined } = generateQueryParams();
     try {
       setIsLoading(true);
-      const [bookingbreakdown, bookingscombined, summaryResponse] =
-        await Promise.all([
-          instance.get(breakdown, {
-            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-          }),
-          instance.get(combined, {
-            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-          }),
-          instance.get(summary, {
-            headers: { Authorization: `Bearer ${APP_STATE?.accessToken}` },
-          }),
-        ]);
+      const {
+        bookingBreakdown,
+        bookingsCombined,
+        summary: summaryResponse,
+      } = await fetchReports({ breakdown, summary, combined });
 
-      setRevenueBookingsData(bookingscombined.data.results || []);
-      setOverviewData(summaryResponse.data);
-      setBookingTrendsData(bookingbreakdown.data.results || []);
+      setRevenueBookingsData(bookingsCombined);
+      setOverviewData(summaryResponse);
+      setBookingTrendsData(bookingBreakdown);
     } catch (error: any) {
       console.error("Error fetching data:", error);
       showErrorToast({
@@ -165,22 +157,10 @@ export default function ReportsPage() {
     }
   }, [generateQueryParams, APP_STATE?.accessToken]);
 
-  // 🔹 useEffect triggers fetch when token OR filter changes
-  // useEffect(() => {
-  //   if (APP_STATE?.accessToken) {
-  //     fetchAdminData();
-  //   }
-  // }, [selectedOption, fetchAdminData]);
-
   const exportData = useCallback(async () => {
     try {
       setIsLoadingExport(true);
-      const response = await instance.get(`${env.api.admin}/reports/export/`, {
-        responseType: "blob",
-        headers: {
-          Authorization: `Bearer ${APP_STATE?.accessToken}`,
-        },
-      });
+      const response = await exportStats();
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -202,8 +182,6 @@ export default function ReportsPage() {
     }
   }, []);
 
-  // REMOVED CLIENT-SIDE FILTERING - Data should come pre-filtered from API
-  // The API endpoints already handle filtering based on the selected period
   const processedTrendsData = useMemo(() => {
     if (!bookingTrendsData?.length) return [];
 
@@ -244,9 +222,7 @@ export default function ReportsPage() {
   }, [revenueBookingsData, selectedOption]);
 
   useEffect(() => {
-
-      fetchAdminData();
-
+    fetchAdminData();
   }, [selectedOption]);
 
   const periodFilter = [

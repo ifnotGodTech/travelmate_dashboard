@@ -5,9 +5,9 @@ import Button from "@/components/reuseables/Button";
 import { useField, Formik, Form } from "formik";
 import { FieldMetaProps } from "formik/dist/types";
 import { useRouter, useSearchParams } from "next/navigation";
-import axios from "axios";
 import env from "@/config/env";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 const page = () => (
   <Suspense
@@ -53,7 +53,7 @@ const LoginComponent = () => {
       const validateInvitation = async () => {
         try {
           setLoading(true);
-          const response = await axios.get(
+          const response = await instance.get(
             `${env.api.admin}/invitations/validate/`,
             { params: { token } }
           );
@@ -77,7 +77,7 @@ const LoginComponent = () => {
   }) => {
     try {
       setLoading(true);
-      await axios.post(`${env.api.admin}/invitations/accept/`, {
+      await instance.post(`${env.api.admin}/invitations/accept/`, {
         email,
         token,
         password: values.password1,

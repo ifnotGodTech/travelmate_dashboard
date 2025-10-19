@@ -15,8 +15,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import RoleManagement from "../../../components/molecues/admin/RoleManagement";
 import RoleAssignment from "../../../components/molecues/admin/RoleAssignment";
-import env from "@/config/env";
-import { useAuthContext } from "@/context/AuthContext";
 import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import Loading from "./loading";
 import { LoaderCircleIcon } from "lucide-react";
@@ -27,7 +25,15 @@ import {
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
 import { Download, XCircle } from "lucide-react";
-import instance from "@/hooks/initializers/useAxiosDefaults";
+import {
+  addRRoles,
+  deleteRoles,
+  fetchPermission,
+  fetchRoles,
+  inviteMembers,
+  revokeInvites,
+  updateRoles,
+} from "@/services/admin";
 
 interface User {
   name: string;
@@ -52,7 +58,6 @@ type Permissions = {
 
 const AdminRolesPage: React.FC = () => {
   const router = useRouter();
-  const { accessToken } = useAuthContext();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isPermissionLoading, setIsPermissionLoading] = useState(true);
@@ -110,14 +115,7 @@ const AdminRolesPage: React.FC = () => {
   const fetchPermissions = async () => {
     try {
       setIsPermissionLoading(true);
-      const response = await instance.get(
-        `${env.api.superadmin}permissions/groups`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken || ""}`,
-          },
-        }
-      );
+      const response = await fetchPermission();
       setAvailablePermissions(
         Array.isArray(response.data.results) ? response.data.results : []
       );
@@ -142,12 +140,7 @@ const AdminRolesPage: React.FC = () => {
   const fetchAllRoles = async () => {
     try {
       setIsLoading(true);
-      const response = await instance.get(`${env.api.superadmin}roles/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken || ""}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetchRoles();
       setAdminDetails(
         Array.isArray(response.data.results) ? response.data.results : []
       );
@@ -165,19 +158,12 @@ const AdminRolesPage: React.FC = () => {
     try {
       setIsSaveLoading(true);
       const payload = {
-        name: updatedRole.name,
-        description: updatedRole.description,
-        permission_group_slugs: updatedRole.current_permission_group_slugs,
+        name: updatedRole.name ?? "",
+        description: updatedRole.description ?? "",
+        permission_group_slugs:
+          updatedRole.current_permission_group_slugs ?? [],
       };
-      const response = await instance.patch(
-        `${env.api.superadmin}roles/${roleId}/`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const response = await updateRoles(roleId, payload);
       setAdminDetails((prev) =>
         prev.map((role) =>
           role.id === roleId
@@ -200,11 +186,6 @@ const AdminRolesPage: React.FC = () => {
       showSuccessToast({
         message: "Role updated successfully",
       });
-      console.log("Before Update:", roleDetails.permissions);
-      console.log(
-        "After Update:",
-        response.data.current_permission_group_slugs
-      );
     } catch (error: any) {
       console.error(
         "Error updating role:",
@@ -243,25 +224,18 @@ const AdminRolesPage: React.FC = () => {
       setEditingRoleId(null);
     } else {
       try {
+        const payload = {
+          name: roleDetails.name,
+          description: roleDetails.description,
+          permission_group_slugs: roleDetails.permissions,
+        };
         setIsSaveLoading(true);
-        const response = await instance.post(
-          `${env.api.superadmin}roles/`,
-          {
-            name: roleDetails.name,
-            description: roleDetails.description,
-            permission_group_slugs: roleDetails.permissions,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
+        const response = await addRRoles(payload);
         setAdminDetails((prev) => [...prev, response.data]);
         showSuccessToast({
           message: "Created new role successfully!",
         });
-         setIsCreateRoleOpen(false);
+        setIsCreateRoleOpen(false);
       } catch (err: any) {
         console.log("Error Creating new Role", err);
         showErrorToast({
@@ -317,11 +291,7 @@ const AdminRolesPage: React.FC = () => {
   const confirmDeleteRole = async () => {
     try {
       setIsDeleteLoading(true);
-      await instance.delete(`${env.api.superadmin}roles/${roleToDelete}/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      await deleteRoles(roleToDelete);
       setAdminDetails((prev) =>
         prev.filter((role) => role.id !== roleToDelete)
       );
@@ -348,19 +318,13 @@ const AdminRolesPage: React.FC = () => {
       return;
     }
     try {
+      const payload = {
+        email: newMember.email,
+        name: newMember.name,
+      };
+
       setIsInviteLoading(true);
-      await instance.post(
-        `${env.api.superadmin}roles/${id}/invite/`,
-        {
-          email: newMember.email,
-          name: newMember.name,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await inviteMembers(id, payload);
       setIsAddMemberOpen(false);
       setSuccessModal(true);
       setAdminDetails((prev) =>
@@ -391,17 +355,7 @@ const AdminRolesPage: React.FC = () => {
   // REVOKE INVITATION OF ADMINS AND SUPERADMINS
   const revokeInvite = async (id: string, email: string) => {
     try {
-      await instance.post(
-        `${env.api.superadmin}roles/${id}/cancel-invite/`,
-        {
-          email,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await revokeInvites(id, email);
       setAdminDetails((prev) =>
         prev.map((role) =>
           role.id === id

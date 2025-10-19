@@ -5,9 +5,7 @@ import { Search, Plus, LoaderCircleIcon } from "lucide-react";
 import { FC } from "react";
 import { useRouter } from "next/navigation";
 import Loading from "@/app/Dashboard/admin/loading";
-import axios from "axios";
 import { showErrorToast } from "@/utils/toasters";
-import env from "@/config/env";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +13,7 @@ import {
   DialogHeader,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useAuthContext } from "@/context/AuthContext";
+import { removeUsersFromRole } from "@/services/admin";
 
 interface Role {
   id: string;
@@ -42,7 +40,6 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
   revokeInvite,
   setAdminDetails,
 }) => {
-  const { accessToken } = useAuthContext();
   const [showSuccessRemoveModal, setShowSuccessRemoveModal] = useState(false);
   const [showConfirmRemoveModal, setShowConfirmRemoveModal] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
@@ -73,16 +70,7 @@ const RoleAssignment: FC<RoleAssignmentProps> = ({
     try {
       setLoadingRemove((prev) => ({ ...prev, [userEmail]: true }));
 
-      await axios.post(
-        `${env.api.superadmin}roles/${roleId}/remove/`,
-        { email: userEmail },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
+      await removeUsersFromRole(roleId, userEmail);
       const updatedRoles = roles.map((role) =>
         role.id === roleId
           ? {
