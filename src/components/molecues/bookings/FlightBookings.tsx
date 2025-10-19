@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -9,6 +9,7 @@ import {
   TableBody,
 } from "@/components/ui/table";
 import { BookingTableDropdown } from "./reuseables";
+import { format } from "path";
 
 // Define the interface for filter props
 interface FilterProps {
@@ -21,38 +22,34 @@ interface FilterProps {
 }
 
 // Define the interface for component props
-interface BookingTableProps {
+interface FlightBookingsProps {
   title: string;
   filterProps: FilterProps;
-  bookings: any[] | null | undefined; // can be null or undefined
+  bookings: any[];
   loading: boolean;
   onLoadMore: () => void;
   hasMore: boolean;
 }
 
-const BookingTable: React.FC<BookingTableProps> = ({
+const FlightBookings: React.FC<FlightBookingsProps> = ({
   title,
   filterProps,
-  bookings = [], // default to empty array
+  bookings = [],
   loading,
   onLoadMore,
   hasMore,
 }) => {
-  
+  console.log(bookings);
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
-  const [filteredData, setFilteredData] = useState<any[]>([]);
 
   const styling =
     "h-full data-[state=active]:text-[#181818] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:rounded-none data-[state=active]:border-b-[3px] data-[state=active]:border-b-[#181818] data-[state=active]:mb-0 flex items-center justify-center cursor-pointer bg-transparent shadow-none rounded-none text-[18px] text-[#4E4F52] font-[400] ";
 
-  /**
-   * Filter data based on active sub-tab
-   * This runs whenever bookings or the selected tab changes
-   */
-  useEffect(() => {
-    const safeBookings = Array.isArray(bookings) ? bookings : [];
+  // Filtered data memoized to prevent re-renders
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
 
-    const filtered = safeBookings.filter((item) => {
+    return bookings.filter((item) => {
       const status = item.booking_status?.toLowerCase();
       switch (activeSubTab) {
         case "ongoing":
@@ -65,48 +62,25 @@ const BookingTable: React.FC<BookingTableProps> = ({
           return true;
       }
     });
-
-    setFilteredData(filtered);
   }, [bookings, activeSubTab]);
 
-
+  // Format amount based on currency
   const formatAmount = (amount: string | number) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    if (filterProps.currency === "USD") {
-      return `$${numAmount.toFixed(2)}`;
-    }
-    // Convert USD to NGN roughly for demo purposes
-    return `₦${(numAmount * 1500).toLocaleString()}`;
+    return filterProps.currency === "USD"
+      ? `$${numAmount.toFixed(2)}`
+      : `₦${numAmount.toLocaleString()}`;
   };
 
-  /**
-   * Format date into dd/mm/yyyy
-   */
+  
+
+  // Format date
   const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB");
   };
 
-  /**
-   * Format stay dates
-   */
-  const formatStayDates = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return "N/A";
-    return `${formatDate(checkIn)} - ${formatDate(checkOut)}`;
-  };
-
-  /**
-   * Calculate nights between two dates
-   */
-  const calculateNights = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return 0;
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
+  // Get status styling
   const getStatusStyling = (status: string) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -120,6 +94,27 @@ const BookingTable: React.FC<BookingTableProps> = ({
       default:
         return "text-[#EFB608] border-[#EFB608] bg-[#EFB60833]";
     }
+  };
+
+  // Helper function to get route summary
+  const getRouteSummary = (flightDetails: any[]) => {
+    if (!flightDetails || flightDetails.length === 0) return "N/A";
+    const firstFlight = flightDetails[0];
+    const lastFlight = flightDetails[flightDetails.length - 1];
+    return `${firstFlight.departure_airport} → ${lastFlight.arrival_airport}`;
+  };
+
+  // Helper function to get passenger name
+  const getPassengerName = (passengers: any[]) => {
+    if (!passengers || passengers.length === 0) return "N/A";
+    const primaryPassenger = passengers[0];
+    return `${primaryPassenger.first_name} ${primaryPassenger.last_name}`;
+  };
+
+  // Helper function to get departure date
+  const getClass = (flightDetails: any[]) => {
+    if (!flightDetails || flightDetails.length === 0) return "N/A";
+    return formatDate(flightDetails[0].departure_datetime);
   };
 
   return (
@@ -145,12 +140,11 @@ const BookingTable: React.FC<BookingTableProps> = ({
               <TableRow className="border-none">
                 {[
                   "ID",
-                  "Hotel Name",
-                  "Guest Name",
+                  "Booking Reference",
+                  "Passengers",
                   "Booked On",
-                  "Check-in - Check-out",
-                  "Nights",
-                  "Room Type",
+                  "Class",
+                  "Flight Type",
                   "Total Amount",
                   "Payment Status",
                   "Booking Status",
@@ -158,7 +152,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 ].map((header) => (
                   <TableCell
                     key={header}
-                    className="font-[400] text-[#181818] text-[14px] py-5 px-4"
+                    className="font-[500] text-[#181818] text-[14px] py-5 px-4"
                     style={{ minWidth: "192.5px" }}
                   >
                     {header}
@@ -166,10 +160,9 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 ))}
               </TableRow>
             </TableHeader>
-
             <TableBody className="px-4">
-              {/* Loading Skeleton */}
               {loading ? (
+                // Loading skeleton
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {Array.from({ length: 11 }).map((_, cellIndex) => (
@@ -183,45 +176,38 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     ))}
                   </TableRow>
                 ))
-              ) : filteredData.length > 0 ? (
+              ) : bookings.length > 0 ? (
                 <>
-                  {filteredData.map((item) => (
+                  {bookings.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.reference || "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.id ? `BK_00${item.id}` : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.hotel_name || "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.booking_reference || "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.customer_details?.name &&
-                        item.customer_details?.surname
-                          ? `${item.customer_details.name} ${item.customer_details.surname}`
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.passenger_count}
+                      </TableCell>
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {formatDate(item.date_booked)}
+                      </TableCell>
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.flight_details?.length > 0
+                          ? item.flight_details[0].cabin_class || "N/A"
                           : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {/* Booked On - Replace with actual booked date when available */}
-                        N/A
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.flight_booking_type}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {formatStayDates(item.check_in, item.check_out)}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {calculateNights(item.check_in, item.check_out)}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.rooms?.length > 0
-                          ? item.rooms[0].room_type || "Standard"
-                          : "Standard"}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                      <TableCell className="py-5 px-4 text-gray-800">
                         {item.total_amount
                           ? formatAmount(item.total_amount)
                           : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4">
+                      <TableCell className="py-5 px-4">
                         <div
-                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
                             item.payment_status
                           )}`}
                         >
@@ -230,7 +216,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       </TableCell>
                       <TableCell className="py-3 px-4">
                         <div
-                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
                             item.booking_status
                           )}`}
                         >
@@ -238,12 +224,13 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 cursor-pointer">
-                        <BookingTableDropdown />
+                        <BookingTableDropdown
+                          booking_refrence={item.booking_reference}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
 
-                  {/* Load More Button */}
                   {hasMore && !loading && (
                     <TableRow>
                       <TableCell colSpan={11} className="text-center py-4">
@@ -276,4 +263,4 @@ const BookingTable: React.FC<BookingTableProps> = ({
   );
 };
 
-export default BookingTable;
+export default FlightBookings;

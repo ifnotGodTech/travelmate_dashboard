@@ -368,10 +368,10 @@ export const navItems = [
     iconActive: "/assets/icons/a-sidebar-support.svg",
   },
   {
-    icon: "/assets/icons/side-support.svg",
+    icon: "/assets/icons/BellDark.svg",
     label: "Notifications",
     href: "/Dashboard/notification",
-    iconActive: "/assets/icons/a-sidebar-support.svg",
+    iconActive: "/assets/icons/BellWhite.svg",
   },
   {
     icon: "/assets/icons/side-report.svg",

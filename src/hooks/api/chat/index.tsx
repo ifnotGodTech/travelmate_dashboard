@@ -3,6 +3,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toasters";
 import useWebSocket from "react-use-websocket";
 import ChatService from "@/services/chat";
 import axios from "axios";
+import instance from "@/hooks/initializers/useAxiosDefaults";
 
 const getFromLocalStorage = ({
   key,
@@ -65,7 +66,7 @@ export function useGetAllChat() {
         setError(null);
 
         const endpoint = url || buildUrl();
-        const response = await axios.get(endpoint);
+        const response = await instance.get(endpoint);
         const data: { results: Chat[]; next: string | null } = response.data;
 
         setChats((prevChats) =>
@@ -186,20 +187,11 @@ export const useGetChatMessages = () => {
   return { loadingMessage, messages, onFetchMessages };
 };
 
-export const useWebSocketService = (sessionId: number) => {
+export const useWebSocketService = ({ sessionId, accessToken }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  // const [accessToken, setAccessToken] = useState<string | null>(null);
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null); // WebSocket instance
-
-  useEffect(() => {
-    getFromLocalStorage({
-      key: "TRAVELMATE_APP_PERSISTOR",
-      cb: (value: { accessToken: string; refreshToken: string }) => {
-        setAccessToken(value?.accessToken || null);
-      },
-    });
-  }, []);
 
   useEffect(() => {
     if (accessToken && sessionId) {
@@ -208,7 +200,6 @@ export const useWebSocketService = (sessionId: number) => {
     }
 
     return () => {
-      // Cleanup previous WebSocket when sessionId changes or component unmounts
       if (socket) {
         socket.close();
       }

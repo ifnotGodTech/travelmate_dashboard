@@ -108,12 +108,29 @@ export function useForgotPassword({ Service }: { Service: AuthInterface }) {
 export function useLogout() {
   const updateAppState = useUpdateAuthContext();
 
-  const onLogout = () => {
-    updateAppState(INITIAL_APP_STATE);
+  const onLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const INITIAL_APP_STATE = {
+        user: undefined,
+      };
+
+      updateAppState(INITIAL_APP_STATE);
+
+      // Redirect to login
+      window.location.href = "/auth/login";
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return { onLogout };
 }
+
 
 export function useVerifyOtp({ Service }: { Service: AuthInterface }) {
   const [loading, setLoading] = useState(false);

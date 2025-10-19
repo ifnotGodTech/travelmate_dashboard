@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { BookingTableDropdown } from "./reuseables";
 
-// Define the interface for filter props
 interface FilterProps {
   searchTerm: string;
   selectedOption: string;
@@ -20,39 +19,33 @@ interface FilterProps {
   currency: string;
 }
 
-// Define the interface for component props
-interface BookingTableProps {
+interface CarBookingsProps {
   title: string;
   filterProps: FilterProps;
-  bookings: any[] | null | undefined; // can be null or undefined
+  bookings: any[];
   loading: boolean;
   onLoadMore: () => void;
   hasMore: boolean;
 }
 
-const BookingTable: React.FC<BookingTableProps> = ({
+const CarBookings: React.FC<CarBookingsProps> = ({
   title,
   filterProps,
-  bookings = [], // default to empty array
+  bookings = [],
   loading,
   onLoadMore,
   hasMore,
 }) => {
-  
   const [activeSubTab, setActiveSubTab] = useState<string>("ongoing");
-  const [filteredData, setFilteredData] = useState<any[]>([]);
 
   const styling =
     "h-full data-[state=active]:text-[#181818] data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:rounded-none data-[state=active]:border-b-[3px] data-[state=active]:border-b-[#181818] data-[state=active]:mb-0 flex items-center justify-center cursor-pointer bg-transparent shadow-none rounded-none text-[18px] text-[#4E4F52] font-[400] ";
 
-  /**
-   * Filter data based on active sub-tab
-   * This runs whenever bookings or the selected tab changes
-   */
-  useEffect(() => {
-    const safeBookings = Array.isArray(bookings) ? bookings : [];
+  // Filter bookings by active tab
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(bookings)) return [];
 
-    const filtered = safeBookings.filter((item) => {
+    return bookings.filter((item) => {
       const status = item.booking_status?.toLowerCase();
       switch (activeSubTab) {
         case "ongoing":
@@ -65,48 +58,23 @@ const BookingTable: React.FC<BookingTableProps> = ({
           return true;
       }
     });
-
-    setFilteredData(filtered);
   }, [bookings, activeSubTab]);
 
-
+  // Format amount
   const formatAmount = (amount: string | number) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    if (filterProps.currency === "USD") {
-      return `$${numAmount.toFixed(2)}`;
-    }
-    // Convert USD to NGN roughly for demo purposes
-    return `₦${(numAmount * 1500).toLocaleString()}`;
+    return filterProps.currency === "USD"
+      ? `$${numAmount.toFixed(2)}`
+      : `₦${numAmount.toLocaleString()}`;
   };
 
-  /**
-   * Format date into dd/mm/yyyy
-   */
+  // Format date
   const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB");
   };
 
-  /**
-   * Format stay dates
-   */
-  const formatStayDates = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return "N/A";
-    return `${formatDate(checkIn)} - ${formatDate(checkOut)}`;
-  };
-
-  /**
-   * Calculate nights between two dates
-   */
-  const calculateNights = (checkIn: string, checkOut: string) => {
-    if (!checkIn || !checkOut) return 0;
-    const start = new Date(checkIn);
-    const end = new Date(checkOut);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
+  // Status styling
   const getStatusStyling = (status: string) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -122,10 +90,17 @@ const BookingTable: React.FC<BookingTableProps> = ({
     }
   };
 
+  // Helper: get passenger name
+  const getPassengerName = (passenger: any) => {
+    if (!passenger) return "N/A";
+    return `${passenger.first_name} ${passenger.last_name}`;
+  };
+
   return (
     <div className="bg-white border border-gray-300 rounded-lg py-4">
       <h2 className="text-lg font-semibold px-4 mb-4">{title}</h2>
 
+      {/* Tabs for status filters */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <TabsList className="flex space-x-6 items-center bg-transparent shadow-none rounded-none pb-0">
           <TabsTrigger value="ongoing" className={styling}>
@@ -145,12 +120,12 @@ const BookingTable: React.FC<BookingTableProps> = ({
               <TableRow className="border-none">
                 {[
                   "ID",
-                  "Hotel Name",
-                  "Guest Name",
+                  "Booking Reference",
+                  "Passenger Name",
+                  "Pickup Location",
+                  "Dropoff location",
                   "Booked On",
-                  "Check-in - Check-out",
-                  "Nights",
-                  "Room Type",
+                  "Car Type",
                   "Total Amount",
                   "Payment Status",
                   "Booking Status",
@@ -158,7 +133,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                 ].map((header) => (
                   <TableCell
                     key={header}
-                    className="font-[400] text-[#181818] text-[14px] py-5 px-4"
+                    className="font-[500] text-[#181818] text-[14px] py-5 px-4"
                     style={{ minWidth: "192.5px" }}
                   >
                     {header}
@@ -168,8 +143,8 @@ const BookingTable: React.FC<BookingTableProps> = ({
             </TableHeader>
 
             <TableBody className="px-4">
-              {/* Loading Skeleton */}
               {loading ? (
+                // Loading Skeleton
                 Array.from({ length: 5 }).map((_, index) => (
                   <TableRow key={`skeleton-${index}`}>
                     {Array.from({ length: 11 }).map((_, cellIndex) => (
@@ -183,45 +158,47 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     ))}
                   </TableRow>
                 ))
-              ) : filteredData.length > 0 ? (
+              ) : bookings.length > 0 ? (
                 <>
-                  {filteredData.map((item) => (
+                  {bookings.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.reference || "N/A"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.booking_reference || "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.hotel_name || "N/A"}
-                      </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.customer_details?.name &&
-                        item.customer_details?.surname
-                          ? `${item.customer_details.name} ${item.customer_details.surname}`
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.id
+                          ? String(item.id).substring(0, 8) + "..."
                           : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {/* Booked On - Replace with actual booked date when available */}
-                        N/A
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.passenger_name}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {formatStayDates(item.check_in, item.check_out)}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-2 whitespace-normal break-words max-w-[350px]">
+                        {item.pickup_location_label
+                          ? item.pickup_location_label
+                          : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {calculateNights(item.check_in, item.check_out)}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-2 whitespace-normal break-words max-w-[350px]">
+                        {item.dropoff_location_label
+                          ? item.dropoff_location_label
+                          : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
-                        {item.rooms?.length > 0
-                          ? item.rooms[0].room_type || "Standard"
-                          : "Standard"}
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.date_booked
+                          ? formatDate(item.date_booked)
+                          : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4 text-sm text-[#181818]">
+                      <TableCell className="text-[14px] font-[400] text-[#181818] py-3 px-4">
+                        {item.transfer_type || "N/A"}
+                      </TableCell>
+                      <TableCell className="py-5 px-4 text-gray-800">
                         {item.total_amount
                           ? formatAmount(item.total_amount)
                           : "N/A"}
                       </TableCell>
-                      <TableCell className="py-3 px-4">
+                      <TableCell className="py-5 px-4">
                         <div
-                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
                             item.payment_status
                           )}`}
                         >
@@ -230,7 +207,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                       </TableCell>
                       <TableCell className="py-3 px-4">
                         <div
-                          className={`border rounded-[12px] text-[14px] font-[400] p-[8px] w-fit ${getStatusStyling(
+                          className={`border-[1px] rounded-[12px] text-[14px] font-[400] p-[10px] w-fit ${getStatusStyling(
                             item.booking_status
                           )}`}
                         >
@@ -238,12 +215,11 @@ const BookingTable: React.FC<BookingTableProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="py-3 px-4 cursor-pointer">
-                        <BookingTableDropdown />
+                        <BookingTableDropdown booking_refrence = {item.booking_reference} />
                       </TableCell>
                     </TableRow>
                   ))}
 
-                  {/* Load More Button */}
                   {hasMore && !loading && (
                     <TableRow>
                       <TableCell colSpan={11} className="text-center py-4">
@@ -264,7 +240,7 @@ const BookingTable: React.FC<BookingTableProps> = ({
                     colSpan={11}
                     className="text-center py-8 text-[#4E4F52]"
                   >
-                    No bookings found matching your criteria
+                    No car bookings found matching your criteria
                   </TableCell>
                 </TableRow>
               )}
@@ -276,4 +252,4 @@ const BookingTable: React.FC<BookingTableProps> = ({
   );
 };
 
-export default BookingTable;
+export default CarBookings;

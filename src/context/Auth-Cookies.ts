@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 export interface TokenInfo {
   accessToken: string | null;
   refreshToken: string | null;
-  hasTokens: boolean;
 }
 
 export async function getCookies(): Promise<TokenInfo> {
@@ -14,6 +13,5 @@ export async function getCookies(): Promise<TokenInfo> {
   return {
     accessToken,
     refreshToken,
-    hasTokens: !!(accessToken && refreshToken),
   };
 }

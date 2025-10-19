@@ -1,17 +1,125 @@
 "use client";
-
+import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useGetBooking } from "@/hooks/api/bookings";
 
 import StayDetails from "@/components/molecues/bookings/data/stays/StaysDetails";
 import CarDetails from "@/components/molecues/bookings/data/cars/CarDetails";
 import FlightDetails from "@/components/molecues/bookings/data/flight/FlightDetails";
 
 export default function BookingDetailsPage() {
-  const params = useParams();
-  const id = params?.id;
+  const { id }: { id: string } = useParams();
   const router = useRouter();
 
-  const dataType = "flight";
+  const { booking, loadingBooking } = useGetBooking({
+    bookingRef: id,
+    initalFetch: true,
+    successCallback: () => {},
+  });
+
+  const bookingComponents: Record<string, React.ReactNode> = {
+    stays: <StayDetails />,
+    transfers: <CarDetails data={booking?.result} />,
+    flights: <FlightDetails data={booking?.result} />,
+  };
+
+  const currentType = booking?.booking_type?.toLowerCase() ?? "";
+
+  if (loadingBooking || !booking) {
+    return (
+      <div className="space-y-[24px]">
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-4 items-center">
+            <img
+              src="/assets/icons/arrow-back.svg"
+              alt="Go back"
+              className="cursor-pointer"
+              onClick={() => router.back()}
+            />
+            <h1 className="text-[28px] font-semibold text-[#181818]">
+              Booking Details
+            </h1>
+          </div>
+          <div className="h-[40px] w-[140px] rounded-[8px] bg-gray-200 animate-pulse" />
+        </div>
+
+        {/* Summary skeletons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-[12px] border border-gray-100 bg-white p-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              <div className="h-6 w-1/2 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+            </div>
+          </div>
+          <div className="rounded-[12px] border border-gray-100 bg-white p-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              <div className="h-6 w-1/2 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+            </div>
+          </div>
+          <div className="rounded-[12px] border border-gray-100 bg-white p-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              <div className="h-6 w-1/2 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Details skeleton card */}
+        <div className="rounded-[12px] border border-gray-100 bg-white p-6">
+          <div className="animate-pulse space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="h-6 w-40 bg-gray-200 rounded" />
+              <div className="h-4 w-24 bg-gray-200 rounded" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-gray-200 rounded" />
+              </div>
+              <div className="space-y-3">
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-gray-200 rounded" />
+              </div>
+              <div className="space-y-3">
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-gray-200 rounded" />
+              </div>
+              <div className="space-y-3">
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+                <div className="h-10 w-full bg-gray-200 rounded" />
+              </div>
+            </div>
+
+            <div className="h-[1px] w-full bg-gray-100" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="h-12 w-full bg-gray-200 rounded" />
+              <div className="h-12 w-full bg-gray-200 rounded" />
+              <div className="h-12 w-full bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary list skeletons */}
+        <div className="rounded-[12px] border border-gray-100 bg-white p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-5 w-48 bg-gray-200 rounded" />
+            <div className="space-y-3">
+              <div className="h-4 w-full bg-gray-200 rounded" />
+              <div className="h-4 w-5/6 bg-gray-200 rounded" />
+              <div className="h-4 w-2/3 bg-gray-200 rounded" />
+              <div className="h-4 w-3/4 bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-[24px]">
@@ -19,26 +127,28 @@ export default function BookingDetailsPage() {
         <div className="flex space-x-4 items-center">
           <img
             src="/assets/icons/arrow-back.svg"
-            alt=""
-            className=" cursor-pointer "
+            alt="Go back"
+            className="cursor-pointer"
             onClick={() => router.back()}
           />
           <h1 className="text-[28px] font-semibold text-[#181818]">
             Booking Details
           </h1>
         </div>
-        <div className="rounded-[8px] p-[12px] bg-[#D72638] text-[#fff] text-[14px] font-[400] cursor-pointer ">
+
+        <button
+          className="rounded-[8px] p-[12px] bg-[#D72638] text-[#fff] text-[14px] font-[400] cursor-pointer"
+          onClick={() => console.log("Cancel booking clicked")}
+        >
           Cancel Booking
-        </div>
+        </button>
       </div>
 
-      {dataType === "stays" ? (
-        <StayDetails />
-      ) : dataType === "cars" ? (
-        <CarDetails />
-      ) : dataType === "flight" ? (
-        <FlightDetails />
-      ) : null}
+      {bookingComponents[currentType] || (
+        <div className="text-center py-6 text-gray-400">
+          No details available for this booking type.
+        </div>
+      )}
     </div>
   );
 }
