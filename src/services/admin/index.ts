@@ -23,7 +23,7 @@ type TransferSupes = {
 }
 
 export const fetchPermission = () =>
-    instance.get(`${env.api.superadmin}permissions/groups`);
+    instance.get(`${env.api.superadmin}permissions/groups/`);
 
 export const fetchRoles = () =>
     instance.get(`${env.api.superadmin}roles/`);
